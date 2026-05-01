@@ -54,6 +54,10 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/admin.html"));
+});
+
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indo Heals Admin</title>
+<link rel="icon" type="image/png" href="assets/indo-heals-logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&amp;family=Lato:wght@300;400;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <aside class="admin-sidebar">
+      <a class="brand" href="index.html" aria-label="Indo Heals home">
+        <img src="assets/indo-heals-logo.png" alt="">
+        <span>Indo Heals</span>
+      </a>
+      <nav class="admin-nav" aria-label="Admin sections">
+        <button class="active" data-tab="products" type="button">Products</button>
+        <button data-tab="orders" type="button">Orders</button>
+        <button data-tab="users" type="button">Users</button>
+      </nav>
+      <button class="ghost-button" type="button" onclick="logoutAdmin()">Logout</button>
+    </aside>
+
+    <section class="admin-main">
+      <header class="admin-header">
+        <div>
+          <span class="eyebrow">Secure Admin</span>
+          <h1>Dashboard</h1>
+        </div>
+        <div class="admin-meta">
+          <span id="adminName"></span>
+          <button class="ghost-button" type="button" onclick="refreshCurrentTab()">Refresh</button>
+        </div>
+      </header>
+
+      <section id="loginPanel" class="login-panel">
+        <form class="auth-card" onsubmit="loginAdmin(event)">
+          <img src="assets/indo-heals-logo.png" alt="Indo Heals logo">
+          <span class="eyebrow">Admin Login</span>
+          <h2>Sign in</h2>
+          <label>
+            Email
+            <input id="adminEmail" type="email" autocomplete="email" required>
+          </label>
+          <label>
+            Password
+            <input id="adminPassword" type="password" autocomplete="current-password" required>
+          </label>
+          <button class="primary-button" type="submit">Login</button>
+          <p id="adminLoginMessage" class="form-message"></p>
+        </form>
+      </section>
+
+      <section id="dashboardPanel" class="dashboard-panel" hidden>
+        <section id="productsTab" class="tab-panel">
+          <div class="panel-grid">
+            <form class="form-panel" onsubmit="saveProduct(event)">
+              <div class="panel-title">
+                <h2 id="productFormTitle">Add Product</h2>
+                <button class="ghost-button" type="button" onclick="resetProductForm()">Clear</button>
+              </div>
+              <input id="productId" type="hidden">
+              <label>Name<input id="productName" required></label>
+              <label>Slug<input id="productSlug" placeholder="breathe-classic"></label>
+              <div class="two-col">
+                <label>Price<input id="productPrice" type="number" min="0" step="1" required></label>
+                <label>Stock<input id="productStock" type="number" min="0" step="1"></label>
+              </div>
+              <label>Category<input id="productCategory"></label>
+              <label>Badge<input id="productBadge"></label>
+              <label>Image path<input id="productImage" placeholder="assets/breathe-classic-ai.png"></label>
+              <div class="two-col">
+                <label>Weight<input id="productWeight" placeholder="40 g"></label>
+                <label>Cocoa<input id="productCocoa" placeholder="55% dark cocoa"></label>
+              </div>
+              <label>Wellness note<textarea id="productWellness" rows="2"></textarea></label>
+              <label>Description<textarea id="productDescription" rows="4"></textarea></label>
+              <label>Ingredients, comma separated<input id="productIngredients"></label>
+              <label>Benefits, comma separated<input id="productBenefits"></label>
+              <label class="check-row"><input id="productActive" type="checkbox" checked> Active product</label>
+              <button class="primary-button" type="submit">Save Product</button>
+              <p id="productMessage" class="form-message"></p>
+            </form>
+
+            <div class="table-panel">
+              <div class="panel-title">
+                <h2>Products</h2>
+                <span id="productCount" class="count-pill">0</span>
+              </div>
+              <div id="productsList" class="stack-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="ordersTab" class="tab-panel" hidden>
+          <div class="table-panel full">
+            <div class="panel-title">
+              <h2>Orders</h2>
+              <span id="orderCount" class="count-pill">0</span>
+            </div>
+            <div id="ordersList" class="stack-list"></div>
+          </div>
+        </section>
+
+        <section id="usersTab" class="tab-panel" hidden>
+          <div class="table-panel full">
+            <div class="panel-title">
+              <h2>Users</h2>
+              <span id="userCount" class="count-pill">0</span>
+            </div>
+            <div id="usersList" class="stack-list"></div>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -46,6 +46,11 @@ Digital files must live outside the public frontend, inside `SECURE_DOWNLOAD_DIR
 
 Admin access is controlled by user `role: "admin"`. New users whose email matches `ADMIN_EMAIL` are created as admins.
 
+Admin panel URL:
+
+- `/admin`
+- `/admin.html`
+
 - `GET /admin/users`
 - `GET /admin/orders`
 - `GET /admin/products`
