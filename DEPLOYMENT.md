@@ -15,9 +15,13 @@ https://your-render-service.onrender.com/api/orders/webhook/razorpay
 
 Use the same value for Razorpay's webhook secret and `RAZORPAY_WEBHOOK_SECRET`.
 
-## Frontend: Vercel
+## Frontend: Netlify Or Vercel
 
-Deploy the `frontend` directory as a static site.
+For Netlify Git deploy, keep `netlify.toml` in the repository root. It publishes the `frontend` directory and maps `/admin` to `admin.html`.
+
+For Netlify manual drag-and-drop upload, upload the contents of the `frontend` folder, not the whole project folder. The uploaded zip/folder must contain `index.html` at its top level.
+
+Do not upload `backend/.env`, `backend/node_modules`, or paid files from `backend/secure-files`.
 
 The frontend looks for `window.INDO_HEALS_API` first. For production, add a small runtime config before `script.js` if the backend is hosted on another domain:
 
