@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indo Heals | Ancient Wisdom, Modern Wellness</title>
+<link rel="icon" type="image/png" href="assets/indo-heals-logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&amp;family=Cinzel:wght@400;600;700&amp;family=Lato:wght@300;400;700&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav-main">
+  <div class="nav-container">
+    <ul class="nav-links nav-left">
+      <li><a class="has-chevron" onclick="goToPage('products')">Brands</a></li>
+      <li><a class="has-chevron" onclick="goToPage('about')">Businesses</a></li>
+      <li><a class="has-chevron" onclick="goToPage('about')">Impact</a></li>
+    </ul>
+
+    <a onclick="goToPage('home')" class="nav-logo" aria-label="Indo Heals home">
+      <span class="logo-badge">
+        <img src="assets/indo-heals-logo.png" alt="">
+      </span>
+      <span class="nav-logo-text">Indo Heals</span>
+    </a>
+
+    <ul class="nav-links nav-right">
+      <li><a onclick="goToPage('resources')">Resources</a></li>
+      <li><a onclick="goToPage('contact')">Contact</a></li>
+      <li><a id="cartLink" onclick="goToPage('cart')">Cart</a></li>
+      <li><a class="appointment-link" onclick="goToPage('appointment')">Book an Appointment</a></li>
+    </ul>
+    <span id="navUser" class="nav-user"></span>
+  </div>
+</nav>
+
+<div id="home-page" class="page">
+  <section class="hero premium-hero" aria-label="Indo Heals featured sections">
+    <div class="hero-slider" id="heroSlider">
+      <article class="hero-slide active" data-slide="innovation" style="--hero-image: url('https://images.unsplash.com/photo-1768729341217-0e11cb959252?auto=format&fit=crop&w=2400&q=80'); --hero-position: center;">
+        <div class="hero-content reveal">
+          <span class="hero-kicker">Innovation</span>
+          <h1>Herbal science shaped for everyday wellness</h1>
+          <p class="hero-sub">Indo Heals brings traditional Unani and Ayurvedic thinking into refined, modern wellness formats.</p>
+          <a onclick="goToPage('about')" class="btn-primary">Know More</a>
+        </div>
+      </article>
+      <article class="hero-slide" data-slide="wellness" style="--hero-image: url('https://images.unsplash.com/photo-1773479089546-49ff98325518?auto=format&fit=crop&w=2400&q=80'); --hero-position: center;">
+        <div class="hero-content">
+          <span class="hero-kicker">Wellness</span>
+          <h1>Daily rituals with premium herbal care</h1>
+          <p class="hero-sub">Botanicals, cacao, and responsible traditional-use positioning for calm, consistent routines.</p>
+          <a onclick="goToPage('products')" class="btn-primary">Know More</a>
+        </div>
+      </article>
+      <article class="hero-slide" data-slide="modernity" style="--hero-image: url('https://images.unsplash.com/photo-1573546333520-92cb9d534461?auto=format&fit=crop&w=2400&q=80'); --hero-position: center;">
+        <div class="hero-content">
+          <span class="hero-kicker">Modernity</span>
+          <h1>Clean formats for modern households</h1>
+          <p class="hero-sub">A polished experience for people who want wellness to feel simple, credible, and beautifully made.</p>
+          <a onclick="goToPage('products')" class="btn-primary">Know More</a>
+        </div>
+      </article>
+      <article class="hero-slide" data-slide="legacy" style="--hero-image: url('https://images.unsplash.com/photo-1758221052535-8119e3a816b7?auto=format&fit=crop&w=2400&q=80'); --hero-position: center;">
+        <div class="hero-content">
+          <span class="hero-kicker">Legacy</span>
+          <h1>Ancient wisdom, renewed with care</h1>
+          <p class="hero-sub">Rooted in Indian herbal heritage and crafted for the pace of contemporary wellness.</p>
+          <a onclick="goToPage('about')" class="btn-primary">Know More</a>
+        </div>
+      </article>
+    </div>
+    <section class="hero-consult-section" id="heroConsultSection" style="--consult-image: url('https://images.unsplash.com/photo-1758691461932-d0aa0ebf6b31?auto=format&fit=crop&w=2400&q=80');" aria-label="Consult with Unani doctors">
+      <div class="consult-media">
+        <img src="https://images.unsplash.com/photo-1758691461932-d0aa0ebf6b31?auto=format&fit=crop&w=1200&q=80" alt="Doctor consulting a patient over video call">
+        <div class="consult-media-copy">
+          <span>#CureWithUnaniCare</span>
+          <h2>Consult with <em>Unani</em> Doctors for any health related concerns over video call.</h2>
+          <p>From the comfort of your home</p>
+        </div>
+      </div>
+      <div class="consult-actions">
+        <button type="button" class="consult-action blue" onclick="goToPage('appointment')">
+          <span aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M7 2h2v2h6V2h2v2h2.5A2.5 2.5 0 0 1 22 6.5v12A2.5 2.5 0 0 1 19.5 21h-15A2.5 2.5 0 0 1 2 18.5v-12A2.5 2.5 0 0 1 4.5 4H7V2Zm13 8H4v8.5c0 .3.2.5.5.5h15c.3 0 .5-.2.5-.5V10Zm-3.4 3.2-5.1 5.1-2.8-2.8 1.4-1.4 1.4 1.4 3.7-3.7 1.4 1.4Z"></path></svg>
+          </span>
+          Book an Appointment
+        </button>
+        <button type="button" class="consult-action yellow" onclick="goToPage('contact')">
+          <span aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.3 7 13 7 13s7-7.7 7-13a7 7 0 0 0-7-7Zm1 11h-2v-3H8V8h3V5h2v3h3v2h-3v3Z"></path></svg>
+          </span>
+          Locate Clinic
+        </button>
+        <button type="button" class="consult-action pink" onclick="goToPage('products')">
+          <span aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M7 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm10 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM6.2 6l.5 2H21l-2 7H8.3L5.7 4H2V2h5.3L7.8 4H22v2H6.2Zm3.6 7h7.7l.9-3H9.1l.7 3Z"></path></svg>
+          </span>
+          Buy Products
+        </button>
+      </div>
+    </section>
+    <nav class="hero-tabs" aria-label="Hero section navigation">
+      <button type="button" data-hero-tab="consult">Consult</button>
+      <button class="active" type="button" data-hero-tab="innovation">Innovation</button>
+      <button type="button" data-hero-tab="wellness">Wellness</button>
+      <button type="button" data-hero-tab="modernity">Modernity</button>
+      <button type="button" data-hero-tab="legacy">Legacy</button>
+    </nav>
+  </section>
+
+  <section class="ritual-strip" aria-label="Indo Heals principles">
+    <div>
+      <span>01</span>
+      <strong>Botanical Blends</strong>
+      <p>Ashwagandha, tulsi, amla, mulethi, moringa and warming spices.</p>
+    </div>
+    <div>
+      <span>02</span>
+      <strong>Premium Rituals</strong>
+      <p>Functional wellness formats made for calm, consistent daily use.</p>
+    </div>
+    <div>
+      <span>03</span>
+      <strong>Responsible Care</strong>
+      <p>Traditional-use positioning with clear, trustworthy communication.</p>
+    </div>
+  </section>
+
+  <section class="belief-band">
+    <span class="section-label">The Indo Heals Philosophy</span>
+    <p>Rooted in Ayurveda and Unani wisdom, refined for the pace and polish of modern wellness.</p>
+  </section>
+
+  <section class="range-section">
+    <div class="range-head">
+      <span class="section-label">Signature Collection</span>
+      <h2 class="section-title">Herbal wellness, presented like a premium ritual</h2>
+      <p>Explore functional dark chocolate blends with carefully selected botanicals and an elegant e-commerce experience.</p>
+    </div>
+    <div class="range-grid">
+      <article class="range-card reveal" role="button" tabindex="0" onclick="viewDetail('breathe-classic')" onkeydown="handleProductCardKey(event, 'breathe-classic')" aria-label="View Breathe Classic specifications">
+        <img src="assets/breathe-classic-ai.png" alt="Breathe Classic product packaging">
+        <div class="range-card-body">
+          <span>Classic Blend</span>
+          <h3>Breathe Classic</h3>
+          <p>Ashwagandha and tulsi with deep cocoa richness.</p>
+          <small>View full specification</small>
+          <div class="range-card-footer">
+            <strong>&#8377;299</strong>
+            <button onclick="event.stopPropagation(); addToCart('breathe-classic')" class="product-btn">Add to Cart</button>
+          </div>
+        </div>
+      </article>
+      <article class="range-card reveal" role="button" tabindex="0" onclick="viewDetail('breathe-energy')" onkeydown="handleProductCardKey(event, 'breathe-energy')" aria-label="View Breathe Energy specifications">
+        <img src="assets/breathe-energy-ai.png" alt="Breathe Energy product packaging">
+        <div class="range-card-body">
+          <span>Energy Blend</span>
+          <h3>Breathe Energy</h3>
+          <p>Moringa and almond for active everyday routines.</p>
+          <small>View full specification</small>
+          <div class="range-card-footer">
+            <strong>&#8377;349</strong>
+            <button onclick="event.stopPropagation(); addToCart('breathe-energy')" class="product-btn">Add to Cart</button>
+          </div>
+        </div>
+      </article>
+      <article class="range-card reveal" role="button" tabindex="0" onclick="viewDetail('breathe-immunity')" onkeydown="handleProductCardKey(event, 'breathe-immunity')" aria-label="View Breathe Immunity specifications">
+        <img src="assets/breathe-immunity-ai.png" alt="Breathe Immunity product packaging">
+        <div class="range-card-body">
+          <span>Immunity Blend</span>
+          <h3>Breathe Immunity</h3>
+          <p>Amla, cinnamon and mulethi in a smooth cacao base.</p>
+          <small>View full specification</small>
+          <div class="range-card-footer">
+            <strong>&#8377;349</strong>
+            <button onclick="event.stopPropagation(); addToCart('breathe-immunity')" class="product-btn">Add to Cart</button>
+          </div>
+        </div>
+      </article>
+      <article class="range-card reveal" role="button" tabindex="0" onclick="viewDetail('breathe-slim')" onkeydown="handleProductCardKey(event, 'breathe-slim')" aria-label="View Breathe Slim specifications">
+        <img src="assets/breathe-slim-ai.png" alt="Breathe Slim product packaging">
+        <div class="range-card-body">
+          <span>Slim Blend</span>
+          <h3>Breathe Slim</h3>
+          <p>Ginger and black pepper for warm digestive balance.</p>
+          <small>View full specification</small>
+          <div class="range-card-footer">
+            <strong>&#8377;329</strong>
+            <button onclick="event.stopPropagation(); addToCart('breathe-slim')" class="product-btn">Add to Cart</button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="split-story">
+    <div class="split-copy">
+      <span class="section-label">Botanical Craft</span>
+      <h2 class="section-title">A refined bridge between traditional herbs and contemporary wellness</h2>
+      <p>Indo Heals brings familiar household botanicals into polished, convenient products. Every blend is built around sensory pleasure, ingredient clarity and a premium wellness routine.</p>
+      <a onclick="goToPage('products')" class="btn-primary">Explore Products</a>
+    </div>
+    <div class="split-media">
+      <img src="assets/health-support-chocolate.png" alt="Herbal chocolate with botanicals">
+    </div>
+  </section>
+
+  <section class="legacy-section">
+    <div class="legacy-copy">
+      <span class="section-label">Heritage With Polish</span>
+      <h2 class="section-title">Clean, credible wellness for modern households</h2>
+      <p>Founded in New Delhi, Indo Heals pairs traditional herbal thinking with a high-end product experience designed for trust, consistency and daily ease.</p>
+    </div>
+    <div class="stats-row">
+      <div><strong>2026</strong><span>Established</span></div>
+      <div><strong>7+</strong><span>Botanicals</span></div>
+      <div><strong>4</strong><span>Wellness blends</span></div>
+      <div><strong>4</strong><span>Breathe variants</span></div>
+    </div>
+  </section>
+
+  <section class="newsletter-band">
+    <div>
+      <span class="section-label">Keep in Touch</span>
+      <h2>Receive Indo Heals updates</h2>
+    </div>
+    <form onsubmit="event.preventDefault(); showToast('Thank you for subscribing.');">
+      <input type="email" placeholder="Enter email" required>
+      <button type="submit">Send</button>
+    </form>
+  </section>
+</div>
+
+<div id="products-page" class="page" style="display:none;">
+  <section class="section page-head">
+    <div class="center">
+      <span class="section-label">Our Products</span>
+      <h2 class="section-title">Premium Herbal Wellness Collection</h2>
+      <div class="section-divider"></div>
+      <input type="text" id="searchBox" placeholder="Search classic, energy, immunity, slim..." class="search-box">
+    </div>
+    <div id="products" class="products-grid"></div>
+    <p class="compliance-note">* All products are FSSAI-compliant traditional-use wellness products. No medical claims made.</p>
+  </section>
+</div>
+
+<div id="about-page" class="page" style="display:none;">
+  <section class="section about-section">
+    <div class="about-content">
+      <div class="about-innovation-grid">
+        <div class="about-copy-panel about-animate about-delay-1">
+          <span class="section-label">Innovations</span>
+          <h2>Research-led herbal wellness for modern households</h2>
+          <p class="about-intro">Indo Heals is built on the belief that traditional Unani and Ayurvedic wisdom deserves a modern, quality-focused presentation. Our product thinking combines ingredient clarity, sensory refinement, and responsible wellness communication.</p>
+          <p>We focus on innovation-driven formulation, clean sourcing, and premium everyday formats. Every blend is developed to make herbal wellness feel simple, credible, and consistent for today’s health-conscious families.</p>
+          <div class="about-feature-list">
+            <div><strong>01</strong><span>Botanical research and traditional-use positioning</span></div>
+            <div><strong>02</strong><span>Premium formats with modern quality standards</span></div>
+            <div><strong>03</strong><span>Clear communication with no medical overclaims</span></div>
+          </div>
+        </div>
+
+        <div class="about-image-panel about-animate about-delay-2">
+          <img src="https://images.unsplash.com/photo-1769698678497-c41f0ab47c3e?auto=format&fit=crop&w=1400&q=80" alt="Modern wellness and research facility">
+          <button type="button" class="about-consult-card" onclick="goToPage('appointment')">
+            <span aria-hidden="true">+</span>
+            Consult a Doctor
+          </button>
+        </div>
+      </div>
+
+      <div class="about-stat-grid about-animate about-delay-3">
+        <div><strong>7+</strong><span>Botanical ingredients</span></div>
+        <div><strong>4</strong><span>Wellness blends</span></div>
+        <div><strong>2026</strong><span>Founded in New Delhi</span></div>
+        <div><strong>100%</strong><span>Responsible product communication</span></div>
+      </div>
+
+      <div class="about-note about-animate about-delay-4">
+        <p>All this supports Indo Heals’ larger mission: making herbal wellness products more accessible, refined, and trustworthy without losing respect for traditional knowledge.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="resources-page" class="page" style="display:none;">
+  <section class="section appointment-page resources-page">
+    <div class="appointment-shell resources-shell">
+      <div class="appointment-copy resources-copy">
+        <span class="section-label">Resources</span>
+        <h2 class="section-title">Connect with Indo Heals</h2>
+        <p>Find our brand channels, wellness updates, career contact and support details in one place.</p>
+        <button type="button" class="btn-primary resources-consult-mobile" onclick="goToPage('appointment')">Consult a Doctor</button>
+      </div>
+
+      <div class="appointment-form resources-panel">
+        <div class="resource-row">
+          <h3>Indo Heals<br>Laboratories<br>India</h3>
+          <div class="resource-content">
+            <div class="social-grid" aria-label="Indo Heals Laboratories India social links">
+              <a class="social-link facebook" href="#" aria-label="Facebook">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.2 8.2V6.7c0-.7.5-.9.9-.9h2.2V2.1L14.2 2c-3.5 0-4.3 2.6-4.3 4.3v1.9H7.2V12h2.7v10h4.1V12h3.1l.5-3.8h-3.4Z"></path></svg>
+              </a>
+              <a class="social-link instagram" href="#" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4c0 3.2-2.6 5.8-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8C2 4.6 4.6 2 7.8 2Zm0 2C5.7 4 4 5.7 4 7.8v8.4C4 18.3 5.7 20 7.8 20h8.4c2.1 0 3.8-1.7 3.8-3.8V7.8C20 5.7 18.3 4 16.2 4H7.8Zm8.9 2.2a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2ZM12 7.2A4.8 4.8 0 1 1 12 16.8 4.8 4.8 0 0 1 12 7.2Zm0 2A2.8 2.8 0 1 0 12 14.8 2.8 2.8 0 0 0 12 9.2Z"></path></svg>
+              </a>
+              <a class="social-link linkedin" href="#" aria-label="LinkedIn">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.9 8.9H3.1V21h3.8V8.9ZM5 3a2.2 2.2 0 1 0 0 4.4A2.2 2.2 0 0 0 5 3Zm16 11.3c0-3.6-1.9-5.7-5-5.7-2.1 0-3.1 1.2-3.6 2V8.9H8.8V21h3.8v-6.1c0-1.6.3-3.1 2.2-3.1 1.9 0 1.9 1.8 1.9 3.2v6H21v-6.7Z"></path></svg>
+              </a>
+              <a class="social-link twitter" href="#" aria-label="Twitter">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 2.8h3.1l-6.8 7.8 8 10.6h-6.3l-4.9-6.4-5.6 6.4H2.6l7.3-8.4L2.2 2.8h6.4l4.4 5.9 5.2-5.9Zm-1.1 16.5h1.7L7.7 4.6H5.9l11.2 14.7Z"></path></svg>
+              </a>
+              <a class="social-link youtube" href="#" aria-label="YouTube">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 7.2a3 3 0 0 0-2.1-2.1C17.6 4.6 12 4.6 12 4.6s-5.6 0-7.5.5a3 3 0 0 0-2.1 2.1C2 9.1 2 12 2 12s0 2.9.4 4.8a3 3 0 0 0 2.1 2.1c1.9.5 7.5.5 7.5.5s5.6 0 7.5-.5a3 3 0 0 0 2.1-2.1c.4-1.9.4-4.8.4-4.8s0-2.9-.4-4.8ZM10 15.4V8.6l5.8 3.4L10 15.4Z"></path></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="resource-row">
+          <h3>Indo Heals<br>Wellness</h3>
+          <div class="resource-content">
+            <div class="social-grid" aria-label="Indo Heals Wellness social links">
+              <a class="social-link facebook" href="#" aria-label="Facebook">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.2 8.2V6.7c0-.7.5-.9.9-.9h2.2V2.1L14.2 2c-3.5 0-4.3 2.6-4.3 4.3v1.9H7.2V12h2.7v10h4.1V12h3.1l.5-3.8h-3.4Z"></path></svg>
+              </a>
+              <a class="social-link instagram" href="#" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4c0 3.2-2.6 5.8-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8C2 4.6 4.6 2 7.8 2Zm0 2C5.7 4 4 5.7 4 7.8v8.4C4 18.3 5.7 20 7.8 20h8.4c2.1 0 3.8-1.7 3.8-3.8V7.8C20 5.7 18.3 4 16.2 4H7.8Zm8.9 2.2a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2ZM12 7.2A4.8 4.8 0 1 1 12 16.8 4.8 4.8 0 0 1 12 7.2Zm0 2A2.8 2.8 0 1 0 12 14.8 2.8 2.8 0 0 0 12 9.2Z"></path></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="resource-row resource-row-career">
+          <h3>Career at<br>Indo Heals</h3>
+          <div class="resource-content">
+            <span class="resource-muted">Join us</span>
+            <p>Human Resource Department</p>
+            <a href="mailto:teamhr@indoheals.in">teamhr@indoheals.in</a>
+          </div>
+          <button type="button" class="resource-consult-card" onclick="goToPage('appointment')">
+            <span aria-hidden="true">+</span>
+            Contact us
+          </button>
+        </div>
+
+        <div class="resource-row">
+          <h3>Talk to Us</h3>
+          <div class="resource-content">
+            <a href="mailto:Contact@indoheals.com">Contact@indoheals.com</a>
+            <a href="tel:+919955289295">+91 9955289295</a>
+            <p>3rd Floor, Plot No. 139 (Old No. 188), Opp. Okhla Jama Masjid, Main Market, Okhla Village, Jamia Nagar, New Delhi - 110025</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="contact-page" class="page" style="display:none;">
+  <section class="section appointment-page contact-page">
+    <div class="appointment-shell contact-shell">
+      <div class="appointment-copy contact-copy">
+        <span class="section-label">Contact Us</span>
+        <h2 class="section-title">Start a business conversation with Indo Heals</h2>
+        <p>For fast-track international partnerships, wholesale opportunities, or product enquiries, share your details and our team will connect with you.</p>
+        <div class="appointment-points">
+          <div><strong>01</strong><span>International partnerships</span></div>
+          <div><strong>02</strong><span>Wholesale and imports</span></div>
+          <div><strong>03</strong><span>Product collaboration</span></div>
+        </div>
+      </div>
+
+      <form class="appointment-form business-contact-form" onsubmit="handleBusinessContact(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Name of Company</label>
+            <input type="text" id="business-company" required placeholder="Enter company name">
+          </div>
+          <div class="form-group">
+            <label>City</label>
+            <input type="text" id="business-city" required placeholder="Enter city">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Country</label>
+            <input type="text" id="business-country" required placeholder="Enter country">
+          </div>
+          <div class="form-group">
+            <label>Website</label>
+            <input type="url" id="business-website" placeholder="https://example.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Contact Person Name</label>
+            <input type="text" id="business-person" required placeholder="Enter contact person name">
+          </div>
+          <div class="form-group">
+            <label>Mobile Number</label>
+            <input type="tel" id="business-mobile" required placeholder="Enter mobile number">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Email ID</label>
+            <input type="email" id="business-email" required placeholder="Enter email address">
+          </div>
+          <div class="form-group">
+            <label>Currently Importing</label>
+            <input type="text" id="business-current-products" placeholder="Mention current imported products">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Message</label>
+          <textarea id="business-message" rows="4" placeholder="Write your message"></textarea>
+        </div>
+        <button type="submit" class="btn-primary">Submit</button>
+        <p id="businessContactMessage" class="form-message"></p>
+      </form>
+    </div>
+  </section>
+</div>
+
+<div id="cart-page" class="page" style="display:none;">
+  <section class="section">
+    <div class="cart-shell">
+      <span class="section-label">Your Order</span>
+      <h2 class="section-title">Shopping Cart</h2>
+      <div id="cartItems"></div>
+      <div class="cart-summary" id="cartSummary" style="display:none;">
+        <div class="summary-card">
+          <div class="summary-title">Order Summary</div>
+          <div id="orderSummary"></div>
+          <div class="summary-total">
+            <strong>Total: ₹<span id="totalPrice">0</span></strong>
+          </div>
+          <button onclick="checkout()" class="btn-primary">Proceed to Checkout</button>
+        </div>
+      </div>
+      <div id="emptyCart">
+        <p>Your cart is empty</p>
+        <button onclick="goToPage('products')" class="btn-primary">Continue Shopping</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="appointment-page" class="page" style="display:none;">
+  <section class="section appointment-page">
+    <div class="appointment-shell">
+      <div class="appointment-copy">
+        <span class="section-label">Book an Appointment</span>
+        <h2 class="section-title">Get personal herbal wellness guidance</h2>
+        <p>Share your details and preferred timing. The Indo Heals team will review your request and connect with you for product guidance, bulk queries, or wellness consultation.</p>
+        <div class="appointment-points">
+          <div><strong>01</strong><span>Product guidance</span></div>
+          <div><strong>02</strong><span>Business enquiries</span></div>
+          <div><strong>03</strong><span>Wellness consultation</span></div>
+        </div>
+      </div>
+
+      <form class="appointment-form" onsubmit="handleAppointment(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="appointment-name" required placeholder="Enter your name">
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" id="appointment-phone" required placeholder="Enter phone number">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="appointment-email" required placeholder="Enter email">
+          </div>
+          <div class="form-group">
+            <label>Interested In</label>
+            <select id="appointment-interest" required>
+              <option value="">Select one</option>
+              <option>Breathe Classic</option>
+              <option>Breathe Energy</option>
+              <option>Breathe Immunity</option>
+              <option>Breathe Slim</option>
+              <option>Business / Wholesale</option>
+              <option>General Wellness Guidance</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Preferred Date</label>
+            <input type="date" id="appointment-date" required>
+          </div>
+          <div class="form-group">
+            <label>Preferred Time</label>
+            <input type="time" id="appointment-time" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Message</label>
+          <textarea id="appointment-message" rows="4" placeholder="Tell us what you need help with"></textarea>
+        </div>
+        <button type="submit" class="btn-primary">Book Appointment</button>
+        <p id="appointmentMessage" class="form-message"></p>
+      </form>
+    </div>
+  </section>
+</div>
+
+<div id="login-page" class="page" style="display:none;">
+  <section class="auth-page">
+    <div class="login-container">
+      <img src="assets/indo-heals-logo.png" alt="Indo Heals logo">
+      <span class="section-label">Secure Account</span>
+      <h2>Login</h2>
+      <form onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" required placeholder="Enter your email">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" required placeholder="Enter your password">
+        </div>
+        <button type="submit" class="btn-primary">Login</button>
+        <p id="loginMessage" class="form-message"></p>
+      </form>
+      <p>Don't have an account? <a href="#" onclick="goToPage('signup'); return false;">Sign Up</a></p>
+    </div>
+  </section>
+</div>
+
+<div id="signup-page" class="page" style="display:none;">
+  <section class="auth-page">
+    <div class="login-container">
+      <img src="assets/indo-heals-logo.png" alt="Indo Heals logo">
+      <span class="section-label">Create Account</span>
+      <h2>Sign Up</h2>
+      <form onsubmit="handleSignup(event)">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="name" required placeholder="Enter your name">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="signup-email" required placeholder="Enter your email">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="signup-password" required minlength="6" placeholder="Minimum 8 characters">
+        </div>
+        <button type="submit" class="btn-primary">Sign Up</button>
+        <p id="signupMessage" class="form-message"></p>
+      </form>
+      <p>Already have an account? <a href="#" onclick="goToPage('login'); return false;">Login</a></p>
+    </div>
+  </section>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <img class="footer-logo" src="assets/indo-heals-logo.png" alt="Indo Heals logo">
+      <div class="footer-brand-title">Indo Heals Private Limited</div>
+      <p>Unani, Ayurvedic & Herbal Wellness Manufacturing · Estd. 2026, New Delhi.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Products</div>
+      <ul>
+        <li><a onclick="goToPage('products')">Breathe Classic</a></li>
+        <li><a onclick="goToPage('products')">Breathe Energy</a></li>
+        <li><a onclick="goToPage('products')">Breathe Immunity</a></li>
+        <li><a onclick="goToPage('products')">Breathe Slim</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Company</div>
+      <ul>
+        <li><a onclick="goToPage('about')">About Us</a></li>
+        <li><a onclick="goToPage('home')">Home</a></li>
+        <li><a onclick="goToPage('login')">Account</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Connect</div>
+      <div class="footer-contact">
+        <a href="mailto:Contact@indoheals.com">Contact@indoheals.com</a>
+        <a href="tel:+919955289295">+91 9955289295</a>
+        <p>3rd Floor, Plot No. 139 (Old No. 188), Opp. Okhla Jama Masjid, Main Market, Okhla Village, Jamia Nagar, New Delhi - 110025</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 <span>Indo Heals Private Limited</span>. All rights reserved.</p>
+    <p class="compliance-footer">All product descriptions use FSSAI-permitted traditional-use statements only. No medical claims made.</p>
+  </div>
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="script.js"></script>
+</body>
+</html>
