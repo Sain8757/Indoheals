@@ -39,6 +39,15 @@ const digitalFileValidators = [
   validate
 ];
 
+const orderStatusValues = ["pending", "paid", "failed"];
+const fulfillmentStatusValues = ["new", "processing", "packed", "shipped", "delivered", "cancelled", "returned"];
+
+const orderStatusValidators = [
+  body("status").optional().isIn(orderStatusValues).withMessage("Invalid payment status."),
+  body("fulfillmentStatus").optional().isIn(fulfillmentStatusValues).withMessage("Invalid fulfillment status."),
+  validate
+];
+
 function requireDatabase(req, res) {
   if (req.app.locals.dbReady) return false;
   res.status(503).json({ message: "Database is not connected." });
@@ -62,6 +71,29 @@ router.get("/orders", async (req, res, next) => {
 
     const orders = await Order.find().populate("user", "name email role").sort({ createdAt: -1 });
     return res.json(orders);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.put("/orders/:id/status", orderStatusValidators, async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const updates = {};
+    if (req.body.status) updates.status = req.body.status;
+    if (req.body.fulfillmentStatus) updates.fulfillmentStatus = req.body.fulfillmentStatus;
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ message: "No order status update provided." });
+    }
+
+    const order = await Order.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true
+    }).populate("user", "name email role");
+    if (!order) return res.status(404).json({ message: "Order not found." });
+
+    return res.json(order);
   } catch (error) {
     return next(error);
   }

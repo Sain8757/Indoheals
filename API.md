@@ -61,6 +61,7 @@ Admin panel URL:
 
 - `GET /admin/users`
 - `GET /admin/orders`
+- `PUT /admin/orders/:id/status` - update `status` or `fulfillmentStatus`.
 - `GET /admin/products`
 - `GET /admin/appointments`
 - `GET /admin/business-leads`

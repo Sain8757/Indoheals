@@ -25,7 +25,8 @@ let users = [];
 let appointments = [];
 let leads = [];
 let newsletterSubscriptions = [];
-let currentTab = "products";
+const ORDER_FULFILLMENT_OPTIONS = ["new", "processing", "packed", "shipped", "delivered", "cancelled", "returned"];
+let currentTab = "dashboard";
 let toastTimer;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -77,6 +78,7 @@ function bindTabs() {
 
 function setTab(tab) {
   currentTab = tab;
+  setText("adminPageTitle", titleCase(tab));
   document.querySelectorAll("[data-tab]").forEach(button => {
     button.classList.toggle("active", button.dataset.tab === tab);
   });
@@ -135,12 +137,130 @@ function logoutAdmin() {
 async function refreshCurrentTab() {
   if (!adminAuth?.token) return;
 
+  if (currentTab === "dashboard") await loadDashboard();
   if (currentTab === "products") await loadProducts();
   if (currentTab === "orders") await loadOrders();
   if (currentTab === "users") await loadUsers();
   if (currentTab === "appointments") await loadAppointments();
   if (currentTab === "leads") await loadLeads();
   if (currentTab === "newsletter") await loadNewsletter();
+}
+
+async function loadDashboard() {
+  setMessage("dashboardMessage", "");
+
+  const requests = await Promise.allSettled([
+    apiFetch("/admin/orders"),
+    apiFetch("/admin/products"),
+    apiFetch("/admin/users"),
+    apiFetch("/admin/appointments"),
+    apiFetch("/admin/business-leads"),
+    apiFetch("/admin/newsletter")
+  ]);
+
+  const [ordersResult, productsResult, usersResult, appointmentsResult, leadsResult, newsletterResult] = requests;
+  if (ordersResult.status === "fulfilled") orders = ordersResult.value;
+  if (productsResult.status === "fulfilled") products = productsResult.value;
+  if (usersResult.status === "fulfilled") users = usersResult.value;
+  if (appointmentsResult.status === "fulfilled") appointments = appointmentsResult.value;
+  if (leadsResult.status === "fulfilled") leads = leadsResult.value;
+  if (newsletterResult.status === "fulfilled") newsletterSubscriptions = newsletterResult.value;
+
+  const firstError = requests.find(result => result.status === "rejected");
+  if (firstError) {
+    setMessage("dashboardMessage", firstError.reason?.message || "Dashboard data could not be loaded.", "error");
+  }
+
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const stats = getOrderStats();
+  const activeProducts = products.filter(product => product.isActive !== false).length;
+
+  setText("metricTotalOrders", stats.total);
+  setText("metricPendingOrders", stats.pending);
+  setText("metricConfirmedOrders", stats.confirmed);
+  setText("metricShippedOrders", stats.shipped);
+  setText("metricReturnedOrders", stats.returned);
+  setText("metricFailedOrders", `${stats.failed} failed`);
+  setText("metricTotalRevenue", `${formatRupee(stats.revenue)} confirmed revenue`);
+  setText("metricActiveProducts", `${activeProducts} active`);
+  setText("metricProducts", products.length);
+  setText("metricUsers", users.length);
+  setText("metricAppointments", appointments.length);
+  setText("metricLeads", leads.length);
+  setText("metricNewsletter", newsletterSubscriptions.length);
+
+  renderOrderFlow(stats);
+  renderDashboardOrders();
+}
+
+function getOrderStats() {
+  return orders.reduce(
+    (stats, order) => {
+      const paymentStatus = String(order.status || "").toLowerCase();
+      const fulfillmentStatus = String(order.fulfillmentStatus || "").toLowerCase();
+
+      stats.total += 1;
+      if (paymentStatus === "pending") stats.pending += 1;
+      if (paymentStatus === "paid") {
+        stats.confirmed += 1;
+        stats.revenue += Number(order.total || 0);
+      }
+      if (paymentStatus === "failed") stats.failed += 1;
+      if (fulfillmentStatus === "shipped") stats.shipped += 1;
+      if (fulfillmentStatus === "returned" || paymentStatus === "returned") stats.returned += 1;
+      return stats;
+    },
+    {
+      total: 0,
+      pending: 0,
+      confirmed: 0,
+      shipped: 0,
+      returned: 0,
+      failed: 0,
+      revenue: 0
+    }
+  );
+}
+
+function renderOrderFlow(stats) {
+  const flowItems = [
+    { label: "Pending", value: stats.pending },
+    { label: "Confirmed", value: stats.confirmed },
+    { label: "Shipped", value: stats.shipped },
+    { label: "Returns", value: stats.returned }
+  ];
+  const max = Math.max(...flowItems.map(item => item.value), 1);
+  const list = document.getElementById("orderFlowList");
+  if (!list) return;
+
+  list.innerHTML = flowItems.map(item => `
+    <div class="flow-item">
+      <span>${escapeHtml(item.label)}</span>
+      <div class="flow-track" aria-hidden="true">
+        <div class="flow-bar" style="width: ${Math.max(6, (item.value / max) * 100)}%"></div>
+      </div>
+      <strong>${item.value}</strong>
+    </div>
+  `).join("");
+}
+
+function renderDashboardOrders() {
+  const list = document.getElementById("dashboardOrdersList");
+  if (!list) return;
+
+  const recentOrders = [...orders]
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    .slice(0, 5);
+
+  if (!recentOrders.length) {
+    list.innerHTML = `<p class="meta-line">No recent orders found.</p>`;
+    return;
+  }
+
+  list.innerHTML = recentOrders.map(order => orderCardTemplate(order, false)).join("");
 }
 
 async function loadProducts() {
@@ -296,19 +416,51 @@ function renderOrders() {
     return;
   }
 
-  list.innerHTML = orders.map(order => `
+  list.innerHTML = orders.map(order => orderCardTemplate(order, true)).join("");
+}
+
+function orderCardTemplate(order, includeActions = true) {
+  const fulfillmentStatus = order.fulfillmentStatus || "new";
+  const statusOptions = ORDER_FULFILLMENT_OPTIONS.map(status => `
+    <option value="${escapeAttribute(status)}" ${status === fulfillmentStatus ? "selected" : ""}>${titleCase(status)}</option>
+  `).join("");
+
+  return `
     <article class="list-card">
       <div class="list-head">
         <div class="list-title">
           <strong>${escapeHtml(order.customerName || order.user?.name || "Customer")}</strong>
-          <span>${escapeHtml(order.customerEmail || order.user?.email || "")} · ${formatRupee(order.total)}</span>
+          <span>${escapeHtml(order.customerEmail || order.user?.email || "")} · ${formatRupee(order.total)} · ${formatDate(order.createdAt)}</span>
         </div>
-        <span class="status">${escapeHtml(order.status)}</span>
+        <span class="status">${escapeHtml(paymentStatusLabel(order.status || "pending"))}</span>
       </div>
       <p class="meta-line">Order: ${escapeHtml(order._id)} · Payment: ${escapeHtml(order.paymentId || order.paymentOrderId || "Pending")}</p>
+      <p class="meta-line">Fulfillment: ${escapeHtml(titleCase(fulfillmentStatus))} · Phone: ${escapeHtml(order.customerPhone || order.shippingAddress?.phone || "Not added")}</p>
       <p class="meta-line">${(order.items || []).map(item => `${escapeHtml(item.name)} x ${item.quantity}`).join(", ")}</p>
+      ${includeActions ? `
+        <div class="action-row order-actions">
+          <select class="status-select" aria-label="Fulfillment status" onchange="updateOrderStatus('${escapeAttribute(order._id)}', this.value)">
+            ${statusOptions}
+          </select>
+          <button class="small-button" type="button" onclick="refreshCurrentTab()">Refresh</button>
+        </div>
+      ` : ""}
     </article>
-  `).join("");
+  `;
+}
+
+async function updateOrderStatus(id, fulfillmentStatus) {
+  try {
+    await apiFetch(`/admin/orders/${encodeURIComponent(id)}/status`, {
+      method: "PUT",
+      body: { fulfillmentStatus }
+    });
+    await loadOrders();
+    showToast(`Order marked ${titleCase(fulfillmentStatus)}.`);
+  } catch (error) {
+    showToast(error.message);
+    await loadOrders();
+  }
 }
 
 async function loadUsers() {
@@ -443,8 +595,14 @@ function renderError(elementId, message) {
 
 function setMessage(elementId, message, type = "") {
   const element = document.getElementById(elementId);
+  if (!element) return;
   element.textContent = message;
   element.className = `form-message ${type}`.trim();
+}
+
+function setText(elementId, value) {
+  const element = document.getElementById(elementId);
+  if (element) element.textContent = value;
 }
 
 function splitCsv(value) {
@@ -461,6 +619,18 @@ function formatRupee(value) {
 function formatDate(value) {
   if (!value) return "N/A";
   return new Date(value).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function titleCase(value = "") {
+  return String(value || "")
+    .replaceAll("-", " ")
+    .replace(/\b\w/g, letter => letter.toUpperCase());
+}
+
+function paymentStatusLabel(status = "") {
+  const value = String(status || "").toLowerCase();
+  if (value === "paid") return "Confirmed";
+  return titleCase(value || "pending");
 }
 
 function escapeHtml(value = "") {

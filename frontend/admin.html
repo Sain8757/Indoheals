@@ -16,7 +16,8 @@
         <span>Indo Heals</span>
       </a>
       <nav class="admin-nav" aria-label="Admin sections">
-        <button class="active" data-tab="products" type="button">Products</button>
+        <button class="active" data-tab="dashboard" type="button">Dashboard</button>
+        <button data-tab="products" type="button">Products</button>
         <button data-tab="orders" type="button">Orders</button>
         <button data-tab="users" type="button">Users</button>
         <button data-tab="appointments" type="button">Appointments</button>
@@ -30,7 +31,7 @@
       <header class="admin-header">
         <div>
           <span class="eyebrow">Secure Admin</span>
-          <h1>Dashboard</h1>
+          <h1 id="adminPageTitle">Dashboard</h1>
         </div>
         <div class="admin-meta">
           <span id="adminName"></span>
@@ -57,7 +58,87 @@
       </section>
 
       <section id="dashboardPanel" class="dashboard-panel" hidden>
-        <section id="productsTab" class="tab-panel">
+        <section id="dashboardTab" class="tab-panel">
+          <div class="dashboard-stack">
+            <section class="metric-grid" aria-label="Dashboard summary">
+              <article class="metric-card metric-total">
+                <span>Total Orders</span>
+                <strong id="metricTotalOrders">0</strong>
+                <small id="metricTotalRevenue">₹0 confirmed revenue</small>
+              </article>
+              <article class="metric-card metric-pending">
+                <span>Pending</span>
+                <strong id="metricPendingOrders">0</strong>
+                <small>Awaiting payment</small>
+              </article>
+              <article class="metric-card metric-confirmed">
+                <span>Confirmed</span>
+                <strong id="metricConfirmedOrders">0</strong>
+                <small>Payment received</small>
+              </article>
+              <article class="metric-card metric-shipped">
+                <span>Shipped</span>
+                <strong id="metricShippedOrders">0</strong>
+                <small>On the way</small>
+              </article>
+              <article class="metric-card metric-returned">
+                <span>Returns</span>
+                <strong id="metricReturnedOrders">0</strong>
+                <small>Returned orders</small>
+              </article>
+            </section>
+
+            <section class="overview-grid">
+              <div class="table-panel">
+                <div class="panel-title">
+                  <h2>Order Flow</h2>
+                  <span id="metricFailedOrders" class="count-pill">0 failed</span>
+                </div>
+                <div id="orderFlowList" class="flow-list"></div>
+              </div>
+
+              <div class="table-panel">
+                <div class="panel-title">
+                  <h2>Store Snapshot</h2>
+                  <span id="metricActiveProducts" class="count-pill">0 active</span>
+                </div>
+                <div class="snapshot-grid">
+                  <article>
+                    <span>Products</span>
+                    <strong id="metricProducts">0</strong>
+                  </article>
+                  <article>
+                    <span>Users</span>
+                    <strong id="metricUsers">0</strong>
+                  </article>
+                  <article>
+                    <span>Appointments</span>
+                    <strong id="metricAppointments">0</strong>
+                  </article>
+                  <article>
+                    <span>Leads</span>
+                    <strong id="metricLeads">0</strong>
+                  </article>
+                  <article>
+                    <span>Newsletter</span>
+                    <strong id="metricNewsletter">0</strong>
+                  </article>
+                </div>
+              </div>
+            </section>
+
+            <section class="table-panel full">
+              <div class="panel-title">
+                <h2>Recent Orders</h2>
+                <button class="ghost-button" type="button" onclick="setTab('orders')">View All</button>
+              </div>
+              <div id="dashboardOrdersList" class="stack-list"></div>
+              <p id="dashboardMessage" class="form-message"></p>
+            </section>
+          </div>
+        </section>
+
+        <section id="productsTab" class="tab-panel" hidden>
           <div class="panel-grid">
             <form class="form-panel" onsubmit="saveProduct(event)">
               <div class="panel-title">

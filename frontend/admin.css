@@ -25,7 +25,8 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -35,7 +36,8 @@ button {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid rgba(244, 220, 134, 0.22);
   border-radius: 8px;
@@ -47,6 +49,15 @@ textarea {
 
 textarea {
   resize: vertical;
+}
+
+select {
+  appearance: none;
+}
+
+select option {
+  background: var(--navy-deep);
+  color: var(--white);
 }
 
 label {
@@ -198,6 +209,119 @@ h2 {
   padding: 20px;
 }
 
+.dashboard-stack {
+  display: grid;
+  gap: 22px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+.metric-card,
+.snapshot-grid article {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 18px;
+}
+
+.metric-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--gold);
+}
+
+.metric-card span,
+.snapshot-grid span,
+.flow-item span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.metric-card strong {
+  font-family: "Cinzel", serif;
+  font-size: 38px;
+  line-height: 1;
+}
+
+.metric-card small {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+}
+
+.metric-pending::before {
+  background: #f4b740;
+}
+
+.metric-confirmed::before {
+  background: #54d18d;
+}
+
+.metric-shipped::before {
+  background: #60a5fa;
+}
+
+.metric-returned::before {
+  background: #f87171;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.flow-list {
+  display: grid;
+  gap: 14px;
+}
+
+.flow-item {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+}
+
+.flow-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.flow-bar {
+  height: 100%;
+  min-width: 4px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--gold-light), var(--gold));
+}
+
+.snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.snapshot-grid article {
+  min-height: 94px;
+}
+
+.snapshot-grid strong {
+  font-size: 28px;
+}
+
 .table-panel.full {
   min-height: 360px;
 }
@@ -298,6 +422,17 @@ h2 {
   gap: 8px;
 }
 
+.order-actions {
+  display: grid;
+  grid-template-columns: minmax(170px, 240px) auto;
+  align-items: center;
+}
+
+.status-select {
+  min-height: 34px;
+  padding: 0 12px;
+}
+
 .small-button,
 .danger-button {
   min-height: 34px;
@@ -360,8 +495,39 @@ h2 {
     margin-top: 0;
   }
 
+  .metric-grid,
+  .overview-grid,
   .panel-grid,
   .two-col {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .admin-main,
+  .admin-sidebar {
+    padding: 20px;
+  }
+
+  .admin-header,
+  .list-head,
+  .order-actions {
+    align-items: stretch;
+    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .admin-nav,
+  .snapshot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .flow-item {
+    grid-template-columns: 78px minmax(0, 1fr) 34px;
   }
 }
