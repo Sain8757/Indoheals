@@ -64,8 +64,21 @@ Admin panel URL:
 - `PUT /admin/orders/:id/status` - update `status` or `fulfillmentStatus`.
 - `GET /admin/products`
 - `GET /admin/appointments`
+- `PUT /admin/appointments/:id/status` - update appointment status.
 - `GET /admin/business-leads`
+- `PUT /admin/business-leads/:id/status` - update business lead status.
 - `GET /admin/newsletter`
+- `PUT /admin/newsletter/:id/status` - update subscription status.
+- `GET /admin/settings`
+- `PUT /admin/settings` - update store, company, payments, shipping, checkout, taxes, or invoice settings.
+- `GET /admin/discounts`
+- `POST /admin/discounts`
+- `PUT /admin/discounts/:id`
+- `DELETE /admin/discounts/:id`
+- `GET /admin/email-campaigns`
+- `POST /admin/email-campaigns`
+- `PUT /admin/email-campaigns/:id`
+- `POST /admin/email-campaigns/:id/send`
 - `POST /admin/products`
 - `PUT /admin/products/:idOrSlug`
 - `DELETE /admin/products/:idOrSlug` - soft deletes by setting `isActive: false`.

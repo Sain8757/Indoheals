@@ -3,235 +3,78 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Indo Heals Admin</title>
+<title>Indo Heals Store Manager</title>
 <link rel="icon" type="image/png" href="assets/indo-heals-logo.png">
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&amp;family=Lato:wght@300;400;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="admin.css">
 </head>
 <body>
   <main class="admin-shell">
-    <aside class="admin-sidebar">
-      <a class="brand" href="index.html" aria-label="Indo Heals home">
-        <img src="assets/indo-heals-logo.png" alt="">
-        <span>Indo Heals</span>
-      </a>
-      <nav class="admin-nav" aria-label="Admin sections">
-        <button class="active" data-tab="dashboard" type="button">Dashboard</button>
-        <button data-tab="products" type="button">Products</button>
-        <button data-tab="orders" type="button">Orders</button>
-        <button data-tab="users" type="button">Users</button>
-        <button data-tab="appointments" type="button">Appointments</button>
-        <button data-tab="leads" type="button">Leads</button>
-        <button data-tab="newsletter" type="button">Newsletter</button>
-      </nav>
-      <button class="ghost-button" type="button" onclick="logoutAdmin()">Logout</button>
-    </aside>
+    <section id="loginPanel" class="login-screen">
+      <form class="login-card" onsubmit="loginAdmin(event)">
+        <img src="assets/indo-heals-logo.png" alt="Indo Heals logo">
+        <span class="eyebrow">Store manager</span>
+        <h1>Admin login</h1>
+        <label>Email<input id="adminEmail" type="email" autocomplete="email" required></label>
+        <label>Password<input id="adminPassword" type="password" autocomplete="current-password" required></label>
+        <button class="primary-button" type="submit">Login</button>
+        <p id="adminLoginMessage" class="form-message"></p>
+      </form>
+    </section>
 
-    <section class="admin-main">
-      <header class="admin-header">
-        <div>
-          <span class="eyebrow">Secure Admin</span>
-          <h1 id="adminPageTitle">Dashboard</h1>
+    <section id="appPanel" class="manager-app" hidden>
+      <header class="topbar">
+        <div class="store-switcher">
+          <button class="store-button" type="button">Store manager <span aria-hidden="true">v</span></button>
+          <span class="divider"></span>
+          <span class="live-pill"><span></span>Live</span>
         </div>
-        <div class="admin-meta">
-          <span id="adminName"></span>
-          <button class="ghost-button" type="button" onclick="refreshCurrentTab()">Refresh</button>
+        <div class="top-actions">
+          <button class="outline-button accent" type="button" onclick="showToast('AI helper is ready for your store notes.')">Ask AI</button>
+          <a class="outline-button" href="index.html" target="_blank" rel="noreferrer">View site</a>
+          <button class="outline-button" type="button" onclick="setView('products')">Edit website</button>
+          <button class="icon-button" type="button" onclick="refreshCurrentView()" title="Refresh">Refresh</button>
         </div>
       </header>
 
-      <section id="loginPanel" class="login-panel">
-        <form class="auth-card" onsubmit="loginAdmin(event)">
-          <img src="assets/indo-heals-logo.png" alt="Indo Heals logo">
-          <span class="eyebrow">Admin Login</span>
-          <h2>Sign in</h2>
-          <label>
-            Email
-            <input id="adminEmail" type="email" autocomplete="email" required>
-          </label>
-          <label>
-            Password
-            <input id="adminPassword" type="password" autocomplete="current-password" required>
-          </label>
-          <button class="primary-button" type="submit">Login</button>
-          <p id="adminLoginMessage" class="form-message"></p>
-        </form>
-      </section>
-
-      <section id="dashboardPanel" class="dashboard-panel" hidden>
-        <section id="dashboardTab" class="tab-panel">
-          <div class="dashboard-stack">
-            <section class="metric-grid" aria-label="Dashboard summary">
-              <article class="metric-card metric-total">
-                <span>Total Orders</span>
-                <strong id="metricTotalOrders">0</strong>
-                <small id="metricTotalRevenue">₹0 confirmed revenue</small>
-              </article>
-              <article class="metric-card metric-pending">
-                <span>Pending</span>
-                <strong id="metricPendingOrders">0</strong>
-                <small>Awaiting payment</small>
-              </article>
-              <article class="metric-card metric-confirmed">
-                <span>Confirmed</span>
-                <strong id="metricConfirmedOrders">0</strong>
-                <small>Payment received</small>
-              </article>
-              <article class="metric-card metric-shipped">
-                <span>Shipped</span>
-                <strong id="metricShippedOrders">0</strong>
-                <small>On the way</small>
-              </article>
-              <article class="metric-card metric-returned">
-                <span>Returns</span>
-                <strong id="metricReturnedOrders">0</strong>
-                <small>Returned orders</small>
-              </article>
-            </section>
-
-            <section class="overview-grid">
-              <div class="table-panel">
-                <div class="panel-title">
-                  <h2>Order Flow</h2>
-                  <span id="metricFailedOrders" class="count-pill">0 failed</span>
-                </div>
-                <div id="orderFlowList" class="flow-list"></div>
-              </div>
-
-              <div class="table-panel">
-                <div class="panel-title">
-                  <h2>Store Snapshot</h2>
-                  <span id="metricActiveProducts" class="count-pill">0 active</span>
-                </div>
-                <div class="snapshot-grid">
-                  <article>
-                    <span>Products</span>
-                    <strong id="metricProducts">0</strong>
-                  </article>
-                  <article>
-                    <span>Users</span>
-                    <strong id="metricUsers">0</strong>
-                  </article>
-                  <article>
-                    <span>Appointments</span>
-                    <strong id="metricAppointments">0</strong>
-                  </article>
-                  <article>
-                    <span>Leads</span>
-                    <strong id="metricLeads">0</strong>
-                  </article>
-                  <article>
-                    <span>Newsletter</span>
-                    <strong id="metricNewsletter">0</strong>
-                  </article>
-                </div>
-              </div>
-            </section>
-
-            <section class="table-panel full">
-              <div class="panel-title">
-                <h2>Recent Orders</h2>
-                <button class="ghost-button" type="button" onclick="setTab('orders')">View All</button>
-              </div>
-              <div id="dashboardOrdersList" class="stack-list"></div>
-              <p id="dashboardMessage" class="form-message"></p>
-            </section>
+      <aside class="sidebar">
+        <nav class="main-nav" aria-label="Admin sections">
+          <button class="active" data-view="overview" type="button"><span class="nav-icon"></span>Overview</button>
+          <button data-view="orders" type="button"><span class="nav-icon"></span>Orders</button>
+          <button data-view="products" type="button"><span class="nav-icon"></span>Products</button>
+          <button data-view="appointments" type="button"><span class="nav-icon"></span>Appointments</button>
+          <button data-view="discounts" type="button"><span class="nav-icon"></span>Discounts</button>
+          <button data-view="customers" type="button"><span class="nav-icon"></span>Customers</button>
+          <button data-view="analytics" type="button"><span class="nav-icon"></span>Analytics</button>
+          <button data-view="emails" type="button"><span class="nav-icon"></span>Emails</button>
+          <button data-view="settings-store" data-section="settings" type="button"><span class="nav-icon"></span>Settings</button>
+          <div id="settingsNav" class="sub-nav">
+            <button data-view="settings-store" type="button">Store details</button>
+            <button data-view="settings-company" type="button">Company information</button>
+            <button data-view="settings-payments" type="button">Payments</button>
+            <button data-view="settings-shipping" type="button">Shipping</button>
+            <button data-view="settings-checkout" type="button">Checkout</button>
+            <button data-view="settings-taxes" type="button">Taxes</button>
+            <button data-view="settings-invoices" type="button">Invoices</button>
           </div>
-        </section>
+          <span class="nav-rule"></span>
+          <button data-view="integrations" type="button"><span class="nav-icon"></span>Integrations</button>
+          <button data-view="print" type="button"><span class="nav-icon"></span>Print on demand</button>
+        </nav>
+        <div class="sidebar-footer">
+          <button type="button" onclick="showToast('Feedback noted for the store manager experience.')">Feedback</button>
+          <button type="button" onclick="showToast('Help docs are coming soon.')">Help and resources</button>
+          <button type="button" onclick="logoutAdmin()">Logout <span id="adminName"></span></button>
+        </div>
+      </aside>
 
-        <section id="productsTab" class="tab-panel" hidden>
-          <div class="panel-grid">
-            <form class="form-panel" onsubmit="saveProduct(event)">
-              <div class="panel-title">
-                <h2 id="productFormTitle">Add Product</h2>
-                <button class="ghost-button" type="button" onclick="resetProductForm()">Clear</button>
-              </div>
-              <input id="productId" type="hidden">
-              <label>Name<input id="productName" required></label>
-              <label>Slug<input id="productSlug" placeholder="breathe-classic"></label>
-              <div class="two-col">
-                <label>Price<input id="productPrice" type="number" min="0" step="1" required></label>
-                <label>Stock<input id="productStock" type="number" min="0" step="1"></label>
-              </div>
-              <label>Category<input id="productCategory"></label>
-              <label>Badge<input id="productBadge"></label>
-              <label>Image path<input id="productImage" placeholder="assets/breathe-classic-ai.png"></label>
-              <div class="two-col">
-                <label>Weight<input id="productWeight" placeholder="40 g"></label>
-                <label>Cocoa<input id="productCocoa" placeholder="55% dark cocoa"></label>
-              </div>
-              <label>Wellness note<textarea id="productWellness" rows="2"></textarea></label>
-              <label>Description<textarea id="productDescription" rows="4"></textarea></label>
-              <label>Ingredients, comma separated<input id="productIngredients"></label>
-              <label>Benefits, comma separated<input id="productBenefits"></label>
-              <label class="check-row"><input id="productActive" type="checkbox" checked> Active product</label>
-              <button class="primary-button" type="submit">Save Product</button>
-              <p id="productMessage" class="form-message"></p>
-            </form>
-
-            <div class="table-panel">
-              <div class="panel-title">
-                <h2>Products</h2>
-                <span id="productCount" class="count-pill">0</span>
-              </div>
-              <div id="productsList" class="stack-list"></div>
-            </div>
-          </div>
-        </section>
-
-        <section id="ordersTab" class="tab-panel" hidden>
-          <div class="table-panel full">
-            <div class="panel-title">
-              <h2>Orders</h2>
-              <span id="orderCount" class="count-pill">0</span>
-            </div>
-            <div id="ordersList" class="stack-list"></div>
-          </div>
-        </section>
-
-        <section id="usersTab" class="tab-panel" hidden>
-          <div class="table-panel full">
-            <div class="panel-title">
-              <h2>Users</h2>
-              <span id="userCount" class="count-pill">0</span>
-            </div>
-            <div id="usersList" class="stack-list"></div>
-          </div>
-        </section>
-
-        <section id="appointmentsTab" class="tab-panel" hidden>
-          <div class="table-panel full">
-            <div class="panel-title">
-              <h2>Appointments</h2>
-              <span id="appointmentCount" class="count-pill">0</span>
-            </div>
-            <div id="appointmentsList" class="stack-list"></div>
-          </div>
-        </section>
-
-        <section id="leadsTab" class="tab-panel" hidden>
-          <div class="table-panel full">
-            <div class="panel-title">
-              <h2>Business Leads</h2>
-              <span id="leadCount" class="count-pill">0</span>
-            </div>
-            <div id="leadsList" class="stack-list"></div>
-          </div>
-        </section>
-
-        <section id="newsletterTab" class="tab-panel" hidden>
-          <div class="table-panel full">
-            <div class="panel-title">
-              <h2>Newsletter</h2>
-              <span id="newsletterCount" class="count-pill">0</span>
-            </div>
-            <div id="newsletterList" class="stack-list"></div>
-          </div>
-        </section>
+      <section class="workspace">
+        <div id="workspaceContent"></div>
       </section>
     </section>
   </main>
 
   <div id="toast" class="toast"></div>
-  <script src="admin.js?v=20260502-orders-dashboard"></script>
+  <script src="admin.js?v=20260502-store-manager"></script>
 </body>
 </html>

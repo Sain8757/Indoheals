@@ -7,10 +7,14 @@ const Product = require("../models/Product");
 const Appointment = require("../models/Appointment");
 const BusinessLead = require("../models/BusinessLead");
 const NewsletterSubscription = require("../models/NewsletterSubscription");
+const Discount = require("../models/Discount");
+const StoreSetting = require("../models/StoreSetting");
+const EmailCampaign = require("../models/EmailCampaign");
 const requireAuth = require("../middleware/auth");
 const { requireAdmin } = require("../middleware/auth");
 const validate = require("../middleware/validate");
 const { productQuery } = require("../utils/products");
+const { sendMail } = require("../utils/email");
 
 router.use(requireAuth, requireAdmin);
 
@@ -48,10 +52,54 @@ const orderStatusValidators = [
   validate
 ];
 
+const appointmentStatusValues = ["new", "contacted", "confirmed", "completed", "cancelled"];
+const leadStatusValues = ["new", "contacted", "qualified", "closed"];
+const newsletterStatusValues = ["subscribed", "unsubscribed"];
+
+const discountValidators = [
+  body("code").trim().notEmpty().withMessage("Discount code is required."),
+  body("type").optional().isIn(["percentage", "fixed"]).withMessage("Invalid discount type."),
+  body("value").isFloat({ min: 0 }).withMessage("Discount value must be positive."),
+  body("minOrderValue").optional().isFloat({ min: 0 }).withMessage("Minimum order value must be positive."),
+  body("maxUses").optional().isInt({ min: 0 }).withMessage("Maximum uses must be positive."),
+  body("startsAt").optional({ checkFalsy: true }).isISO8601().withMessage("Start date must be valid."),
+  body("endsAt").optional({ checkFalsy: true }).isISO8601().withMessage("End date must be valid."),
+  validate
+];
+
+const emailCampaignValidators = [
+  body("subject").trim().notEmpty().withMessage("Subject is required."),
+  body("audience").optional().isIn(["newsletter", "customers", "all"]).withMessage("Invalid audience."),
+  body("body").trim().notEmpty().withMessage("Email body is required."),
+  validate
+];
+
 function requireDatabase(req, res) {
   if (req.app.locals.dbReady) return false;
   res.status(503).json({ message: "Database is not connected." });
   return true;
+}
+
+function cleanDiscountBody(body) {
+  return {
+    code: String(body.code || "").trim().toUpperCase(),
+    description: String(body.description || "").trim(),
+    type: body.type || "percentage",
+    value: Number(body.value || 0),
+    minOrderValue: Number(body.minOrderValue || 0),
+    maxUses: Number(body.maxUses || 0),
+    startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
+    endsAt: body.endsAt ? new Date(body.endsAt) : undefined,
+    isActive: body.isActive !== false
+  };
+}
+
+async function getStoreSettings() {
+  return StoreSetting.findOneAndUpdate(
+    { key: "default" },
+    { $setOnInsert: { key: "default" } },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
 }
 
 router.get("/users", async (req, res, next) => {
@@ -71,6 +119,50 @@ router.get("/orders", async (req, res, next) => {
 
     const orders = await Order.find().populate("user", "name email role").sort({ createdAt: -1 });
     return res.json(orders);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/settings", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const settings = await getStoreSettings();
+    return res.json(settings);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.put("/settings", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const allowed = [
+      "storeName",
+      "supportEmail",
+      "supportPhone",
+      "currency",
+      "measurementSystem",
+      "company",
+      "payments",
+      "shipping",
+      "checkout",
+      "taxes",
+      "invoices"
+    ];
+    const updates = allowed.reduce((payload, key) => {
+      if (req.body[key] !== undefined) payload[key] = req.body[key];
+      return payload;
+    }, {});
+
+    const settings = await StoreSetting.findOneAndUpdate(
+      { key: "default" },
+      { $set: updates, $setOnInsert: { key: "default" } },
+      { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
+    );
+    return res.json(settings);
   } catch (error) {
     return next(error);
   }
@@ -138,6 +230,201 @@ router.get("/newsletter", async (req, res, next) => {
 
     const subscriptions = await NewsletterSubscription.find().sort({ createdAt: -1 });
     return res.json(subscriptions);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.put("/appointments/:id/status", [body("status").isIn(appointmentStatusValues), validate], async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const appointment = await Appointment.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true, runValidators: true }
+    );
+    if (!appointment) return res.status(404).json({ message: "Appointment not found." });
+    return res.json(appointment);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.put("/business-leads/:id/status", [body("status").isIn(leadStatusValues), validate], async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const lead = await BusinessLead.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true, runValidators: true }
+    );
+    if (!lead) return res.status(404).json({ message: "Business lead not found." });
+    return res.json(lead);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.put("/newsletter/:id/status", [body("status").isIn(newsletterStatusValues), validate], async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const subscription = await NewsletterSubscription.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true, runValidators: true }
+    );
+    if (!subscription) return res.status(404).json({ message: "Subscription not found." });
+    return res.json(subscription);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/discounts", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const discounts = await Discount.find().sort({ createdAt: -1 });
+    return res.json(discounts);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/discounts", discountValidators, async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const discount = await Discount.create(cleanDiscountBody(req.body));
+    return res.status(201).json(discount);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "Discount code already exists." });
+    }
+    return next(error);
+  }
+});
+
+router.put("/discounts/:id", discountValidators, async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const discount = await Discount.findByIdAndUpdate(req.params.id, cleanDiscountBody(req.body), {
+      new: true,
+      runValidators: true
+    });
+    if (!discount) return res.status(404).json({ message: "Discount not found." });
+    return res.json(discount);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "Discount code already exists." });
+    }
+    return next(error);
+  }
+});
+
+router.delete("/discounts/:id", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const discount = await Discount.findByIdAndDelete(req.params.id);
+    if (!discount) return res.status(404).json({ message: "Discount not found." });
+    return res.json({ message: "Discount deleted." });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/email-campaigns", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const campaigns = await EmailCampaign.find().sort({ createdAt: -1 });
+    return res.json(campaigns);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/email-campaigns", emailCampaignValidators, async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const campaign = await EmailCampaign.create({
+      subject: req.body.subject,
+      audience: req.body.audience || "newsletter",
+      body: req.body.body,
+      status: "draft"
+    });
+    return res.status(201).json(campaign);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.put("/email-campaigns/:id", emailCampaignValidators, async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const campaign = await EmailCampaign.findByIdAndUpdate(
+      req.params.id,
+      {
+        subject: req.body.subject,
+        audience: req.body.audience || "newsletter",
+        body: req.body.body
+      },
+      { new: true, runValidators: true }
+    );
+    if (!campaign) return res.status(404).json({ message: "Email campaign not found." });
+    return res.json(campaign);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/email-campaigns/:id/send", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const campaign = await EmailCampaign.findById(req.params.id);
+    if (!campaign) return res.status(404).json({ message: "Email campaign not found." });
+
+    const newsletterEmails =
+      campaign.audience === "newsletter" || campaign.audience === "all"
+        ? await NewsletterSubscription.find({ status: "subscribed" }).distinct("email")
+        : [];
+    const customerEmails =
+      campaign.audience === "customers" || campaign.audience === "all"
+        ? await User.find().distinct("email")
+        : [];
+    const recipients = [...new Set([...newsletterEmails, ...customerEmails].filter(Boolean))];
+
+    await Promise.all(
+      recipients.map(email =>
+        sendMail({
+          to: email,
+          subject: campaign.subject,
+          text: campaign.body,
+          html: `<p>${String(campaign.body)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll("\n", "<br>")}</p>`
+        }).catch(error => {
+          console.warn("Campaign email failed:", error.message);
+        })
+      )
+    );
+
+    campaign.status = "sent";
+    campaign.recipientCount = recipients.length;
+    campaign.sentAt = new Date();
+    await campaign.save();
+
+    return res.json(campaign);
   } catch (error) {
     return next(error);
   }
