@@ -64,11 +64,13 @@ const DEFAULT_SETTINGS = {
   }
 };
 
-let adminAuth = JSON.parse(localStorage.getItem("adminAuth")) || null;
+localStorage.removeItem("adminAuth");
+let adminAuth = null;
 let currentView = "overview";
 let toastTimer;
 let products = [];
 let orders = [];
+let selectedOrderId = null;
 let users = [];
 let appointments = [];
 let leads = [];
@@ -136,10 +138,13 @@ function renderAuthState() {
 
   loginPanel.hidden = isAdmin;
   appPanel.hidden = !isAdmin;
+  document.body.classList.toggle("admin-locked", !isAdmin);
   if (adminName) adminName.textContent = isAdmin ? adminAuth.user.email : "";
 
   if (isAdmin) {
     setView(currentView, { skipHistory: true });
+  } else {
+    setWorkspace("");
   }
 }
 
@@ -161,7 +166,6 @@ async function loginAdmin(event) {
     }
 
     adminAuth = data;
-    localStorage.setItem("adminAuth", JSON.stringify(data));
     event.target.reset();
     renderAuthState();
     showToast("Admin login successful.");
@@ -173,6 +177,7 @@ async function loginAdmin(event) {
 function logoutAdmin() {
   adminAuth = null;
   localStorage.removeItem("adminAuth");
+  selectedOrderId = null;
   renderAuthState();
 }
 
@@ -330,6 +335,12 @@ function renderOverview() {
 }
 
 function renderOrders() {
+  const sorted = sortedOrders();
+  if (!selectedOrderId || !orders.some(order => order._id === selectedOrderId)) {
+    selectedOrderId = sorted[0]?._id || null;
+  }
+  const selectedOrder = sorted.find(order => order._id === selectedOrderId);
+
   setWorkspace(`
     <section class="page">
       <div class="page-head">
@@ -347,9 +358,12 @@ function renderOrders() {
         ${metricCard("Confirmed", countOrders("paid"))}
         ${metricCard("Shipped", orders.filter(order => order.fulfillmentStatus === "shipped").length)}
       </section>
-      <section class="panel">
-        <div class="panel-head"><h2>All orders</h2><span class="count-pill">${orders.length}</span></div>
-        ${ordersTable(sortedOrders(), { actions: true })}
+      <section class="orders-layout">
+        <section class="panel">
+          <div class="panel-head"><h2>All orders</h2><span class="count-pill">${orders.length}</span></div>
+          ${ordersTable(sorted, { actions: true })}
+        </section>
+        ${orderDetailPanel(selectedOrder)}
       </section>
     </section>
   `);
@@ -868,13 +882,14 @@ function ordersTable(items, options = {}) {
             <th>Total</th>
             <th>Payment</th>
             <th>Fulfillment</th>
+            ${options.actions ? "<th>Details</th>" : ""}
           </tr>
         </thead>
         <tbody>
           ${items
             .map(
               order => `
-                <tr>
+                <tr class="${order._id === selectedOrderId ? "active-row" : ""}">
                   <td>${escapeHtml(shortId(order._id))}</td>
                   <td>${formatDate(order.createdAt)}</td>
                   <td>${escapeHtml(order.customerEmail || order.user?.email || "")}</td>
@@ -889,12 +904,117 @@ function ordersTable(items, options = {}) {
                       ? statusSelect(ORDER_FULFILLMENT_OPTIONS, order.fulfillmentStatus || "new", `updateOrderStatus('${escapeAttribute(order._id)}', 'fulfillmentStatus', this.value)`)
                       : titleCase(order.fulfillmentStatus || "new")
                   }</td>
+                  ${options.actions ? `<td><button class="small-button" type="button" onclick="showOrderDetails('${escapeAttribute(order._id)}')">View</button></td>` : ""}
                 </tr>
               `
             )
             .join("")}
         </tbody>
       </table>
+    </div>
+  `;
+}
+
+function orderDetailPanel(order) {
+  if (!order) {
+    return `
+      <aside class="panel order-detail-panel">
+        <div class="panel-head"><h2>Order details</h2></div>
+        <div class="panel-body">${emptyText("Select an order to see full details.")}</div>
+      </aside>
+    `;
+  }
+
+  const address = order.shippingAddress || {};
+  const user = order.user || {};
+  const items = order.items || [];
+  const addressText = [
+    address.fullName,
+    address.addressLine1,
+    address.addressLine2,
+    [address.city, address.state, address.postalCode].filter(Boolean).join(", "),
+    address.country,
+    address.phone ? `Phone: ${address.phone}` : ""
+  ]
+    .filter(Boolean)
+    .map(escapeHtml)
+    .join("<br>");
+
+  return `
+    <aside id="orderDetailPanel" class="panel order-detail-panel">
+      <div class="panel-head">
+        <div>
+          <h2>Order details</h2>
+          <p class="meta-line">${escapeHtml(order._id)}</p>
+        </div>
+        <span class="status-pill status-${escapeAttribute(order.status || "pending")}">${escapeHtml(paymentStatusLabel(order.status))}</span>
+      </div>
+      <div class="panel-body stack">
+        <section class="detail-section">
+          <h3>Customer</h3>
+          <div class="detail-grid">
+            ${detailLine("Name", order.customerName || user.name)}
+            ${detailLine("Email", order.customerEmail || user.email)}
+            ${detailLine("Phone", order.customerPhone || address.phone)}
+            ${detailLine("Account role", user.role || "user")}
+          </div>
+        </section>
+        <section class="detail-section">
+          <h3>Delivery address</h3>
+          <p class="meta-line">${addressText || "No address saved"}</p>
+        </section>
+        <section class="detail-section">
+          <h3>Items</h3>
+          <div class="detail-items">
+            ${
+              items.length
+                ? items.map(orderItemDetail).join("")
+                : `<p class="meta-line">No items saved on this order.</p>`
+            }
+          </div>
+        </section>
+        <section class="detail-section">
+          <h3>Payment and shipping</h3>
+          <div class="detail-grid">
+            ${detailLine("Total", formatRupee(order.total))}
+            ${detailLine("Payment status", paymentStatusLabel(order.status || "pending"))}
+            ${detailLine("Fulfillment", titleCase(order.fulfillmentStatus || "new"))}
+            ${detailLine("Provider", titleCase(order.paymentProvider || "razorpay"))}
+            ${detailLine("Payment order ID", order.paymentOrderId)}
+            ${detailLine("Payment ID", order.paymentId)}
+            ${detailLine("Paid at", order.paidAt ? formatDate(order.paidAt) : "")}
+            ${detailLine("Placed at", formatDate(order.createdAt))}
+          </div>
+        </section>
+        <section class="detail-section">
+          <h3>Notes</h3>
+          <p class="meta-line">${escapeHtml(order.notes || order.failureReason || "No customer notes.")}</p>
+        </section>
+      </div>
+    </aside>
+  `;
+}
+
+function detailLine(label, value) {
+  return `
+    <div class="detail-line">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value || "N/A")}</strong>
+    </div>
+  `;
+}
+
+function orderItemDetail(item) {
+  return `
+    <div class="detail-item">
+      <div>
+        <strong>${escapeHtml(item.name || "Product")}</strong>
+        <span class="meta-line">${escapeHtml(item.productSlug || item.productId || "")}</span>
+      </div>
+      <div class="detail-item-total">
+        <span>${Number(item.quantity || 1)} x ${formatRupee(item.price)}</span>
+        <strong>${formatRupee(Number(item.price || 0) * Number(item.quantity || 1))}</strong>
+      </div>
     </div>
   `;
 }
@@ -1095,6 +1215,12 @@ async function updateOrderStatus(id, field, value) {
   } catch (error) {
     showToast(error.message);
   }
+}
+
+function showOrderDetails(id) {
+  selectedOrderId = id;
+  renderOrders();
+  document.getElementById("orderDetailPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function updateAppointmentStatus(id, status) {

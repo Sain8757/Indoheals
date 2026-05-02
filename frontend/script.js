@@ -104,6 +104,7 @@ let appointments = JSON.parse(localStorage.getItem("appointments")) || [];
 let businessContacts = JSON.parse(localStorage.getItem("businessContacts")) || [];
 let lastOrder = JSON.parse(localStorage.getItem("lastOrder")) || null;
 let ordersLoaded = false;
+let pendingSignup = null;
 let currentPage = "home";
 let toastTimer;
 let heroSlideIndex = 0;
@@ -818,27 +819,102 @@ async function handleLogin(event) {
 async function handleSignup(event) {
   event.preventDefault();
   setFormMessage("signupMessage", "");
+  setFormMessage("signupOtpMessage", "");
 
-  const name = document.getElementById("name").value;
-  const email = document.getElementById("signup-email").value;
-  const phone = document.getElementById("signup-phone").value;
-  const password = document.getElementById("signup-password").value;
+  pendingSignup = {
+    name: document.getElementById("name").value.trim(),
+    email: document.getElementById("signup-email").value.trim(),
+    phone: document.getElementById("signup-phone").value.trim(),
+    password: document.getElementById("signup-password").value
+  };
 
   try {
     const data = await apiFetch("/auth/signup", {
       method: "POST",
-      body: { name, email, phone, password }
+      body: pendingSignup
+    });
+
+    showSignupOtpStep(data.email || pendingSignup.email, data.message, data.devOtp);
+  } catch (error) {
+    setFormMessage("signupMessage", error.message, "error");
+  }
+}
+
+async function handleSignupOtp(event) {
+  event.preventDefault();
+  setFormMessage("signupOtpMessage", "");
+
+  const email = pendingSignup?.email || document.getElementById("signup-email").value.trim();
+  const otp = document.getElementById("signup-otp").value.trim();
+
+  try {
+    const data = await apiFetch("/auth/verify-signup-otp", {
+      method: "POST",
+      body: { email, otp }
     });
 
     saveAuth(data);
+    pendingSignup = null;
+    document.getElementById("signupForm")?.reset();
+    document.getElementById("signupOtpForm")?.reset();
+    editSignupDetails({ keepMessage: true });
+
     const confirmationText = document.getElementById("signupConfirmationText");
     if (confirmationText) {
-      confirmationText.textContent = `${data.user?.name || "Your"} account is ready. A confirmation email will arrive if email service is configured.`;
+      confirmationText.textContent = `${data.user?.name || "Your"} account is ready. A confirmation email has been sent to your mail.`;
     }
-    setFormMessage("signupMessage", data.message || "Account created.", "success");
+    setFormMessage("signupOtpMessage", data.message || "Account created.", "success");
     goToPage("signup-confirmation");
   } catch (error) {
-    setFormMessage("signupMessage", error.message, "error");
+    setFormMessage("signupOtpMessage", error.message, "error");
+  }
+}
+
+async function resendSignupOtp() {
+  setFormMessage("signupOtpMessage", "");
+  if (!pendingSignup) {
+    setFormMessage("signupOtpMessage", "Please enter your signup details again.", "error");
+    editSignupDetails();
+    return;
+  }
+
+  try {
+    const data = await apiFetch("/auth/signup", {
+      method: "POST",
+      body: pendingSignup
+    });
+    showSignupOtpStep(data.email || pendingSignup.email, "New OTP sent to your email.", data.devOtp);
+  } catch (error) {
+    setFormMessage("signupOtpMessage", error.message, "error");
+  }
+}
+
+function showSignupOtpStep(email, message, devOtp) {
+  const signupForm = document.getElementById("signupForm");
+  const otpForm = document.getElementById("signupOtpForm");
+  const otpEmail = document.getElementById("signupOtpEmail");
+  const otpInput = document.getElementById("signup-otp");
+
+  if (signupForm) signupForm.hidden = true;
+  if (otpForm) otpForm.hidden = false;
+  if (otpEmail) otpEmail.textContent = email;
+  if (otpInput) {
+    otpInput.value = "";
+    otpInput.focus();
+  }
+
+  const extra = devOtp ? ` Development OTP: ${devOtp}` : "";
+  setFormMessage("signupOtpMessage", `${message || "OTP sent to your email."}${extra}`, "success");
+}
+
+function editSignupDetails(options = {}) {
+  const signupForm = document.getElementById("signupForm");
+  const otpForm = document.getElementById("signupOtpForm");
+  if (signupForm) signupForm.hidden = false;
+  if (otpForm) otpForm.hidden = true;
+  if (!options.keepMessage) {
+    setFormMessage("signupMessage", "");
+    setFormMessage("signupOtpMessage", "");
   }
 }
 

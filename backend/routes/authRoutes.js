@@ -1,7 +1,9 @@
 const express = require("express");
+const crypto = require("crypto");
 const { body } = require("express-validator");
 const router = express.Router();
 const User = require("../models/User");
+const SignupVerification = require("../models/SignupVerification");
 const requireAuth = require("../middleware/auth");
 const validate = require("../middleware/validate");
 const {
@@ -12,12 +14,44 @@ const {
   publicUser,
   verifyPassword
 } = require("../utils/auth");
-const { sendPasswordResetEmail, sendWelcomeEmail } = require("../utils/email");
+const { sendPasswordResetEmail, sendSignupOtpEmail, sendWelcomeEmail } = require("../utils/email");
 
 const memoryUsers = new Map();
+const memorySignupVerifications = new Map();
+const OTP_TTL_MS = 1000 * 60 * 10;
+const MAX_OTP_ATTEMPTS = 5;
 
 function normalizeEmail(email = "") {
   return String(email).trim().toLowerCase();
+}
+
+function createSignupOtp() {
+  return String(crypto.randomInt(100000, 1000000));
+}
+
+function otpResponse(email, mailResult, otp) {
+  const response = {
+    email,
+    otpRequired: true,
+    message: "OTP sent to your email. Please verify it to create your account."
+  };
+
+  if (mailResult?.skipped && process.env.NODE_ENV !== "production") {
+    response.devOtp = otp;
+    response.message = "Email is not configured. Use the development OTP shown here.";
+  }
+
+  return response;
+}
+
+async function sendOtpOrFail(user, otp) {
+  const mailResult = await sendSignupOtpEmail(user, otp);
+  if (mailResult?.skipped && process.env.NODE_ENV === "production") {
+    const error = new Error("Email OTP service is not configured. Please contact Indo Heals support.");
+    error.status = 503;
+    throw error;
+  }
+  return mailResult;
 }
 
 function authResponse(user) {
@@ -42,29 +76,27 @@ router.post(
       const email = normalizeEmail(req.body.email);
       const phone = String(req.body.phone || "").trim();
       const passwordHash = await hashPassword(String(req.body.password));
+      const otp = createSignupOtp();
+      const otpHash = hashToken(otp);
+      const otpExpires = new Date(Date.now() + OTP_TTL_MS);
 
       if (!req.app.locals.dbReady) {
         if (memoryUsers.has(email)) {
           return res.status(409).json({ message: "Account already exists. Please login." });
         }
 
-        const user = {
-          id: `dev-${Date.now()}`,
+        memorySignupVerifications.set(email, {
           name,
           email,
           phone,
           passwordHash,
-          role: email === process.env.ADMIN_EMAIL ? "admin" : "user",
-          cart: []
-        };
-        memoryUsers.set(email, user);
-        sendWelcomeEmail(user).catch(error => {
-          console.warn("Welcome email failed:", error.message);
+          otpHash,
+          otpExpires,
+          attempts: 0
         });
-        return res.status(201).json({
-          ...authResponse(user),
-          message: "Account created successfully. Confirmation email sent if SMTP is configured."
-        });
+
+        const mailResult = await sendOtpOrFail({ name, email }, otp);
+        return res.status(202).json(otpResponse(email, mailResult, otp));
       }
 
       const existingUser = await User.findOne({ email });
@@ -72,21 +104,121 @@ router.post(
         return res.status(409).json({ message: "Account already exists. Please login." });
       }
 
+      await SignupVerification.findOneAndUpdate(
+        { email },
+        {
+          name,
+          email,
+          phone,
+          passwordHash,
+          otpHash,
+          otpExpires,
+          attempts: 0
+        },
+        { upsert: true, runValidators: true, setDefaultsOnInsert: true }
+      );
+
+      const mailResult = await sendOtpOrFail({ name, email }, otp);
+      return res.status(202).json(otpResponse(email, mailResult, otp));
+    } catch (error) {
+      if (error.code === 11000) {
+        return res.status(409).json({ message: "Account already exists. Please login." });
+      }
+      return next(error);
+    }
+  }
+);
+
+router.post(
+  "/verify-signup-otp",
+  [
+    body("email").isEmail().withMessage("Valid email is required.").normalizeEmail(),
+    body("otp").trim().isLength({ min: 6, max: 6 }).withMessage("Enter the 6 digit OTP."),
+    validate
+  ],
+  async (req, res, next) => {
+    try {
+      const email = normalizeEmail(req.body.email);
+      const otpHash = hashToken(String(req.body.otp || "").trim());
+
+      if (!req.app.locals.dbReady) {
+        const pending = memorySignupVerifications.get(email);
+        if (!pending || pending.otpExpires < new Date()) {
+          return res.status(400).json({ message: "OTP is invalid or expired. Please sign up again." });
+        }
+
+        if (pending.attempts >= MAX_OTP_ATTEMPTS) {
+          memorySignupVerifications.delete(email);
+          return res.status(400).json({ message: "Too many OTP attempts. Please request a new OTP." });
+        }
+
+        if (pending.otpHash !== otpHash) {
+          pending.attempts += 1;
+          return res.status(400).json({ message: "Invalid OTP. Please check your email and try again." });
+        }
+
+        const user = {
+          id: `dev-${Date.now()}`,
+          name: pending.name,
+          email: pending.email,
+          phone: pending.phone,
+          passwordHash: pending.passwordHash,
+          role: email === process.env.ADMIN_EMAIL ? "admin" : "user",
+          emailVerified: true,
+          emailVerifiedAt: new Date(),
+          cart: []
+        };
+        memoryUsers.set(email, user);
+        memorySignupVerifications.delete(email);
+        sendWelcomeEmail(user).catch(error => {
+          console.warn("Welcome email failed:", error.message);
+        });
+        return res.status(201).json({
+          ...authResponse(user),
+          message: "Account created successfully. Confirmation email sent."
+        });
+      }
+
+      const pending = await SignupVerification.findOne({ email, otpExpires: { $gt: new Date() } });
+      if (!pending) {
+        return res.status(400).json({ message: "OTP is invalid or expired. Please sign up again." });
+      }
+
+      if (pending.attempts >= MAX_OTP_ATTEMPTS) {
+        await SignupVerification.deleteOne({ _id: pending._id });
+        return res.status(400).json({ message: "Too many OTP attempts. Please request a new OTP." });
+      }
+
+      if (pending.otpHash !== otpHash) {
+        pending.attempts += 1;
+        await pending.save();
+        return res.status(400).json({ message: "Invalid OTP. Please check your email and try again." });
+      }
+
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        await SignupVerification.deleteOne({ _id: pending._id });
+        return res.status(409).json({ message: "Account already exists. Please login." });
+      }
+
       const user = await User.create({
-        name,
+        name: pending.name,
         email,
-        phone,
-        passwordHash,
-        role: email === process.env.ADMIN_EMAIL ? "admin" : "user"
+        phone: pending.phone,
+        passwordHash: pending.passwordHash,
+        role: email === process.env.ADMIN_EMAIL ? "admin" : "user",
+        emailVerified: true,
+        emailVerifiedAt: new Date()
       });
 
+      await SignupVerification.deleteOne({ _id: pending._id });
       sendWelcomeEmail(user).catch(error => {
         console.warn("Welcome email failed:", error.message);
       });
 
       return res.status(201).json({
         ...authResponse(user),
-        message: "Account created successfully. Confirmation email sent if SMTP is configured."
+        message: "Account created successfully. Confirmation email sent."
       });
     } catch (error) {
       if (error.code === 11000) {

@@ -629,7 +629,7 @@
       <img src="assets/indo-heals-logo.png" alt="Indo Heals logo">
       <span class="section-label">Create Account</span>
       <h2>Sign Up</h2>
-      <form onsubmit="handleSignup(event)">
+      <form id="signupForm" onsubmit="handleSignup(event)">
         <div class="form-group">
           <label>Full Name</label>
           <input type="text" id="name" required placeholder="Enter your name">
@@ -648,6 +648,22 @@
         </div>
         <button type="submit" class="btn-primary">Sign Up</button>
         <p id="signupMessage" class="form-message"></p>
+      </form>
+      <form id="signupOtpForm" class="otp-form" onsubmit="handleSignupOtp(event)" hidden>
+        <div class="otp-mail">
+          <span>OTP sent to</span>
+          <strong id="signupOtpEmail"></strong>
+        </div>
+        <div class="form-group">
+          <label>Email OTP</label>
+          <input type="text" id="signup-otp" required inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="Enter 6 digit OTP">
+        </div>
+        <button type="submit" class="btn-primary">Verify OTP</button>
+        <div class="otp-actions">
+          <button type="button" class="text-btn" onclick="resendSignupOtp()">Resend OTP</button>
+          <button type="button" class="text-btn" onclick="editSignupDetails()">Edit details</button>
+        </div>
+        <p id="signupOtpMessage" class="form-message"></p>
       </form>
       <p>Already have an account? <a href="#" onclick="goToPage('login'); return false;">Login</a></p>
     </div>
@@ -734,6 +750,6 @@
 </footer>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="script.js"></script>
+<script src="script.js?v=20260503-signup-otp"></script>
 </body>
 </html>

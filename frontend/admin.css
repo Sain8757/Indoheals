@@ -467,6 +467,83 @@ td {
   align-items: start;
 }
 
+.orders-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.active-row td {
+  background: var(--panel-soft);
+}
+
+.order-detail-panel {
+  position: sticky;
+  top: 122px;
+}
+
+.detail-section {
+  display: grid;
+  gap: 14px;
+}
+
+.detail-section h3 {
+  font-size: 18px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.detail-line {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.detail-line span,
+.detail-item-total span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.detail-line strong,
+.detail-item strong {
+  min-width: 0;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.detail-items {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.detail-item-total {
+  display: grid;
+  gap: 6px;
+  min-width: 118px;
+  text-align: right;
+}
+
 .stack {
   display: grid;
   gap: 14px;
@@ -679,8 +756,13 @@ td {
 
   .card-grid,
   .split-grid,
+  .orders-layout,
   .analytics-grid {
     grid-template-columns: 1fr;
+  }
+
+  .order-detail-panel {
+    position: static;
   }
 }
 
@@ -698,9 +780,19 @@ td {
   .main-nav,
   .sub-nav.open,
   .form-grid,
+  .detail-grid,
   .settings-grid,
   .guide-grid {
     grid-template-columns: 1fr;
+  }
+
+  .detail-item,
+  .detail-item-total {
+    text-align: left;
+  }
+
+  .detail-item {
+    flex-direction: column;
   }
 
   .main-nav button,

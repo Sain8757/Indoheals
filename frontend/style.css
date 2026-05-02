@@ -2313,6 +2313,36 @@ img {
   text-decoration: none;
 }
 
+.otp-mail {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid rgba(244, 220, 134, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  text-align: center;
+}
+
+.otp-mail strong {
+  color: var(--white);
+  word-break: break-word;
+}
+
+.otp-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.text-btn {
+  background: transparent;
+  color: var(--gold-light);
+  font-weight: 700;
+}
+
 .form-group {
   margin-bottom: 16px;
 }

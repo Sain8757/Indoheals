@@ -27,6 +27,11 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user"
     },
+    emailVerified: {
+      type: Boolean,
+      default: false
+    },
+    emailVerifiedAt: Date,
     passwordResetTokenHash: String,
     passwordResetExpires: Date,
     cart: [

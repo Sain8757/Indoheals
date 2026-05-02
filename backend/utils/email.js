@@ -56,6 +56,17 @@ async function sendWelcomeEmail(user) {
   });
 }
 
+async function sendSignupOtpEmail(user, otp) {
+  return sendMail({
+    to: user.email,
+    subject: "Verify your Indo Heals account",
+    text: `Hi ${user.name}, use this OTP to verify your Indo Heals account: ${otp}. This OTP expires in 10 minutes.`,
+    html: `<p>Hi ${escapeHtml(user.name)},</p><p>Use this OTP to verify your Indo Heals account:</p><p><strong style="font-size:24px;letter-spacing:4px">${escapeHtml(
+      otp
+    )}</strong></p><p>This OTP expires in 10 minutes.</p>`
+  });
+}
+
 async function sendPasswordResetEmail(user, resetUrl) {
   return sendMail({
     to: user.email,
@@ -178,5 +189,6 @@ module.exports = {
   sendNewsletterConfirmation,
   sendOrderConfirmationEmail,
   sendPasswordResetEmail,
+  sendSignupOtpEmail,
   sendWelcomeEmail
 };

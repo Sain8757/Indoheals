@@ -13,6 +13,7 @@ https://indoheals.onrender.com
 If Render gives you a different URL, update `PRODUCTION_API_BASE` in `frontend/script.js` and `frontend/admin.js`.
 
 4. Set the backend environment variables from `backend/.env.example`.
+   SMTP variables are required for signup OTP and customer confirmation emails.
 5. Set `BACKEND_PUBLIC_URL` to the Render service URL.
 6. After Vercel deployment, set `FRONTEND_URL` and `CORS_ORIGIN` to the Vercel frontend URL.
 7. The Render health check path is already configured as:
