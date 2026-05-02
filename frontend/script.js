@@ -6,9 +6,10 @@ const API_BASES = window.INDO_HEALS_API
     !LIVE_SERVER_PORTS.includes(window.location.port)
     ? [`${window.location.origin}/api`]
     : [
-        "https://indoheals.onrender.com/api",
+        "http://localhost:5001/api",
+        "http://127.0.0.1:5001/api",
         "http://localhost:5002/api",
-        "http://localhost:5001/api"
+        "https://indoheals.onrender.com/api"
       ];
 const PRODUCT_IMAGE = "assets/breathe-classic-ai.png";
 const FALLBACK_PRODUCTS = [
@@ -95,6 +96,8 @@ let cart = JSON.parse(localStorage.getItem("cart")) || [];
 let auth = JSON.parse(localStorage.getItem("auth")) || null;
 let appointments = JSON.parse(localStorage.getItem("appointments")) || [];
 let businessContacts = JSON.parse(localStorage.getItem("businessContacts")) || [];
+let lastOrder = JSON.parse(localStorage.getItem("lastOrder")) || null;
+let ordersLoaded = false;
 let currentPage = "home";
 let toastTimer;
 let heroSlideIndex = 0;
@@ -169,6 +172,19 @@ function goToPage(page) {
 
   if (page === "cart") {
     updateCartDisplay();
+  }
+
+  if (page === "checkout") {
+    renderCheckout();
+  }
+
+  if (page === "order-confirmation") {
+    renderOrderConfirmation();
+  }
+
+  if (page === "account") {
+    renderAccount();
+    loadMyOrders();
   }
 
   if (page === "about") {
@@ -570,10 +586,68 @@ async function checkout() {
   if (cart.length === 0) return;
 
   if (!auth?.token) {
-    alert("Checkout ke liye pehle login karein.");
+    showToast("Checkout ke liye pehle login karein.");
     goToPage("login");
     return;
   }
+
+  goToPage("checkout");
+}
+
+function renderCheckout() {
+  if (!auth?.token) {
+    goToPage("login");
+    return;
+  }
+
+  if (!cart.length) {
+    goToPage("cart");
+    return;
+  }
+
+  const summary = document.getElementById("checkoutSummary");
+  const totalElement = document.getElementById("checkoutTotal");
+  if (!summary || !totalElement) return;
+
+  const nameInput = document.getElementById("checkout-name");
+  const phoneInput = document.getElementById("checkout-phone");
+  const emailInput = document.getElementById("checkout-email");
+  if (nameInput && !nameInput.value) nameInput.value = auth.user?.name || "";
+  if (phoneInput && !phoneInput.value) phoneInput.value = auth.user?.phone || "";
+  if (emailInput) emailInput.value = auth.user?.email || "";
+
+  let total = 0;
+  summary.innerHTML = cart
+    .map(item => {
+      const lineTotal = item.price * item.quantity;
+      total += lineTotal;
+      return `
+        <div class="summary-line">
+          <span>${escapeHtml(item.name)} x ${item.quantity}</span>
+          <strong>${formatRupee(lineTotal)}</strong>
+        </div>
+      `;
+    })
+    .join("");
+  totalElement.textContent = total.toLocaleString("en-IN");
+}
+
+function checkoutShippingAddress() {
+  return {
+    fullName: document.getElementById("checkout-name").value.trim(),
+    phone: document.getElementById("checkout-phone").value.trim(),
+    addressLine1: document.getElementById("checkout-address1").value.trim(),
+    addressLine2: document.getElementById("checkout-address2").value.trim(),
+    city: document.getElementById("checkout-city").value.trim(),
+    state: document.getElementById("checkout-state").value.trim(),
+    postalCode: document.getElementById("checkout-postal").value.trim(),
+    country: document.getElementById("checkout-country").value.trim() || "India"
+  };
+}
+
+async function placeOrder(event) {
+  event.preventDefault();
+  setFormMessage("checkoutMessage", "");
 
   try {
     const order = await apiFetch("/orders", {
@@ -582,7 +656,9 @@ async function checkout() {
         items: cart.map(item => ({
           productId: item.id,
           quantity: item.quantity
-        }))
+        })),
+        shippingAddress: checkoutShippingAddress(),
+        notes: document.getElementById("checkout-notes").value.trim()
       }
     });
 
@@ -595,7 +671,11 @@ async function checkout() {
           razorpay_signature: ""
         }
       });
-      completeCheckout(order.orderId);
+      completeCheckout(order.orderId, {
+        ...order,
+        status: "paid",
+        shippingAddress: checkoutShippingAddress()
+      });
       return;
     }
 
@@ -606,18 +686,18 @@ async function checkout() {
       amount: order.amount,
       currency: order.currency,
       name: "Indo Heals",
-      description: "Digital product purchase",
+      description: "Indo Heals order",
       order_id: order.paymentOrderId,
       prefill: {
         name: auth.user?.name || "",
         email: auth.user?.email || ""
       },
       handler: async response => {
-        await apiFetch(`/orders/${order.orderId}/confirm-payment`, {
+        const confirmation = await apiFetch(`/orders/${order.orderId}/confirm-payment`, {
           method: "POST",
           body: response
         });
-        completeCheckout(order.orderId);
+        completeCheckout(order.orderId, confirmation.order || order);
       },
       modal: {
         ondismiss: () => showToast("Payment cancelled.")
@@ -626,17 +706,70 @@ async function checkout() {
 
     razorpay.open();
   } catch (error) {
-    alert(error.message);
+    setFormMessage("checkoutMessage", error.message, "error");
   }
 }
 
-function completeCheckout(orderId) {
+function completeCheckout(orderId, order = {}) {
+  lastOrder = {
+    ...order,
+    orderId,
+    _id: order._id || orderId,
+    items: order.items || cart,
+    total: order.total || cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    createdAt: order.createdAt || new Date().toISOString()
+  };
+  localStorage.setItem("lastOrder", JSON.stringify(lastOrder));
   cart = [];
   saveCart();
   updateCartBadge();
   updateCartDisplay();
-  alert(`Order paid successfully. Order ID: ${orderId}`);
-  goToPage("products");
+  ordersLoaded = false;
+  showToast("Order confirmed.");
+  goToPage("order-confirmation");
+}
+
+function renderOrderConfirmation() {
+  const container = document.getElementById("confirmationDetails");
+  if (!container) return;
+
+  if (!lastOrder) {
+    container.innerHTML = "<p class='form-message'>No recent order found.</p>";
+    return;
+  }
+
+  const orderId = lastOrder._id || lastOrder.orderId;
+  const items = lastOrder.items || [];
+  const address = lastOrder.shippingAddress || {};
+
+  container.innerHTML = `
+    <div class="confirmation-meta">
+      <div><span>Order ID</span><strong>${escapeHtml(orderId)}</strong></div>
+      <div><span>Status</span><strong>${escapeHtml(lastOrder.status || "paid")}</strong></div>
+      <div><span>Total</span><strong>${formatRupee(lastOrder.total)}</strong></div>
+    </div>
+    <div class="confirmation-section">
+      <h3>Items</h3>
+      ${items
+        .map(
+          item => `
+            <div class="summary-line">
+              <span>${escapeHtml(item.name)} x ${Number(item.quantity || 1)}</span>
+              <strong>${formatRupee(item.price * item.quantity)}</strong>
+            </div>
+          `
+        )
+        .join("")}
+    </div>
+    <div class="confirmation-section">
+      <h3>Delivery</h3>
+      <p>${escapeHtml(address.fullName || auth?.user?.name || "")}</p>
+      <p>${escapeHtml([address.addressLine1, address.addressLine2].filter(Boolean).join(", "))}</p>
+      <p>${escapeHtml([address.city, address.state, address.postalCode].filter(Boolean).join(", "))}</p>
+      <p>${escapeHtml(address.country || "India")}</p>
+      <p>${escapeHtml(address.phone || "")}</p>
+    </div>
+  `;
 }
 
 function loadRazorpay() {
@@ -682,23 +815,28 @@ async function handleSignup(event) {
 
   const name = document.getElementById("name").value;
   const email = document.getElementById("signup-email").value;
+  const phone = document.getElementById("signup-phone").value;
   const password = document.getElementById("signup-password").value;
 
   try {
     const data = await apiFetch("/auth/signup", {
       method: "POST",
-      body: { name, email, password }
+      body: { name, email, phone, password }
     });
 
     saveAuth(data);
-    setFormMessage("signupMessage", "Account created.", "success");
-    goToPage("products");
+    const confirmationText = document.getElementById("signupConfirmationText");
+    if (confirmationText) {
+      confirmationText.textContent = `${data.user?.name || "Your"} account is ready. A confirmation email will arrive if email service is configured.`;
+    }
+    setFormMessage("signupMessage", data.message || "Account created.", "success");
+    goToPage("signup-confirmation");
   } catch (error) {
     setFormMessage("signupMessage", error.message, "error");
   }
 }
 
-function handleAppointment(event) {
+async function handleAppointment(event) {
   event.preventDefault();
   setFormMessage("appointmentMessage", "");
 
@@ -714,18 +852,36 @@ function handleAppointment(event) {
     createdAt: new Date().toISOString()
   };
 
-  appointments.push(appointment);
-  localStorage.setItem("appointments", JSON.stringify(appointments));
-  event.target.reset();
-  setFormMessage(
-    "appointmentMessage",
-    `Appointment booked. Reference: ${appointment.id}`,
-    "success"
-  );
-  showToast("Appointment request booked successfully.");
+  try {
+    const data = await apiFetch("/contact/appointments", {
+      method: "POST",
+      body: {
+        name: appointment.name,
+        phone: appointment.phone,
+        email: appointment.email,
+        interest: appointment.interest,
+        date: appointment.date,
+        time: appointment.time,
+        message: appointment.message
+      }
+    });
+
+    event.target.reset();
+    setFormMessage(
+      "appointmentMessage",
+      `Appointment booked. Reference: ${data.reference}`,
+      "success"
+    );
+    showToast("Appointment request booked successfully.");
+  } catch (error) {
+    appointments.push(appointment);
+    localStorage.setItem("appointments", JSON.stringify(appointments));
+    setFormMessage("appointmentMessage", `Saved locally. Reference: ${appointment.id}`, "success");
+    showToast("Backend unavailable. Appointment saved locally.");
+  }
 }
 
-function handleBusinessContact(event) {
+async function handleBusinessContact(event) {
   event.preventDefault();
   setFormMessage("businessContactMessage", "");
 
@@ -743,12 +899,38 @@ function handleBusinessContact(event) {
     createdAt: new Date().toISOString()
   };
 
-  businessContacts.push(lead);
-  localStorage.setItem("businessContacts", JSON.stringify(businessContacts));
-  event.target.reset();
+  try {
+    const data = await apiFetch("/contact/business", {
+      method: "POST",
+      body: lead
+    });
 
-  setFormMessage("businessContactMessage", `Thank you. Reference: ${lead.id}`, "success");
-  showToast("Contact details submitted successfully.");
+    event.target.reset();
+    setFormMessage("businessContactMessage", `Thank you. Reference: ${data.reference}`, "success");
+    showToast("Contact details submitted successfully.");
+  } catch (error) {
+    businessContacts.push(lead);
+    localStorage.setItem("businessContacts", JSON.stringify(businessContacts));
+    setFormMessage("businessContactMessage", `Saved locally. Reference: ${lead.id}`, "success");
+    showToast("Backend unavailable. Details saved locally.");
+  }
+}
+
+async function handleNewsletter(event) {
+  event.preventDefault();
+  const input = document.getElementById("newsletter-email");
+  if (!input) return;
+
+  try {
+    await apiFetch("/contact/newsletter", {
+      method: "POST",
+      body: { email: input.value, source: "homepage" }
+    });
+    input.value = "";
+    showToast("Thank you for subscribing.");
+  } catch (error) {
+    showToast(error.message);
+  }
 }
 
 function setAppointmentMinDate() {
@@ -834,13 +1016,17 @@ async function syncCartAfterLogin() {
   }
 }
 
-function handleAuthNav() {
+function openAccount() {
   if (auth?.token) {
-    logout();
+    goToPage("account");
     return;
   }
 
   goToPage("login");
+}
+
+function handleAuthNav() {
+  openAccount();
 }
 
 function logout() {
@@ -851,11 +1037,11 @@ function logout() {
 }
 
 function updateAuthUI() {
-  const authLink = document.getElementById("authLink");
+  const accountLink = document.getElementById("accountLink");
   const navUser = document.getElementById("navUser");
 
-  if (authLink) {
-    authLink.textContent = auth?.token ? "Logout" : "Login";
+  if (accountLink) {
+    accountLink.textContent = auth?.token ? "Account" : "Login";
   }
 
   if (navUser) {
@@ -863,6 +1049,73 @@ function updateAuthUI() {
   }
 
   updateCartBadge();
+}
+
+function renderAccount() {
+  if (!auth?.token) {
+    goToPage("login");
+    return;
+  }
+
+  const profile = document.getElementById("accountProfile");
+  if (!profile) return;
+
+  profile.innerHTML = `
+    <div><span>Name</span><strong>${escapeHtml(auth.user?.name || "")}</strong></div>
+    <div><span>Email</span><strong>${escapeHtml(auth.user?.email || "")}</strong></div>
+    <div><span>Phone</span><strong>${escapeHtml(auth.user?.phone || "Not added")}</strong></div>
+    <div><span>Role</span><strong>${escapeHtml(auth.user?.role || "user")}</strong></div>
+  `;
+}
+
+async function loadMyOrders() {
+  if (!auth?.token) return;
+
+  const container = document.getElementById("myOrders");
+  if (!container) return;
+
+  container.innerHTML = "<p class='form-message'>Loading orders...</p>";
+
+  try {
+    const orders = await apiFetch("/orders/my");
+    ordersLoaded = true;
+    renderMyOrders(Array.isArray(orders) ? orders : []);
+  } catch (error) {
+    ordersLoaded = false;
+    container.innerHTML = `<p class="form-message error">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function renderMyOrders(orders) {
+  const container = document.getElementById("myOrders");
+  if (!container) return;
+
+  if (!orders.length) {
+    container.innerHTML = "<p class='form-message'>No orders yet.</p>";
+    return;
+  }
+
+  container.innerHTML = orders
+    .map(order => {
+      const items = (order.items || [])
+        .map(item => `${escapeHtml(item.name)} x ${Number(item.quantity || 1)}`)
+        .join(", ");
+
+      return `
+        <article class="order-card">
+          <div class="order-card-head">
+            <strong>${escapeHtml(order._id || order.orderId)}</strong>
+            <span>${escapeHtml(order.status || "pending")}</span>
+          </div>
+          <p>${items}</p>
+          <div class="order-card-meta">
+            <span>${formatDate(order.createdAt)}</span>
+            <strong>${formatRupee(order.total)}</strong>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function updateCartBadge() {
@@ -906,6 +1159,14 @@ function setFormMessage(elementId, message, type = "") {
 
 function formatRupee(value) {
   return `₹${Number(value || 0).toLocaleString("en-IN")}`;
+}
+
+function formatDate(value) {
+  if (!value) return "N/A";
+  return new Date(value).toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
 }
 
 function escapeHtml(value = "") {

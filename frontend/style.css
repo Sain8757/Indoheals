@@ -1835,6 +1835,198 @@ img {
   color: var(--muted);
 }
 
+.checkout-page,
+.confirmation-page,
+.account-page {
+  padding-top: calc(var(--nav-height) + 56px);
+}
+
+.checkout-shell,
+.account-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.checkout-head,
+.account-head {
+  margin-bottom: 24px;
+}
+
+.account-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.checkout-grid,
+.account-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.checkout-summary-panel,
+.confirmation-card,
+.account-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035));
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(16px);
+}
+
+.checkout-summary-panel {
+  position: sticky;
+  top: calc(var(--nav-height) + 24px);
+  padding: 26px;
+}
+
+.checkout-note {
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.confirmation-card {
+  width: min(900px, 100%);
+  margin: 0 auto;
+  padding: 36px;
+}
+
+.confirmation-card .section-title {
+  margin-bottom: 22px;
+}
+
+.confirmation-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.confirmation-meta div,
+.profile-lines div,
+.order-card {
+  border: 1px solid rgba(212, 175, 55, 0.16);
+  border-radius: 8px;
+  background: rgba(2, 8, 23, 0.22);
+}
+
+.confirmation-meta div,
+.profile-lines div {
+  min-height: 74px;
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.confirmation-meta span,
+.profile-lines span,
+.order-card-meta span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.confirmation-meta strong,
+.profile-lines strong {
+  min-width: 0;
+  color: var(--white);
+  overflow-wrap: anywhere;
+}
+
+.confirmation-section {
+  margin-top: 20px;
+}
+
+.confirmation-section h3,
+.account-card h3 {
+  margin-bottom: 14px;
+  color: var(--gold-light);
+  font-family: 'Cinzel', 'Cormorant Garamond', serif;
+  font-size: 18px;
+}
+
+.confirmation-section p {
+  margin-bottom: 6px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.confirmation-actions {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.confirmation-mini {
+  display: grid;
+  gap: 10px;
+}
+
+.confirmation-mini .btn-outline {
+  width: 100%;
+}
+
+.account-card {
+  padding: 26px;
+}
+
+.order-history-card {
+  min-height: 320px;
+}
+
+.account-card-head,
+.order-card-head,
+.order-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.profile-lines,
+.order-list {
+  display: grid;
+  gap: 12px;
+}
+
+.order-card {
+  padding: 16px;
+}
+
+.order-card-head {
+  margin-bottom: 10px;
+}
+
+.order-card-head strong {
+  color: var(--white);
+  overflow-wrap: anywhere;
+}
+
+.order-card-head span {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(111, 143, 94, 0.18);
+  color: #bfe3b8;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.order-card p {
+  margin-bottom: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.order-card-meta strong {
+  color: var(--gold-light);
+}
+
 .auth-page {
   min-height: calc(100vh - var(--nav-height));
   margin-top: var(--nav-height);
@@ -2522,8 +2714,14 @@ img {
   .newsletter-band,
   .footer-grid,
   .product-detail-grid,
-  .appointment-shell {
+  .appointment-shell,
+  .checkout-grid,
+  .account-grid {
     grid-template-columns: 1fr;
+  }
+
+  .checkout-summary-panel {
+    position: static;
   }
 
   .ritual-strip div {
@@ -2577,6 +2775,11 @@ img {
   }
 
   .footer-bottom {
+    flex-direction: column;
+  }
+
+  .account-head {
+    align-items: stretch;
     flex-direction: column;
   }
 }
@@ -2856,8 +3059,26 @@ img {
   .login-container,
   .summary-card,
   #emptyCart,
-  .product-detail {
+  .product-detail,
+  .checkout-summary-panel,
+  .confirmation-card,
+  .account-card {
     padding: 22px;
+  }
+
+  .confirmation-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmation-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .confirmation-actions .btn-primary,
+  .confirmation-actions .btn-outline,
+  .account-head .btn-outline {
+    width: 100%;
   }
 
   .about-section {

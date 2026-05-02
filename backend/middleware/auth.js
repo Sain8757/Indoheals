@@ -14,7 +14,7 @@ async function requireAuth(req, res, next) {
     req.auth = payload;
 
     if (req.app.locals.dbReady) {
-      const user = await User.findById(payload.sub).select("name email role cart");
+      const user = await User.findById(payload.sub).select("name email phone role cart addresses");
       if (!user) {
         return res.status(401).json({ message: "Account not found. Please login again." });
       }

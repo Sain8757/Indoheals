@@ -6,15 +6,19 @@ const API_BASES = window.INDO_HEALS_API
     !LIVE_SERVER_PORTS.includes(window.location.port)
     ? [`${window.location.origin}/api`]
     : [
-        "https://indoheals.onrender.com/api",
+        "http://localhost:5001/api",
+        "http://127.0.0.1:5001/api",
         "http://localhost:5002/api",
-        "http://localhost:5001/api"
+        "https://indoheals.onrender.com/api"
       ];
 
 let adminAuth = JSON.parse(localStorage.getItem("adminAuth")) || null;
 let products = [];
 let orders = [];
 let users = [];
+let appointments = [];
+let leads = [];
+let newsletterSubscriptions = [];
 let currentTab = "products";
 let toastTimer;
 
@@ -128,6 +132,9 @@ async function refreshCurrentTab() {
   if (currentTab === "products") await loadProducts();
   if (currentTab === "orders") await loadOrders();
   if (currentTab === "users") await loadUsers();
+  if (currentTab === "appointments") await loadAppointments();
+  if (currentTab === "leads") await loadLeads();
+  if (currentTab === "newsletter") await loadNewsletter();
 }
 
 async function loadProducts() {
@@ -325,6 +332,101 @@ function renderUsers() {
         <span class="status">${escapeHtml(user.role || "user")}</span>
       </div>
       <p class="meta-line">Joined: ${formatDate(user.createdAt)} · Cart items: ${(user.cart || []).length}</p>
+    </article>
+  `).join("");
+}
+
+async function loadAppointments() {
+  try {
+    appointments = await apiFetch("/admin/appointments");
+    renderAppointments();
+  } catch (error) {
+    renderError("appointmentsList", error.message);
+  }
+}
+
+function renderAppointments() {
+  document.getElementById("appointmentCount").textContent = appointments.length;
+  const list = document.getElementById("appointmentsList");
+  if (!appointments.length) {
+    list.innerHTML = `<p class="meta-line">No appointment requests found.</p>`;
+    return;
+  }
+
+  list.innerHTML = appointments.map(appointment => `
+    <article class="list-card">
+      <div class="list-head">
+        <div class="list-title">
+          <strong>${escapeHtml(appointment.name)}</strong>
+          <span>${escapeHtml(appointment.email)} · ${escapeHtml(appointment.phone)}</span>
+        </div>
+        <span class="status">${escapeHtml(appointment.status || "new")}</span>
+      </div>
+      <p class="meta-line">Reference: ${escapeHtml(appointment.reference)} · ${escapeHtml(appointment.interest)} · ${escapeHtml(appointment.date)} ${escapeHtml(appointment.time)}</p>
+      <p class="meta-line">${escapeHtml(appointment.message || "")}</p>
+    </article>
+  `).join("");
+}
+
+async function loadLeads() {
+  try {
+    leads = await apiFetch("/admin/business-leads");
+    renderLeads();
+  } catch (error) {
+    renderError("leadsList", error.message);
+  }
+}
+
+function renderLeads() {
+  document.getElementById("leadCount").textContent = leads.length;
+  const list = document.getElementById("leadsList");
+  if (!leads.length) {
+    list.innerHTML = `<p class="meta-line">No business leads found.</p>`;
+    return;
+  }
+
+  list.innerHTML = leads.map(lead => `
+    <article class="list-card">
+      <div class="list-head">
+        <div class="list-title">
+          <strong>${escapeHtml(lead.company)}</strong>
+          <span>${escapeHtml(lead.city)}, ${escapeHtml(lead.country)} · ${escapeHtml(lead.email)}</span>
+        </div>
+        <span class="status">${escapeHtml(lead.status || "new")}</span>
+      </div>
+      <p class="meta-line">Reference: ${escapeHtml(lead.reference)} · Contact: ${escapeHtml(lead.contactPerson)} · ${escapeHtml(lead.mobile)}</p>
+      <p class="meta-line">${escapeHtml(lead.currentProducts || "")}</p>
+      <p class="meta-line">${escapeHtml(lead.message || "")}</p>
+    </article>
+  `).join("");
+}
+
+async function loadNewsletter() {
+  try {
+    newsletterSubscriptions = await apiFetch("/admin/newsletter");
+    renderNewsletter();
+  } catch (error) {
+    renderError("newsletterList", error.message);
+  }
+}
+
+function renderNewsletter() {
+  document.getElementById("newsletterCount").textContent = newsletterSubscriptions.length;
+  const list = document.getElementById("newsletterList");
+  if (!newsletterSubscriptions.length) {
+    list.innerHTML = `<p class="meta-line">No subscriptions found.</p>`;
+    return;
+  }
+
+  list.innerHTML = newsletterSubscriptions.map(subscription => `
+    <article class="list-card">
+      <div class="list-head">
+        <div class="list-title">
+          <strong>${escapeHtml(subscription.email)}</strong>
+          <span>${escapeHtml(subscription.source || "website")} · ${formatDate(subscription.createdAt)}</span>
+        </div>
+        <span class="status">${escapeHtml(subscription.status || "subscribed")}</span>
+      </div>
     </article>
   `).join("");
 }

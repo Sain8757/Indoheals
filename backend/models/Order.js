@@ -11,6 +11,10 @@ const orderItemSchema = new mongoose.Schema(
     price: Number,
     quantity: Number,
     image: String,
+    hasDigitalFile: {
+      type: Boolean,
+      default: false
+    },
     downloadTokenHash: String,
     downloadTokenExpires: Date
   },
@@ -25,6 +29,20 @@ const orderSchema = new mongoose.Schema(
     },
     customerName: String,
     customerEmail: String,
+    customerPhone: String,
+    shippingAddress: {
+      fullName: String,
+      phone: String,
+      addressLine1: String,
+      addressLine2: String,
+      city: String,
+      state: String,
+      postalCode: String,
+      country: {
+        type: String,
+        default: "India"
+      }
+    },
     items: [orderItemSchema],
     total: Number,
     status: {
@@ -41,6 +59,12 @@ const orderSchema = new mongoose.Schema(
     paymentId: String,
     paymentSignature: String,
     failureReason: String,
+    fulfillmentStatus: {
+      type: String,
+      enum: ["new", "processing", "packed", "shipped", "delivered", "cancelled"],
+      default: "new"
+    },
+    notes: String,
     paidAt: Date
   },
   { timestamps: true }

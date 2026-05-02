@@ -12,7 +12,7 @@ const {
   publicUser,
   verifyPassword
 } = require("../utils/auth");
-const { sendPasswordResetEmail } = require("../utils/email");
+const { sendPasswordResetEmail, sendWelcomeEmail } = require("../utils/email");
 
 const memoryUsers = new Map();
 
@@ -32,6 +32,7 @@ router.post(
   [
     body("name").trim().notEmpty().withMessage("Name is required."),
     body("email").isEmail().withMessage("Valid email is required.").normalizeEmail(),
+    body("phone").optional({ checkFalsy: true }).trim().isLength({ min: 7 }).withMessage("Phone number is too short."),
     body("password").isLength({ min: 8 }).withMessage("Password must be at least 8 characters."),
     validate
   ],
@@ -39,6 +40,7 @@ router.post(
     try {
       const name = String(req.body.name).trim();
       const email = normalizeEmail(req.body.email);
+      const phone = String(req.body.phone || "").trim();
       const passwordHash = await hashPassword(String(req.body.password));
 
       if (!req.app.locals.dbReady) {
@@ -50,12 +52,19 @@ router.post(
           id: `dev-${Date.now()}`,
           name,
           email,
+          phone,
           passwordHash,
           role: email === process.env.ADMIN_EMAIL ? "admin" : "user",
           cart: []
         };
         memoryUsers.set(email, user);
-        return res.status(201).json(authResponse(user));
+        sendWelcomeEmail(user).catch(error => {
+          console.warn("Welcome email failed:", error.message);
+        });
+        return res.status(201).json({
+          ...authResponse(user),
+          message: "Account created successfully. Confirmation email sent if SMTP is configured."
+        });
       }
 
       const existingUser = await User.findOne({ email });
@@ -66,11 +75,19 @@ router.post(
       const user = await User.create({
         name,
         email,
+        phone,
         passwordHash,
         role: email === process.env.ADMIN_EMAIL ? "admin" : "user"
       });
 
-      return res.status(201).json(authResponse(user));
+      sendWelcomeEmail(user).catch(error => {
+        console.warn("Welcome email failed:", error.message);
+      });
+
+      return res.status(201).json({
+        ...authResponse(user),
+        message: "Account created successfully. Confirmation email sent if SMTP is configured."
+      });
     } catch (error) {
       if (error.code === 11000) {
         return res.status(409).json({ message: "Account already exists. Please login." });
@@ -190,6 +207,7 @@ router.put(
   [
     body("name").optional().trim().notEmpty().withMessage("Name cannot be empty."),
     body("email").optional().isEmail().withMessage("Valid email is required.").normalizeEmail(),
+    body("phone").optional({ checkFalsy: true }).trim().isLength({ min: 7 }).withMessage("Phone number is too short."),
     body("currentPassword").optional().isString(),
     body("newPassword").optional().isLength({ min: 8 }).withMessage("New password must be at least 8 characters."),
     validate
@@ -205,6 +223,7 @@ router.put(
 
       if (req.body.name) user.name = String(req.body.name).trim();
       if (req.body.email) user.email = normalizeEmail(req.body.email);
+      if (req.body.phone !== undefined) user.phone = String(req.body.phone || "").trim();
 
       if (req.body.newPassword) {
         if (!req.body.currentPassword || !(await verifyPassword(req.body.currentPassword, user.passwordHash))) {

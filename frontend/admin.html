@@ -19,6 +19,9 @@
         <button class="active" data-tab="products" type="button">Products</button>
         <button data-tab="orders" type="button">Orders</button>
         <button data-tab="users" type="button">Users</button>
+        <button data-tab="appointments" type="button">Appointments</button>
+        <button data-tab="leads" type="button">Leads</button>
+        <button data-tab="newsletter" type="button">Newsletter</button>
       </nav>
       <button class="ghost-button" type="button" onclick="logoutAdmin()">Logout</button>
     </aside>
@@ -111,6 +114,36 @@
               <span id="userCount" class="count-pill">0</span>
             </div>
             <div id="usersList" class="stack-list"></div>
+          </div>
+        </section>
+
+        <section id="appointmentsTab" class="tab-panel" hidden>
+          <div class="table-panel full">
+            <div class="panel-title">
+              <h2>Appointments</h2>
+              <span id="appointmentCount" class="count-pill">0</span>
+            </div>
+            <div id="appointmentsList" class="stack-list"></div>
+          </div>
+        </section>
+
+        <section id="leadsTab" class="tab-panel" hidden>
+          <div class="table-panel full">
+            <div class="panel-title">
+              <h2>Business Leads</h2>
+              <span id="leadCount" class="count-pill">0</span>
+            </div>
+            <div id="leadsList" class="stack-list"></div>
+          </div>
+        </section>
+
+        <section id="newsletterTab" class="tab-panel" hidden>
+          <div class="table-panel full">
+            <div class="panel-title">
+              <h2>Newsletter</h2>
+              <span id="newsletterCount" class="count-pill">0</span>
+            </div>
+            <div id="newsletterList" class="stack-list"></div>
           </div>
         </section>
       </section>

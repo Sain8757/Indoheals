@@ -18,6 +18,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    phone: {
+      type: String,
+      trim: true
+    },
     role: {
       type: String,
       enum: ["user", "admin"],
@@ -39,6 +43,26 @@ const userSchema = new mongoose.Schema(
           type: Number,
           default: 1,
           min: 1
+        }
+      }
+    ],
+    addresses: [
+      {
+        label: {
+          type: String,
+          trim: true,
+          default: "Home"
+        },
+        fullName: String,
+        phone: String,
+        addressLine1: String,
+        addressLine2: String,
+        city: String,
+        state: String,
+        postalCode: String,
+        country: {
+          type: String,
+          default: "India"
         }
       }
     ]

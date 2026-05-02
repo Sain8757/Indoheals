@@ -1,11 +1,13 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const { body } = require("express-validator");
 const router = express.Router();
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const User = require("../models/User");
 const requireAuth = require("../middleware/auth");
 const { requireAdmin } = require("../middleware/auth");
+const validate = require("../middleware/validate");
 const { createOpaqueToken } = require("../utils/auth");
 const { sendOrderConfirmationEmail } = require("../utils/email");
 const { findFallbackProduct } = require("../utils/products");
@@ -18,6 +20,21 @@ const {
 
 const memoryOrders = [];
 
+const orderValidators = [
+  body("items").isArray({ min: 1 }).withMessage("Cart must contain at least one product."),
+  body("items.*.productId").notEmpty().withMessage("Product ID is required."),
+  body("items.*.quantity").optional().isInt({ min: 1 }).withMessage("Quantity must be at least 1."),
+  body("shippingAddress.fullName").trim().notEmpty().withMessage("Full name is required."),
+  body("shippingAddress.phone").trim().isLength({ min: 7 }).withMessage("Phone number is required."),
+  body("shippingAddress.addressLine1").trim().notEmpty().withMessage("Address is required."),
+  body("shippingAddress.city").trim().notEmpty().withMessage("City is required."),
+  body("shippingAddress.state").trim().notEmpty().withMessage("State is required."),
+  body("shippingAddress.postalCode").trim().notEmpty().withMessage("PIN code is required."),
+  body("shippingAddress.country").optional().trim().notEmpty().withMessage("Country cannot be empty."),
+  body("notes").optional().trim(),
+  validate
+];
+
 function getUserId(req) {
   return String(req.user._id || req.user.id);
 }
@@ -25,6 +42,21 @@ function getUserId(req) {
 function absoluteUrl(req, path) {
   const base = process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get("host")}`;
   return `${base}${path}`;
+}
+
+function normalizeShippingAddress(req) {
+  const address = req.body.shippingAddress || {};
+
+  return {
+    fullName: String(address.fullName || req.user.name || "").trim(),
+    phone: String(address.phone || req.body.customerPhone || req.user.phone || "").trim(),
+    addressLine1: String(address.addressLine1 || "").trim(),
+    addressLine2: String(address.addressLine2 || "").trim(),
+    city: String(address.city || "").trim(),
+    state: String(address.state || "").trim(),
+    postalCode: String(address.postalCode || "").trim(),
+    country: String(address.country || "India").trim()
+  };
 }
 
 async function resolveItems(req, submittedItems) {
@@ -56,7 +88,8 @@ async function resolveItems(req, submittedItems) {
         name: product.name,
         price: product.price,
         quantity: item.quantity,
-        image: product.image
+        image: product.image,
+        hasDigitalFile: Boolean(product.digitalFile?.storagePath)
       });
     });
   } else {
@@ -69,7 +102,8 @@ async function resolveItems(req, submittedItems) {
         name: product.name,
         price: product.price,
         quantity: item.quantity,
-        image: product.image
+        image: product.image,
+        hasDigitalFile: false
       });
     });
   }
@@ -80,6 +114,8 @@ async function resolveItems(req, submittedItems) {
 async function createDownloadLinks(req, order) {
   const links = [];
   order.items.forEach(item => {
+    if (!item.hasDigitalFile) return;
+
     const { token, hash } = createOpaqueToken();
     item.downloadTokenHash = hash;
     item.downloadTokenExpires = new Date(Date.now() + 1000 * 60 * 60 * 24);
@@ -99,11 +135,13 @@ async function markOrderPaid(req, order, payment) {
   order.paidAt = new Date();
 
   const links = await createDownloadLinks(req, order);
-  await sendOrderConfirmationEmail(order, links);
+  await sendOrderConfirmationEmail(order, links).catch(error => {
+    console.warn("Order confirmation email failed:", error.message);
+  });
   return order;
 }
 
-router.post("/", requireAuth, async (req, res, next) => {
+router.post("/", requireAuth, orderValidators, async (req, res, next) => {
   try {
     const orderItems = await resolveItems(req, req.body.items);
     if (!orderItems.length) {
@@ -111,6 +149,8 @@ router.post("/", requireAuth, async (req, res, next) => {
     }
 
     const total = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const shippingAddress = normalizeShippingAddress(req);
+    const customerPhone = shippingAddress.phone;
 
     if (!req.app.locals.dbReady) {
       const order = {
@@ -118,10 +158,14 @@ router.post("/", requireAuth, async (req, res, next) => {
         user: getUserId(req),
         customerName: req.user.name,
         customerEmail: req.user.email,
+        customerPhone,
+        shippingAddress,
         items: orderItems,
         total,
         status: "pending",
+        fulfillmentStatus: "new",
         paymentOrderId: `dev-pay-order-${Date.now()}`,
+        notes: String(req.body.notes || "").trim(),
         createdAt: new Date()
       };
       memoryOrders.push(order);
@@ -153,11 +197,14 @@ router.post("/", requireAuth, async (req, res, next) => {
       user: req.user._id,
       customerName: req.user.name,
       customerEmail: req.user.email,
+      customerPhone,
+      shippingAddress,
       items: orderItems,
       total,
       status: "pending",
       paymentProvider: "razorpay",
-      paymentOrderId
+      paymentOrderId,
+      notes: String(req.body.notes || "").trim()
     });
 
     return res.status(201).json({
@@ -190,8 +237,10 @@ router.post("/:id/confirm-payment", requireAuth, async (req, res, next) => {
         order.status = "failed";
         return res.status(400).json({ message: "Payment verification failed." });
       }
-      order.status = "paid";
-      order.paymentId = razorpay_payment_id || `dev-payment-${Date.now()}`;
+      await markOrderPaid(req, order, {
+        paymentId: razorpay_payment_id || `dev-payment-${Date.now()}`,
+        signature: razorpay_signature
+      });
       return res.json({ message: "Payment confirmed.", order });
     }
 

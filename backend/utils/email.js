@@ -23,11 +23,37 @@ async function sendMail({ to, subject, text, html }) {
   const from = process.env.MAIL_FROM || process.env.SMTP_USER || "no-reply@indoheals.com";
 
   if (!transporter) {
-    console.log("Email skipped because SMTP is not configured:", { to, subject, text });
+    console.log("Email skipped because SMTP is not configured:", { to, subject });
     return { skipped: true };
   }
 
   return transporter.sendMail({ from, to, subject, text, html });
+}
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function formatRupee(value) {
+  return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
+}
+
+function adminEmail() {
+  return process.env.ADMIN_EMAIL || process.env.SMTP_USER || "";
+}
+
+async function sendWelcomeEmail(user) {
+  return sendMail({
+    to: user.email,
+    subject: "Welcome to Indo Heals",
+    text: `Hi ${user.name}, your Indo Heals account has been created successfully.`,
+    html: `<p>Hi ${escapeHtml(user.name)},</p><p>Your Indo Heals account has been created successfully.</p>`
+  });
 }
 
 async function sendPasswordResetEmail(user, resetUrl) {
@@ -40,22 +66,117 @@ async function sendPasswordResetEmail(user, resetUrl) {
 }
 
 async function sendOrderConfirmationEmail(order, downloadLinks = []) {
+  const itemLines = (order.items || [])
+    .map(item => `${item.name} x ${item.quantity} - ${formatRupee(item.price * item.quantity)}`)
+    .join("\n");
+  const itemHtml = (order.items || [])
+    .map(
+      item =>
+        `<li>${escapeHtml(item.name)} x ${Number(item.quantity || 1)} - ${escapeHtml(
+          formatRupee(item.price * item.quantity)
+        )}</li>`
+    )
+    .join("");
+  const address = order.shippingAddress || {};
+  const addressText = [
+    address.fullName,
+    address.addressLine1,
+    address.addressLine2,
+    [address.city, address.state, address.postalCode].filter(Boolean).join(", "),
+    address.country,
+    address.phone ? `Phone: ${address.phone}` : ""
+  ]
+    .filter(Boolean)
+    .join("\n");
   const linksText = downloadLinks.length
     ? `\n\nDownload links:\n${downloadLinks.join("\n")}`
     : "";
+  const linksHtml = downloadLinks
+    .map(link => `<p><a href="${escapeHtml(link)}">Download product</a></p>`)
+    .join("");
 
   return sendMail({
     to: order.customerEmail,
     subject: "Your Indo Heals order is confirmed",
-    text: `Thank you for your order ${order._id}. Payment status: ${order.status}.${linksText}`,
-    html: `<p>Thank you for your order <strong>${order._id}</strong>.</p><p>Payment status: ${order.status}</p>${downloadLinks
-      .map(link => `<p><a href="${link}">Download product</a></p>`)
-      .join("")}`
+    text: `Thank you for your order ${order._id}.\n\nPayment status: ${order.status}\nTotal: ${formatRupee(
+      order.total
+    )}\n\nItems:\n${itemLines}\n\nShipping:\n${addressText}${linksText}`,
+    html: `<p>Thank you for your order <strong>${escapeHtml(order._id)}</strong>.</p><p>Payment status: ${escapeHtml(
+      order.status
+    )}</p><p>Total: <strong>${escapeHtml(
+      formatRupee(order.total)
+    )}</strong></p><ul>${itemHtml}</ul><p><strong>Shipping</strong><br>${escapeHtml(addressText).replaceAll(
+      "\n",
+      "<br>"
+    )}</p>${linksHtml}`
+  });
+}
+
+async function sendAppointmentConfirmationEmail(appointment) {
+  const text = `Your appointment request is received.\nReference: ${appointment.reference}\nPreferred slot: ${appointment.date} ${appointment.time}`;
+  await sendMail({
+    to: appointment.email,
+    subject: "Indo Heals appointment request received",
+    text,
+    html: `<p>Your appointment request is received.</p><p>Reference: <strong>${escapeHtml(
+      appointment.reference
+    )}</strong></p><p>Preferred slot: ${escapeHtml(appointment.date)} ${escapeHtml(appointment.time)}</p>`
+  });
+
+  const to = adminEmail();
+  if (!to) return { skipped: true };
+  return sendMail({
+    to,
+    subject: `New appointment request: ${appointment.reference}`,
+    text: `${appointment.name} (${appointment.email}, ${appointment.phone}) requested ${appointment.interest} on ${appointment.date} ${appointment.time}.`,
+    html: `<p><strong>${escapeHtml(appointment.name)}</strong> requested ${escapeHtml(
+      appointment.interest
+    )}.</p><p>${escapeHtml(appointment.email)} · ${escapeHtml(appointment.phone)}</p><p>${escapeHtml(
+      appointment.date
+    )} ${escapeHtml(appointment.time)}</p>`
+  });
+}
+
+async function sendBusinessLeadNotification(lead) {
+  const text = `Thank you. Your business enquiry reference is ${lead.reference}.`;
+  await sendMail({
+    to: lead.email,
+    subject: "Indo Heals business enquiry received",
+    text,
+    html: `<p>Thank you. Your business enquiry reference is <strong>${escapeHtml(
+      lead.reference
+    )}</strong>.</p>`
+  });
+
+  const to = adminEmail();
+  if (!to) return { skipped: true };
+  return sendMail({
+    to,
+    subject: `New business enquiry: ${lead.company}`,
+    text: `${lead.company}, ${lead.city}, ${lead.country}\nContact: ${lead.contactPerson}, ${lead.email}, ${lead.mobile}\n${lead.message || ""}`,
+    html: `<p><strong>${escapeHtml(lead.company)}</strong> from ${escapeHtml(lead.city)}, ${escapeHtml(
+      lead.country
+    )}</p><p>${escapeHtml(lead.contactPerson)} · ${escapeHtml(lead.email)} · ${escapeHtml(
+      lead.mobile
+    )}</p><p>${escapeHtml(lead.message || "")}</p>`
+  });
+}
+
+async function sendNewsletterConfirmation(email) {
+  return sendMail({
+    to: email,
+    subject: "You're subscribed to Indo Heals updates",
+    text: "Thank you for subscribing to Indo Heals updates.",
+    html: "<p>Thank you for subscribing to Indo Heals updates.</p>"
   });
 }
 
 module.exports = {
   sendMail,
+  sendAppointmentConfirmationEmail,
+  sendBusinessLeadNotification,
+  sendNewsletterConfirmation,
   sendOrderConfirmationEmail,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendWelcomeEmail
 };

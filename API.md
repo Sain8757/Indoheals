@@ -30,11 +30,19 @@ All cart routes require a bearer token.
 
 All order routes require a bearer token, except the webhook.
 
-- `POST /orders` - create pending order and Razorpay order. Body: `items: [{ productId, quantity }]`.
+- `POST /orders` - create pending order and Razorpay order. Body: `items: [{ productId, quantity }]`, `shippingAddress`, optional `notes`.
 - `POST /orders/:id/confirm-payment` - verify Razorpay checkout response and mark paid.
 - `POST /orders/webhook/razorpay` - Razorpay webhook endpoint. Configure the same `RAZORPAY_WEBHOOK_SECRET`.
 - `GET /orders/my` - current user's orders.
 - `GET /orders` - admin only.
+
+Required `shippingAddress` fields: `fullName`, `phone`, `addressLine1`, `city`, `state`, `postalCode`. `country` defaults to `India`.
+
+## Contact And Leads
+
+- `POST /contact/appointments` - saves appointment request and sends confirmation email when SMTP is configured.
+- `POST /contact/business` - saves wholesale/business enquiry.
+- `POST /contact/newsletter` - subscribes an email address.
 
 ## Downloads
 
@@ -54,6 +62,9 @@ Admin panel URL:
 - `GET /admin/users`
 - `GET /admin/orders`
 - `GET /admin/products`
+- `GET /admin/appointments`
+- `GET /admin/business-leads`
+- `GET /admin/newsletter`
 - `POST /admin/products`
 - `PUT /admin/products/:idOrSlug`
 - `DELETE /admin/products/:idOrSlug` - soft deletes by setting `isActive: false`.

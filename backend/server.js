@@ -46,11 +46,13 @@ const orderRoutes = require("./routes/orderRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const downloadRoutes = require("./routes/downloadRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    database: app.locals.dbReady ? "connected" : "offline-dev-fallback"
+    database: app.locals.dbReady ? "connected" : "offline-dev-fallback",
+    mongoState: mongoose.connection.readyState
   });
 });
 
@@ -63,6 +65,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/downloads", downloadRoutes);
+app.use("/api/contact", contactRoutes);
 app.use("/api/admin", adminRoutes);
 
 const frontendPath = path.join(__dirname, "../frontend");
@@ -85,12 +88,22 @@ mongoose.connection.on("disconnected", () => {
   console.log("MongoDB Disconnected");
 });
 
-mongoose
-  .connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 3000 })
-  .catch(err => {
+async function connectMongo() {
+  if (!process.env.MONGO_URI) {
+    app.locals.dbReady = false;
+    console.log("MONGO_URI is not set. Using development fallback for products/auth.");
+    return;
+  }
+
+  try {
+    await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 5000 });
+  } catch (err) {
     app.locals.dbReady = false;
     console.log("MongoDB offline, using development fallback for products/auth:", err.message);
-  });
+  }
+}
+
+connectMongo();
 
 const PORT = process.env.PORT || 5001;
 const server = app.listen(PORT, () => {

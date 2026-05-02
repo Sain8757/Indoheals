@@ -4,6 +4,9 @@ const router = express.Router();
 const User = require("../models/User");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const Appointment = require("../models/Appointment");
+const BusinessLead = require("../models/BusinessLead");
+const NewsletterSubscription = require("../models/NewsletterSubscription");
 const requireAuth = require("../middleware/auth");
 const { requireAdmin } = require("../middleware/auth");
 const validate = require("../middleware/validate");
@@ -70,6 +73,39 @@ router.get("/products", async (req, res, next) => {
 
     const products = await Product.find().sort({ createdAt: -1 });
     return res.json(products);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/appointments", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const appointments = await Appointment.find().sort({ createdAt: -1 });
+    return res.json(appointments);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/business-leads", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const leads = await BusinessLead.find().sort({ createdAt: -1 });
+    return res.json(leads);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/newsletter", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const subscriptions = await NewsletterSubscription.find().sort({ createdAt: -1 });
+    return res.json(subscriptions);
   } catch (error) {
     return next(error);
   }
