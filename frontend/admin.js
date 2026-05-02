@@ -19,6 +19,7 @@ const ORDER_FULFILLMENT_OPTIONS = ["new", "processing", "packed", "shipped", "de
 const APPOINTMENT_STATUS_OPTIONS = ["new", "contacted", "confirmed", "completed", "cancelled"];
 const LEAD_STATUS_OPTIONS = ["new", "contacted", "qualified", "closed"];
 const NEWSLETTER_STATUS_OPTIONS = ["subscribed", "unsubscribed"];
+const LOW_STOCK_THRESHOLD = 5;
 
 const DEFAULT_SETTINGS = {
   storeName: "Indo Heals",
@@ -71,6 +72,12 @@ let toastTimer;
 let products = [];
 let orders = [];
 let selectedOrderId = null;
+let orderFilterTimer;
+let orderFilters = {
+  search: "",
+  payment: "all",
+  fulfillment: "all"
+};
 let users = [];
 let appointments = [];
 let leads = [];
@@ -297,6 +304,10 @@ function renderOverview() {
   const stats = orderStats();
   const recentOrders = sortedOrders().slice(0, 5);
   const dateRange = currentMonthRange();
+  const pendingOrders = countOrders("pending");
+  const toFulfill = ordersToFulfill().length;
+  const lowStock = lowStockProducts().length;
+  const newAppointments = appointments.filter(item => item.status === "new").length;
 
   setWorkspace(`
     <section class="page">
@@ -311,6 +322,12 @@ function renderOverview() {
         ${metricCard("Total sales", formatRupee(stats.revenue))}
         ${metricCard("Total orders", stats.total)}
         ${metricCard("Average order value", formatRupee(stats.average))}
+      </section>
+      <section class="ops-grid">
+        ${operationCard("Needs payment check", pendingOrders, "Orders still marked pending", "orders", pendingOrders ? "warning" : "success")}
+        ${operationCard("Ready to fulfill", toFulfill, "Paid orders not delivered yet", "orders", toFulfill ? "accent" : "success")}
+        ${operationCard("Low stock", lowStock, `Active products at ${LOW_STOCK_THRESHOLD} units or less`, "products", lowStock ? "warning" : "success")}
+        ${operationCard("New appointments", newAppointments, "Fresh consultation requests", "appointments", newAppointments ? "accent" : "success")}
       </section>
       <section class="panel">
         <div class="panel-head">
@@ -336,10 +353,11 @@ function renderOverview() {
 
 function renderOrders() {
   const sorted = sortedOrders();
-  if (!selectedOrderId || !orders.some(order => order._id === selectedOrderId)) {
-    selectedOrderId = sorted[0]?._id || null;
+  const filtered = filteredOrders(sorted);
+  if (!selectedOrderId || !filtered.some(order => order._id === selectedOrderId)) {
+    selectedOrderId = filtered[0]?._id || null;
   }
-  const selectedOrder = sorted.find(order => order._id === selectedOrderId);
+  const selectedOrder = filtered.find(order => order._id === selectedOrderId);
 
   setWorkspace(`
     <section class="page">
@@ -358,10 +376,11 @@ function renderOrders() {
         ${metricCard("Confirmed", countOrders("paid"))}
         ${metricCard("Shipped", orders.filter(order => order.fulfillmentStatus === "shipped").length)}
       </section>
+      ${orderFilterBar(filtered.length)}
       <section class="orders-layout">
         <section class="panel">
-          <div class="panel-head"><h2>All orders</h2><span class="count-pill">${orders.length}</span></div>
-          ${ordersTable(sorted, { actions: true })}
+          <div class="panel-head"><h2>All orders</h2><span class="count-pill">${filtered.length}/${orders.length}</span></div>
+          ${ordersTable(filtered, { actions: true })}
         </section>
         ${orderDetailPanel(selectedOrder)}
       </section>
@@ -763,6 +782,16 @@ function metricCard(label, value) {
   return `<article class="metric-card"><span>${escapeHtml(label)}</span><strong>${value}</strong></article>`;
 }
 
+function operationCard(label, value, description, view, tone = "accent") {
+  return `
+    <button class="operation-card tone-${escapeAttribute(tone)}" type="button" onclick="setView('${escapeAttribute(view)}')">
+      <span>${escapeHtml(label)}</span>
+      <strong>${Number(value || 0).toLocaleString("en-IN")}</strong>
+      <small>${escapeHtml(description)}</small>
+    </button>
+  `;
+}
+
 function guideCard(text, view) {
   return `<button class="guide-card" type="button" onclick="setView('${escapeAttribute(view)}')"><span>${escapeHtml(text)}</span><strong>></strong></button>`;
 }
@@ -779,14 +808,20 @@ function integrationCard(name, description, status) {
 }
 
 function productCard(product) {
+  const stock = Number(product.stock || 0);
+  const stockTone = stock <= 0 ? "failed" : stock <= LOW_STOCK_THRESHOLD ? "pending" : "subscribed";
+  const stockLabel = stock <= 0 ? "Out of stock" : stock <= LOW_STOCK_THRESHOLD ? "Low stock" : "In stock";
   return `
     <article class="record-card">
       <div class="record-head">
         <div class="record-title">
           <strong>${escapeHtml(product.name)}</strong>
-          <span class="meta-line">${escapeHtml(product.slug || product._id)} · ${formatRupee(product.price)} · Stock ${Number(product.stock || 0)}</span>
+          <span class="meta-line">${escapeHtml(product.slug || product._id)} · ${formatRupee(product.price)} · Stock ${stock}</span>
         </div>
-        <span class="status-pill status-${product.isActive === false ? "failed" : "subscribed"}">${product.isActive === false ? "Inactive" : "Active"}</span>
+        <div class="badge-stack">
+          <span class="status-pill status-${product.isActive === false ? "failed" : "subscribed"}">${product.isActive === false ? "Inactive" : "Active"}</span>
+          <span class="status-pill status-${stockTone}">${stockLabel}</span>
+        </div>
       </div>
       <p class="meta-line">${escapeHtml(product.description || "")}</p>
       <p class="meta-line">Digital file: ${escapeHtml(product.digitalFile?.storagePath || "Not mapped")}</p>
@@ -870,7 +905,9 @@ function campaignCard(campaign) {
 }
 
 function ordersTable(items, options = {}) {
-  if (!items.length) return `<div class="empty-state">No orders found from current month</div>`;
+  if (!items.length) {
+    return `<div class="empty-state">${options.actions ? "No orders match the current filters" : "No recent orders found"}</div>`;
+  }
   return `
     <div class="table-wrap">
       <table>
@@ -889,7 +926,7 @@ function ordersTable(items, options = {}) {
           ${items
             .map(
               order => `
-                <tr class="${order._id === selectedOrderId ? "active-row" : ""}">
+                <tr class="order-row ${order._id === selectedOrderId ? "active-row" : ""}" onclick="if (!event.target.closest('button, select')) showOrderDetails('${escapeAttribute(order._id)}')">
                   <td>${escapeHtml(shortId(order._id))}</td>
                   <td>${formatDate(order.createdAt)}</td>
                   <td>${escapeHtml(order.customerEmail || order.user?.email || "")}</td>
@@ -913,6 +950,45 @@ function ordersTable(items, options = {}) {
       </table>
     </div>
   `;
+}
+
+function orderFilterBar(resultCount) {
+  return `
+    <section class="filter-bar" aria-label="Order filters">
+      <label class="filter-search">
+        <span>Search orders</span>
+        <input
+          id="orderSearchInput"
+          value="${escapeAttribute(orderFilters.search)}"
+          oninput="setOrderSearch(this.value)"
+          placeholder="Order ID, email, phone, customer, product"
+        >
+      </label>
+      <label>
+        <span>Payment</span>
+        <select onchange="updateOrderFilter('payment', this.value)">
+          ${filterOption("all", "All payments", orderFilters.payment)}
+          ${ORDER_PAYMENT_OPTIONS.map(option => filterOption(option, statusLabel(option), orderFilters.payment)).join("")}
+        </select>
+      </label>
+      <label>
+        <span>Fulfillment</span>
+        <select onchange="updateOrderFilter('fulfillment', this.value)">
+          ${filterOption("all", "All fulfillment", orderFilters.fulfillment)}
+          ${ORDER_FULFILLMENT_OPTIONS.map(option => filterOption(option, titleCase(option), orderFilters.fulfillment)).join("")}
+        </select>
+      </label>
+      <div class="filter-summary">
+        <strong>${Number(resultCount || 0).toLocaleString("en-IN")}</strong>
+        <span>matching orders</span>
+      </div>
+      <button class="small-button" type="button" onclick="clearOrderFilters()">Clear</button>
+    </section>
+  `;
+}
+
+function filterOption(value, label, selectedValue) {
+  return `<option value="${escapeAttribute(value)}" ${value === selectedValue ? "selected" : ""}>${escapeHtml(label)}</option>`;
 }
 
 function orderDetailPanel(order) {
@@ -950,6 +1026,13 @@ function orderDetailPanel(order) {
         <span class="status-pill status-${escapeAttribute(order.status || "pending")}">${escapeHtml(paymentStatusLabel(order.status))}</span>
       </div>
       <div class="panel-body stack">
+        <section class="detail-section">
+          <h3>Quick update</h3>
+          <div class="detail-actions">
+            <label>Payment ${statusSelect(ORDER_PAYMENT_OPTIONS, order.status || "pending", `updateOrderStatus('${escapeAttribute(order._id)}', 'status', this.value)`)}</label>
+            <label>Fulfillment ${statusSelect(ORDER_FULFILLMENT_OPTIONS, order.fulfillmentStatus || "new", `updateOrderStatus('${escapeAttribute(order._id)}', 'fulfillmentStatus', this.value)`)}</label>
+          </div>
+        </section>
         <section class="detail-section">
           <h3>Customer</h3>
           <div class="detail-grid">
@@ -1024,7 +1107,7 @@ function usersTable(items) {
   return `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Cart</th><th>Joined</th></tr></thead>
+        <thead><tr><th>Name</th><th>Email</th><th>Verification</th><th>Role</th><th>Cart</th><th>Joined</th></tr></thead>
         <tbody>
           ${items
             .map(
@@ -1032,6 +1115,7 @@ function usersTable(items) {
                 <tr>
                   <td>${escapeHtml(user.name)}</td>
                   <td>${escapeHtml(user.email)}</td>
+                  <td><span class="status-pill status-${user.emailVerified ? "subscribed" : "pending"}">${user.emailVerified ? "Verified" : "Pending"}</span></td>
                   <td>${escapeHtml(user.role || "user")}</td>
                   <td>${(user.cart || []).length}</td>
                   <td>${formatDate(user.createdAt)}</td>
@@ -1219,8 +1303,44 @@ async function updateOrderStatus(id, field, value) {
 
 function showOrderDetails(id) {
   selectedOrderId = id;
+  if (currentView !== "orders") {
+    setView("orders");
+    return;
+  }
   renderOrders();
   document.getElementById("orderDetailPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function setOrderSearch(value) {
+  orderFilters.search = value;
+  clearTimeout(orderFilterTimer);
+  orderFilterTimer = setTimeout(() => {
+    renderOrders();
+    const input = document.getElementById("orderSearchInput");
+    if (input) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }, 180);
+}
+
+function updateOrderFilter(key, value) {
+  clearTimeout(orderFilterTimer);
+  orderFilters = {
+    ...orderFilters,
+    [key]: value
+  };
+  renderOrders();
+}
+
+function clearOrderFilters() {
+  clearTimeout(orderFilterTimer);
+  orderFilters = {
+    search: "",
+    payment: "all",
+    fulfillment: "all"
+  };
+  renderOrders();
 }
 
 async function updateAppointmentStatus(id, status) {
@@ -1479,6 +1599,50 @@ function orderStats() {
 
 function countOrders(status) {
   return orders.filter(order => order.status === status).length;
+}
+
+function ordersToFulfill() {
+  const done = ["delivered", "cancelled", "returned"];
+  return orders.filter(order => order.status === "paid" && !done.includes(order.fulfillmentStatus || "new"));
+}
+
+function lowStockProducts() {
+  return products.filter(product => product.isActive !== false && Number(product.stock || 0) <= LOW_STOCK_THRESHOLD);
+}
+
+function filteredOrders(source = sortedOrders()) {
+  const search = orderFilters.search.trim().toLowerCase();
+  return source.filter(order => {
+    if (orderFilters.payment !== "all" && (order.status || "pending") !== orderFilters.payment) return false;
+    if (orderFilters.fulfillment !== "all" && (order.fulfillmentStatus || "new") !== orderFilters.fulfillment) return false;
+    if (!search) return true;
+
+    const address = order.shippingAddress || {};
+    const items = (order.items || []).map(item => [item.name, item.productSlug, item.productId].filter(Boolean).join(" ")).join(" ");
+    const haystack = [
+      order._id,
+      order.customerName,
+      order.customerEmail,
+      order.customerPhone,
+      order.paymentOrderId,
+      order.paymentId,
+      order.notes,
+      order.user?.name,
+      order.user?.email,
+      address.fullName,
+      address.phone,
+      address.addressLine1,
+      address.city,
+      address.state,
+      address.postalCode,
+      items
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(search);
+  });
 }
 
 function sortedOrders() {

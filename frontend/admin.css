@@ -450,6 +450,60 @@ td {
   gap: 18px;
 }
 
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.operation-card {
+  display: grid;
+  gap: 8px;
+  min-height: 138px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+  padding: 20px;
+}
+
+.operation-card span,
+.operation-card small {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.operation-card span {
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.operation-card strong {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.operation-card small {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.tone-accent {
+  border-color: #d7ccff;
+  background: #f8f5ff;
+}
+
+.tone-warning {
+  border-color: #f5d678;
+  background: #fffaf0;
+}
+
+.tone-success {
+  border-color: #bcebd8;
+  background: #f2fcf7;
+}
+
 .span-2 {
   grid-column: 1 / -1;
 }
@@ -467,11 +521,61 @@ td {
   align-items: start;
 }
 
+.filter-bar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(170px, 0.35fr) minmax(180px, 0.35fr) auto auto;
+  gap: 14px;
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  padding: 18px;
+}
+
+.filter-bar label {
+  gap: 6px;
+}
+
+.filter-bar label span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.filter-summary {
+  display: grid;
+  gap: 2px;
+  min-width: 118px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.filter-summary strong {
+  font-size: 22px;
+}
+
+.filter-summary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .orders-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
   gap: 24px;
   align-items: start;
+}
+
+.order-row {
+  cursor: pointer;
+}
+
+.order-row:hover td {
+  background: #fbfbfd;
 }
 
 .active-row td {
@@ -490,6 +594,12 @@ td {
 
 .detail-section h3 {
   font-size: 18px;
+}
+
+.detail-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .detail-grid {
@@ -573,6 +683,13 @@ td {
 .record-title strong {
   color: var(--text);
   font-size: 18px;
+}
+
+.badge-stack {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .status-pill {
@@ -755,10 +872,15 @@ td {
   }
 
   .card-grid,
+  .ops-grid,
   .split-grid,
   .orders-layout,
   .analytics-grid {
     grid-template-columns: 1fr;
+  }
+
+  .filter-bar {
+    grid-template-columns: 1fr 1fr;
   }
 
   .order-detail-panel {
@@ -781,9 +903,15 @@ td {
   .sub-nav.open,
   .form-grid,
   .detail-grid,
+  .detail-actions,
+  .filter-bar,
   .settings-grid,
   .guide-grid {
     grid-template-columns: 1fr;
+  }
+
+  .badge-stack {
+    justify-content: flex-start;
   }
 
   .detail-item,
