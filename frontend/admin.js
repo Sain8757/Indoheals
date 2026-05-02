@@ -5,7 +5,11 @@ const API_BASES = window.INDO_HEALS_API
     window.location.port &&
     !LIVE_SERVER_PORTS.includes(window.location.port)
     ? [`${window.location.origin}/api`]
-    : ["http://localhost:5002/api", "http://localhost:5001/api"];
+    : [
+        "https://indoheals.onrender.com/api",
+        "http://localhost:5002/api",
+        "http://localhost:5001/api"
+      ];
 
 let adminAuth = JSON.parse(localStorage.getItem("adminAuth")) || null;
 let products = [];
