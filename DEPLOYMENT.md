@@ -3,11 +3,25 @@
 ## Backend: Render
 
 1. Create a MongoDB database and copy the connection string.
-2. Create a Render web service from this repository using `render.yaml`.
-3. Set the backend environment variables from `backend/.env.example`.
-4. Set `BACKEND_PUBLIC_URL` to the Render service URL.
-5. Set `FRONTEND_URL` and `CORS_ORIGIN` to the Vercel frontend URL.
-6. In Razorpay, set the webhook URL to:
+2. Create a Render Blueprint from this GitHub repository. Render will read `render.yaml`, use `backend` as the root directory, run `npm install`, and start the API with `npm start`.
+3. The default service name is `indo-heals-backend`, so the expected backend URL is:
+
+```text
+https://indo-heals-backend.onrender.com
+```
+
+If Render gives you a different URL, update `PRODUCTION_API_BASE` in `frontend/script.js` and `frontend/admin.js`.
+
+4. Set the backend environment variables from `backend/.env.example`.
+5. Set `BACKEND_PUBLIC_URL` to the Render service URL.
+6. After Vercel deployment, set `FRONTEND_URL` and `CORS_ORIGIN` to the Vercel frontend URL.
+7. The Render health check path is already configured as:
+
+```text
+/api/health
+```
+
+8. In Razorpay, set the webhook URL to:
 
 ```text
 https://your-render-service.onrender.com/api/orders/webhook/razorpay
@@ -15,23 +29,36 @@ https://your-render-service.onrender.com/api/orders/webhook/razorpay
 
 Use the same value for Razorpay's webhook secret and `RAZORPAY_WEBHOOK_SECRET`.
 
-## Frontend: Netlify Or Vercel
+## Frontend: Vercel
+
+Import the same GitHub repository in Vercel and set:
+
+- Framework Preset: `Other`
+- Root Directory: `frontend`
+- Build Command: leave empty
+- Output Directory: leave empty
+
+`frontend/vercel.json` rewrites `/admin` to `admin.html` and all other paths to `index.html`.
+
+The frontend now calls the Render backend URL in production:
+
+```text
+https://indo-heals-backend.onrender.com/api
+```
+
+If your Render URL is different, update:
+
+```js
+const PRODUCTION_API_BASE = "https://your-render-service.onrender.com/api";
+```
+
+Do not upload `backend/.env`, `backend/node_modules`, or paid files from `backend/secure-files`.
+
+## Frontend: Netlify
 
 For Netlify Git deploy, keep `netlify.toml` in the repository root. It publishes the `frontend` directory and maps `/admin` to `admin.html`.
 
 For Netlify manual drag-and-drop upload, upload the contents of the `frontend` folder, not the whole project folder. The uploaded zip/folder must contain `index.html` at its top level.
-
-Do not upload `backend/.env`, `backend/node_modules`, or paid files from `backend/secure-files`.
-
-The frontend looks for `window.INDO_HEALS_API` first. For production, add a small runtime config before `script.js` if the backend is hosted on another domain:
-
-```html
-<script>
-  window.INDO_HEALS_API = "https://your-render-service.onrender.com/api";
-</script>
-```
-
-The existing UI files do not need redesigning for deployment.
 
 ## Secure Digital Files
 

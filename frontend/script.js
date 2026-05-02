@@ -1,16 +1,22 @@
 const LIVE_SERVER_PORTS = ["3000", "5173", "5500", "5501"];
+const LOCAL_HOSTS = ["localhost", "127.0.0.1"];
+const PRODUCTION_API_BASE = "https://indo-heals-backend.onrender.com/api";
+const isLocalHost = LOCAL_HOSTS.includes(window.location.hostname);
+const isBackendServedFrontend =
+  window.location.protocol.startsWith("http") &&
+  window.location.port &&
+  !LIVE_SERVER_PORTS.includes(window.location.port);
 const API_BASES = window.INDO_HEALS_API
   ? [window.INDO_HEALS_API]
-  : window.location.protocol.startsWith("http") &&
-    window.location.port &&
-    !LIVE_SERVER_PORTS.includes(window.location.port)
+  : isBackendServedFrontend
     ? [`${window.location.origin}/api`]
-    : [
-        "http://localhost:5001/api",
-        "http://127.0.0.1:5001/api",
-        "http://localhost:5002/api",
-        "https://indoheals.onrender.com/api"
-      ];
+    : isLocalHost
+      ? [
+          "http://localhost:5001/api",
+          "http://127.0.0.1:5001/api",
+          "http://localhost:5002/api"
+        ]
+      : [PRODUCTION_API_BASE];
 const PRODUCT_IMAGE = "assets/breathe-classic-ai.png";
 const FALLBACK_PRODUCTS = [
   {
