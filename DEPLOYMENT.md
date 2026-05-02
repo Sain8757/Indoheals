@@ -4,10 +4,10 @@
 
 1. Create a MongoDB database and copy the connection string.
 2. Create a Render Blueprint from this GitHub repository. Render will read `render.yaml`, use `backend` as the root directory, run `npm install`, and start the API with `npm start`.
-3. The default service name is `indo-heals-backend`, so the expected backend URL is:
+3. The default service name is `indoheals`, so the expected backend URL is:
 
 ```text
-https://indo-heals-backend.onrender.com
+https://indoheals.onrender.com
 ```
 
 If Render gives you a different URL, update `PRODUCTION_API_BASE` in `frontend/script.js` and `frontend/admin.js`.
@@ -43,7 +43,7 @@ Import the same GitHub repository in Vercel and set:
 The frontend now calls the Render backend URL in production:
 
 ```text
-https://indo-heals-backend.onrender.com/api
+https://indoheals.onrender.com/api
 ```
 
 If your Render URL is different, update:

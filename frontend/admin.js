@@ -1,6 +1,6 @@
 const LIVE_SERVER_PORTS = ["3000", "5173", "5500", "5501"];
 const LOCAL_HOSTS = ["localhost", "127.0.0.1"];
-const PRODUCTION_API_BASE = "https://indo-heals-backend.onrender.com/api";
+const PRODUCTION_API_BASE = "https://indoheals.onrender.com/api";
 const isLocalHost = LOCAL_HOSTS.includes(window.location.hostname);
 const isBackendServedFrontend =
   window.location.protocol.startsWith("http") &&
