@@ -19,6 +19,7 @@ const ORDER_FULFILLMENT_OPTIONS = ["new", "processing", "packed", "shipped", "de
 const APPOINTMENT_STATUS_OPTIONS = ["new", "contacted", "confirmed", "completed", "cancelled"];
 const LEAD_STATUS_OPTIONS = ["new", "contacted", "qualified", "closed"];
 const NEWSLETTER_STATUS_OPTIONS = ["subscribed", "unsubscribed"];
+const REVIEW_STATUS_OPTIONS = ["new", "published", "hidden", "archived"];
 const LOW_STOCK_THRESHOLD = 5;
 
 const DEFAULT_SETTINGS = {
@@ -62,23 +63,45 @@ const DEFAULT_SETTINGS = {
     prefix: "IH",
     nextNumber: 1,
     footerNote: ""
+  },
+  email: {
+    domain: "",
+    domainStatus: "not_connected",
+    senderName: "Indo Heals",
+    senderEmail: "",
+    replyToEmail: "",
+    reviewDelayDays: 7
   }
 };
 
-localStorage.removeItem("adminAuth");
-let adminAuth = null;
+const ADMIN_AUTH_KEY = "adminAuth";
+
+let adminAuth = readStoredAdminAuth();
 let currentView = "overview";
 let toastTimer;
 let products = [];
+let productReviews = [];
+let productFilterTimer;
+let productEditorOpen = false;
+let productEditingId = "";
+let productFilters = {
+  search: "",
+  category: "all",
+  status: "all",
+  sort: "newest"
+};
 let orders = [];
 let selectedOrderId = null;
 let orderFilterTimer;
 let orderFilters = {
   search: "",
   payment: "all",
-  fulfillment: "all"
+  fulfillment: "all",
+  product: "all",
+  tab: "all"
 };
 let users = [];
+let customerFilter = "all";
 let appointments = [];
 let leads = [];
 let newsletterSubscriptions = [];
@@ -88,8 +111,19 @@ let settings = structuredClone(DEFAULT_SETTINGS);
 
 document.addEventListener("DOMContentLoaded", () => {
   bindNavigation();
+  bindAccountMenu();
   renderAuthState();
 });
+
+function readStoredAdminAuth() {
+  try {
+    const data = JSON.parse(localStorage.getItem(ADMIN_AUTH_KEY) || "null");
+    return data?.token && data?.user?.role === "admin" ? data : null;
+  } catch (error) {
+    localStorage.removeItem(ADMIN_AUTH_KEY);
+    return null;
+  }
+}
 
 async function apiFetch(path, options = {}) {
   const headers = {
@@ -116,7 +150,7 @@ async function apiFetch(path, options = {}) {
       if (!response.ok) {
         if (response.status === 401 && path !== "/auth/login") {
           adminAuth = null;
-          localStorage.removeItem("adminAuth");
+          localStorage.removeItem(ADMIN_AUTH_KEY);
           renderAuthState();
         }
         throw new Error(data.message || "Request failed");
@@ -137,21 +171,55 @@ function bindNavigation() {
   });
 }
 
+function bindAccountMenu() {
+  document.addEventListener("click", event => {
+    const menu = document.querySelector(".account-menu");
+    if (!menu || menu.contains(event.target)) return;
+    toggleAccountMenu(false);
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") toggleAccountMenu(false);
+  });
+}
+
+function toggleAccountMenu(forceOpen) {
+  const panel = document.getElementById("loginPanel");
+  const toggle = document.getElementById("accountToggle");
+  if (!panel) return;
+
+  const shouldOpen = typeof forceOpen === "boolean" ? forceOpen : panel.hidden;
+  panel.hidden = !shouldOpen;
+  if (toggle) toggle.setAttribute("aria-expanded", String(shouldOpen));
+
+  if (shouldOpen && !adminAuth?.token) {
+    setTimeout(() => document.getElementById("adminEmail")?.focus(), 0);
+  }
+}
+
 function renderAuthState() {
-  const loginPanel = document.getElementById("loginPanel");
   const appPanel = document.getElementById("appPanel");
   const adminName = document.getElementById("adminName");
+  const loginForm = document.getElementById("adminLoginForm");
+  const accountSummary = document.getElementById("accountSummary");
+  const adminAccountEmail = document.getElementById("adminAccountEmail");
   const isAdmin = adminAuth?.user?.role === "admin";
 
-  loginPanel.hidden = isAdmin;
-  appPanel.hidden = !isAdmin;
+  if (appPanel) appPanel.hidden = false;
   document.body.classList.toggle("admin-locked", !isAdmin);
-  if (adminName) adminName.textContent = isAdmin ? adminAuth.user.email : "";
+  if (adminName) {
+    adminName.textContent = isAdmin
+      ? adminAuth.user?.name?.split(" ")[0] || adminAuth.user?.email || "Admin"
+      : "Login";
+  }
+  if (adminAccountEmail) adminAccountEmail.textContent = isAdmin ? adminAuth.user?.email || "" : "";
+  if (loginForm) loginForm.hidden = isAdmin;
+  if (accountSummary) accountSummary.hidden = !isAdmin;
 
   if (isAdmin) {
     setView(currentView, { skipHistory: true });
   } else {
-    setWorkspace("");
+    renderAuthRequiredView();
   }
 }
 
@@ -173,7 +241,9 @@ async function loginAdmin(event) {
     }
 
     adminAuth = data;
+    localStorage.setItem(ADMIN_AUTH_KEY, JSON.stringify(data));
     event.target.reset();
+    toggleAccountMenu(false);
     renderAuthState();
     showToast("Admin login successful.");
   } catch (error) {
@@ -183,14 +253,23 @@ async function loginAdmin(event) {
 
 function logoutAdmin() {
   adminAuth = null;
-  localStorage.removeItem("adminAuth");
+  localStorage.removeItem(ADMIN_AUTH_KEY);
   selectedOrderId = null;
+  toggleAccountMenu(false);
   renderAuthState();
+  showToast("Logged out.");
 }
 
 async function setView(view, options = {}) {
   currentView = view || "overview";
   updateNavigation();
+
+  if (!adminAuth?.token || adminAuth?.user?.role !== "admin") {
+    renderAuthRequiredView();
+    if (!options.skipAccountPrompt) toggleAccountMenu(true);
+    return;
+  }
+
   renderLoading();
 
   try {
@@ -198,38 +277,55 @@ async function setView(view, options = {}) {
     renderCurrentView();
     if (!options.skipHistory) window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (error) {
-    renderErrorPage(error.message);
+    if (!adminAuth?.token) {
+      renderAuthRequiredView(error.message);
+    } else {
+      renderErrorPage(error.message);
+    }
   }
 }
 
 async function refreshCurrentView() {
-  if (!adminAuth?.token) return;
+  if (!adminAuth?.token) {
+    renderAuthRequiredView();
+    toggleAccountMenu(true);
+    return;
+  }
   await setView(currentView, { skipHistory: true });
 }
 
 function updateNavigation() {
+  const isProducts = currentView === "products" || currentView.startsWith("product-");
+  const isEmails = currentView === "emails" || currentView.startsWith("email-");
   const isSettings = currentView.startsWith("settings");
   document.querySelectorAll(".main-nav > button[data-view]").forEach(button => {
     button.classList.toggle(
       "active",
-      button.dataset.view === currentView || (button.dataset.section === "settings" && isSettings)
+      button.dataset.view === currentView ||
+        (button.dataset.section === "products" && isProducts) ||
+        (button.dataset.section === "emails" && isEmails) ||
+        (button.dataset.section === "settings" && isSettings)
     );
   });
   document.querySelectorAll(".sub-nav button").forEach(button => {
     button.classList.toggle("active", button.dataset.view === currentView);
   });
+  document.getElementById("productNav")?.classList.toggle("open", isProducts);
+  document.getElementById("emailNav")?.classList.toggle("open", isEmails);
   document.getElementById("settingsNav")?.classList.toggle("open", isSettings);
 }
 
 async function loadViewData(view) {
   if (view === "overview") return loadOverviewData();
   if (view === "orders") return loadOrders();
-  if (view === "products") return loadProducts();
+  if (view === "products" || view === "product-categories") return loadProducts();
+  if (view === "product-reviews") return Promise.all([loadProducts(), loadProductReviews()]);
   if (view === "appointments") return Promise.all([loadAppointments(), loadLeads()]);
   if (view === "discounts") return loadDiscounts();
-  if (view === "customers") return Promise.all([loadUsers(), loadLeads()]);
+  if (view === "customers") return Promise.all([loadUsers(), loadLeads(), loadOrders(), loadNewsletter()]);
   if (view === "analytics") return Promise.all([loadOrders(), loadProducts(), loadUsers(), loadAppointments()]);
   if (view === "emails") return Promise.all([loadNewsletter(), loadEmailCampaigns()]);
+  if (view === "email-settings" || view === "email-previews") return loadSettings();
   if (view.startsWith("settings")) return loadSettings();
   if (view === "integrations" || view === "print") return Promise.all([loadSettings(), loadProducts()]);
   return loadOverviewData();
@@ -243,6 +339,7 @@ async function loadOverviewData() {
     loadAppointments(),
     loadLeads(),
     loadNewsletter(),
+    loadProductReviews(),
     loadSettings()
   ]);
   const failed = requests.find(result => result.status === "rejected");
@@ -251,6 +348,10 @@ async function loadOverviewData() {
 
 async function loadProducts() {
   products = await apiFetch("/admin/products");
+}
+
+async function loadProductReviews() {
+  productReviews = await apiFetch("/admin/product-reviews");
 }
 
 async function loadOrders() {
@@ -289,11 +390,15 @@ function renderCurrentView() {
   if (currentView === "overview") return renderOverview();
   if (currentView === "orders") return renderOrders();
   if (currentView === "products") return renderProducts();
+  if (currentView === "product-categories") return renderProductCategories();
+  if (currentView === "product-reviews") return renderProductReviews();
   if (currentView === "appointments") return renderAppointments();
   if (currentView === "discounts") return renderDiscounts();
   if (currentView === "customers") return renderCustomers();
   if (currentView === "analytics") return renderAnalytics();
   if (currentView === "emails") return renderEmails();
+  if (currentView === "email-settings") return renderEmailSettings();
+  if (currentView === "email-previews") return renderEmailPreviews();
   if (currentView.startsWith("settings")) return renderSettings(currentView);
   if (currentView === "integrations") return renderIntegrations();
   if (currentView === "print") return renderPrintOnDemand();
@@ -361,74 +466,109 @@ function renderOrders() {
 
   setWorkspace(`
     <section class="page">
+      <section id="whatsappBanner" class="promo-banner">
+        <div>
+          <h2>Order alerts on WhatsApp <span class="coming-soon">Coming soon</span></h2>
+          <p>Get instant WhatsApp notifications when you make a sale in your online store.</p>
+          <button class="outline-button" type="button" onclick="showToast('You will be notified when WhatsApp alerts are ready.')">Notify me</button>
+        </div>
+        <button class="ghost-close" type="button" onclick="dismissElement('whatsappBanner')" aria-label="Dismiss">×</button>
+      </section>
       <div class="page-head">
         <div>
           <h1>Orders</h1>
-          <p class="subtle">${orders.length} orders in your store</p>
+          <p class="subtle">${orders.length} orders in your store. Status changes save to the database.</p>
         </div>
         <div class="toolbar">
-          <button class="outline-button" type="button" onclick="refreshCurrentView()">Refresh</button>
+          <button class="outline-button" type="button" onclick="exportOrdersCsv()">Export to CSV</button>
           <button class="primary-button" type="button" onclick="setView('analytics')">Analytics</button>
         </div>
       </div>
-      <section class="card-grid">
-        ${metricCard("Pending", countOrders("pending"))}
-        ${metricCard("Confirmed", countOrders("paid"))}
-        ${metricCard("Shipped", orders.filter(order => order.fulfillmentStatus === "shipped").length)}
-      </section>
       ${orderFilterBar(filtered.length)}
-      <section class="orders-layout">
-        <section class="panel">
-          <div class="panel-head"><h2>All orders</h2><span class="count-pill">${filtered.length}/${orders.length}</span></div>
-          ${ordersTable(filtered, { actions: true })}
-        </section>
-        ${orderDetailPanel(selectedOrder)}
+      <section class="panel">
+        ${orderTabs()}
+        <div class="panel-head compact-head"><h2>All orders</h2><span class="count-pill">${filtered.length}/${orders.length}</span></div>
+        ${ordersTable(filtered, { actions: true, selectable: true })}
       </section>
+      ${selectedOrder ? orderDetailPanel(selectedOrder) : ""}
+      <div class="feedback-row flat-feedback"><button class="link-button" type="button" onclick="showToast('Thanks for rating the orders experience.')">Rate orders management experience.</button> Help us improve.</div>
     </section>
   `);
 }
 
 function renderProducts() {
+  const filtered = filteredProducts();
+  const categoryOptions = productCategories();
+  const editingProduct = productEditingId ? products.find(item => String(item._id) === String(productEditingId)) : null;
+
   setWorkspace(`
     <section class="page">
       <div class="page-head">
         <div>
-          <h1>Products</h1>
-          <p class="subtle">Create, edit, stock, digital files and public visibility.</p>
+          <h1>Products <span class="heading-count">(${products.length} products)</span></h1>
+          <p class="subtle">Create, edit, stock, digital files and public visibility. Product changes save through the backend API.</p>
         </div>
-        <button class="outline-button" type="button" onclick="resetProductForm()">Clear form</button>
+        <div class="toolbar">
+          <button class="outline-button" type="button" onclick="exportProductsCsv()">Export to CSV</button>
+          <button class="outline-button" type="button" onclick="setView('product-categories')">More actions</button>
+          <button class="primary-button" type="button" onclick="showProductEditor()">Add product</button>
+        </div>
       </div>
-      <section class="split-grid">
-        <form class="panel panel-body stack" onsubmit="saveProduct(event)">
-          <input id="productId" type="hidden">
-          <h2 id="productFormTitle">Add product</h2>
-          <label>Name<input id="productName" required></label>
-          <label>Slug<input id="productSlug" placeholder="breathe-classic"></label>
-          <div class="form-grid">
-            <label>Price<input id="productPrice" type="number" min="0" step="1" required></label>
-            <label>Stock<input id="productStock" type="number" min="0" step="1"></label>
-          </div>
-          <div class="form-grid">
-            <label>Category<input id="productCategory"></label>
-            <label>Badge<input id="productBadge"></label>
-          </div>
-          <label>Image path<input id="productImage" placeholder="assets/breathe-classic-ai.png"></label>
-          <div class="form-grid">
-            <label>Weight<input id="productWeight" placeholder="40 g"></label>
-            <label>Cocoa<input id="productCocoa" placeholder="55% dark cocoa"></label>
-          </div>
-          <label>Wellness note<textarea id="productWellness" rows="2"></textarea></label>
-          <label>Description<textarea id="productDescription" rows="4"></textarea></label>
-          <label>Ingredients, comma separated<input id="productIngredients"></label>
-          <label>Benefits, comma separated<input id="productBenefits"></label>
-          <label class="check-row"><input id="productActive" type="checkbox" checked> Active product</label>
-          <button class="primary-button" type="submit">Save product</button>
-          <p id="productMessage" class="form-message"></p>
-        </form>
-        <section class="panel">
-          <div class="panel-head"><h2>Product catalog</h2><span class="count-pill">${products.length}</span></div>
-          <div class="panel-body stack">${products.length ? products.map(productCard).join("") : emptyText("No products found.")}</div>
-        </section>
+      ${productFilterBar(categoryOptions, filtered.length)}
+      ${productEditorOpen ? productEditorPanel(editingProduct) : ""}
+      <section class="panel">${productsTable(filtered)}</section>
+    </section>
+  `);
+}
+
+function renderProductCategories() {
+  const rows = categorySummaryRows();
+  setWorkspace(`
+    <section class="page">
+      <div class="page-head">
+        <div>
+          <h1>Categories</h1>
+          <p class="subtle">Categories are calculated from the product records saved in the database.</p>
+        </div>
+        <button class="primary-button" type="button" onclick="showProductEditor()">Add product</button>
+      </div>
+      <section class="panel">
+        <div class="panel-head"><h2>Product categories</h2><span class="count-pill">${rows.length}</span></div>
+        ${
+          rows.length
+            ? `<div class="table-wrap"><table><thead><tr><th>Category</th><th>Products</th><th>Active</th><th>Inventory</th><th></th></tr></thead><tbody>${rows
+                .map(
+                  row => `
+                    <tr>
+                      <td>${escapeHtml(row.name)}</td>
+                      <td>${row.total}</td>
+                      <td>${row.active}</td>
+                      <td>${row.stock}</td>
+                      <td><button class="small-button" type="button" onclick="openProductsForCategory('${escapeAttribute(row.name)}')">View products</button></td>
+                    </tr>
+                  `
+                )
+                .join("")}</tbody></table></div>`
+            : `<div class="empty-state">No product categories found</div>`
+        }
+      </section>
+    </section>
+  `);
+}
+
+function renderProductReviews() {
+  setWorkspace(`
+    <section class="page">
+      <div class="page-head">
+        <div>
+          <h1>Product reviews</h1>
+          <p class="subtle">Review data is loaded from the database and statuses update through the backend.</p>
+        </div>
+        <button class="outline-button" type="button" onclick="refreshCurrentView()">Refresh</button>
+      </div>
+      <section class="panel">
+        <div class="panel-head"><h2>Reviews</h2><span class="count-pill">${productReviews.length}</span></div>
+        ${productReviewsTable(productReviews)}
       </section>
     </section>
   `);
@@ -500,23 +640,45 @@ function renderDiscounts() {
 }
 
 function renderCustomers() {
+  const rows = customerRows();
+  const filteredRows = customerFilter === "all" ? rows : rows.filter(row => row.marketing === customerFilter);
+
   setWorkspace(`
     <section class="page">
+      <section id="emailGrowthBanner" class="promo-banner soft-purple">
+        <div>
+          <h2>Email marketing with Indo Heals Reach</h2>
+          <p>Connect with subscribers and grow your brand by sending newsletters.</p>
+          <div class="inline-actions">
+            <button class="outline-button" type="button" onclick="setView('emails')">Get started</button>
+            <button class="link-button" type="button" onclick="setView('email-settings')">Learn more</button>
+          </div>
+        </div>
+        <button class="ghost-close" type="button" onclick="dismissElement('emailGrowthBanner')" aria-label="Dismiss">×</button>
+      </section>
       <div class="page-head">
         <div>
           <h1>Customers</h1>
-          <p class="subtle">Registered users, carts and wholesale lead contacts.</p>
+          <p class="subtle">A list of customers who have made purchases from your store.</p>
         </div>
-        <button class="outline-button" type="button" onclick="refreshCurrentView()">Refresh</button>
+        <button class="outline-button" type="button" onclick="exportCustomersCsv()">Export to CSV</button>
       </div>
-      <section class="card-grid">
-        ${metricCard("Registered users", users.length)}
-        ${metricCard("Admin users", users.filter(user => user.role === "admin").length)}
-        ${metricCard("Business leads", leads.length)}
+      <section id="marketingConsentBanner" class="info-banner">
+        <span class="info-dot">i</span>
+        <p>Start growing your email list by collecting marketing consent at checkout.</p>
+        <button class="primary-button" type="button" onclick="setView('settings-checkout')">Go to checkout settings</button>
+        <button class="ghost-close" type="button" onclick="dismissElement('marketingConsentBanner')" aria-label="Dismiss">×</button>
       </section>
+      <label class="wide-filter">Marketing consent
+        <select onchange="setCustomerFilter(this.value)">
+          ${filterOption("all", "All", customerFilter)}
+          ${filterOption("subscribed", "Subscribed", customerFilter)}
+          ${filterOption("unsubscribed", "Unsubscribed", customerFilter)}
+          ${filterOption("none", "No consent", customerFilter)}
+        </select>
+      </label>
       <section class="panel">
-        <div class="panel-head"><h2>Registered users</h2><span class="count-pill">${users.length}</span></div>
-        ${usersTable(users)}
+        ${customersTable(filteredRows)}
       </section>
       <section class="panel">
         <div class="panel-head"><h2>Wholesale contacts</h2><span class="count-pill">${leads.length}</span></div>
@@ -528,6 +690,7 @@ function renderCustomers() {
 
 function renderAnalytics() {
   const stats = orderStats();
+  const range = lastThirtyDayRange();
   const statusRows = [
     ["Pending", countOrders("pending")],
     ["Confirmed", countOrders("paid")],
@@ -542,23 +705,43 @@ function renderAnalytics() {
       <div class="page-head">
         <div>
           <h1>Analytics</h1>
-          <p class="subtle">Sales, order health and product performance.</p>
+          <p class="date-line">${range}</p>
         </div>
-        <button class="outline-button" type="button" onclick="refreshCurrentView()">Refresh</button>
+        <div class="toolbar">
+          <button class="outline-button" type="button">${range}</button>
+          <button class="outline-button" type="button">No comparison</button>
+        </div>
       </div>
-      <section class="card-grid">
-        ${metricCard("Confirmed revenue", formatRupee(stats.revenue))}
-        ${metricCard("Average order value", formatRupee(stats.average))}
-        ${metricCard("Active products", products.filter(product => product.isActive !== false).length)}
+      <section class="panel chart-card">
+        <div class="panel-body">
+          <span class="chart-mark"></span>
+          <p>Total Sales</p>
+          <strong>${formatRupee(stats.revenue)}</strong>
+          ${analyticsLineChart(dailySalesRows())}
+        </div>
       </section>
       <section class="analytics-grid">
         <div class="panel">
-          <div class="panel-head"><h2>Order status</h2></div>
+          <div class="panel-head"><h2>Total Orders</h2></div>
           <div class="panel-body">${barChart(statusRows)}</div>
         </div>
         <div class="panel">
+          <div class="panel-head"><h2>Average order value</h2></div>
+          <div class="panel-body">
+            <span class="chart-mark"></span>
+            <strong>${formatRupee(stats.average)}</strong>
+            ${analyticsLineChart(dailySalesRows().map(row => [row[0], stats.average ? stats.average : 0]))}
+          </div>
+        </div>
+      </section>
+      <section class="analytics-grid">
+        <div class="panel">
           <div class="panel-head"><h2>Top products</h2></div>
           <div class="panel-body">${barChart(productRows.length ? productRows : [["No sales yet", 0]])}</div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Store health</h2></div>
+          <div class="panel-body">${barChart([["Active products", products.filter(product => product.isActive !== false).length], ["Customers", users.length], ["Appointments", appointments.length]])}</div>
         </div>
       </section>
     </section>
@@ -570,10 +753,10 @@ function renderEmails() {
     <section class="page">
       <div class="page-head">
         <div>
-          <h1>Emails</h1>
-          <p class="subtle">Newsletter subscriptions and store campaigns.</p>
+          <h1>Email campaigns</h1>
+          <p class="subtle">Newsletter subscriptions and campaigns. Saved campaigns and sends use the backend and database.</p>
         </div>
-        <button class="outline-button" type="button" onclick="refreshCurrentView()">Refresh</button>
+        <button class="outline-button" type="button" onclick="setView('email-previews')">Email previews</button>
       </div>
       <section class="split-grid">
         <form class="panel panel-body stack" onsubmit="saveCampaign(event)">
@@ -593,6 +776,125 @@ function renderEmails() {
       <section class="panel">
         <div class="panel-head"><h2>Newsletter</h2><span class="count-pill">${newsletterSubscriptions.length}</span></div>
         ${newsletterTable(newsletterSubscriptions)}
+      </section>
+    </section>
+  `);
+}
+
+function renderEmailSettings() {
+  const email = settings.email || {};
+  const senderEmail = email.senderEmail || settings.supportEmail || "";
+  setWorkspace(`
+    <section class="page">
+      <div class="page-head">
+        <div>
+          <h1>Store email settings</h1>
+          <p class="subtle">Set up your domain and sender details to improve deliverability and build customer trust.</p>
+        </div>
+      </div>
+      <section class="settings-card">
+        <div class="settings-head">
+          <div>
+            <h2>Domain settings</h2>
+            <p class="subtle">Set up your domain to improve email deliverability and build customer trust.</p>
+          </div>
+          <button class="icon-button" type="button" onclick="showToast('Domain status refreshed from store settings.')">Check status</button>
+        </div>
+        <form class="settings-body stack" onsubmit="saveStoreSettings(event, 'email')">
+          <div class="connected-domain">
+            <span class="status-dot"></span>
+            <strong>${escapeHtml(email.domain || domainFromEmail(senderEmail) || "No email domain connected")}</strong>
+          </div>
+          <div class="info-banner inline-info">
+            <span class="info-dot">i</span>
+            <p>If you recently connected your domain or changed DNS records, it can take up to 24 hours for email configuration to take effect.</p>
+          </div>
+          <div class="settings-grid">
+            <label>Domain<input id="emailDomain" value="${escapeAttribute(email.domain || domainFromEmail(senderEmail) || "")}" placeholder="indoheals.in"></label>
+            <label>Sender email<input id="emailSenderEmail" type="email" value="${escapeAttribute(senderEmail)}" placeholder="contact@indoheals.in"></label>
+            <label>Sender name<input id="emailSenderName" value="${escapeAttribute(email.senderName || settings.storeName || "Indo Heals")}"></label>
+            <label>Reply-to email<input id="emailReplyTo" type="email" value="${escapeAttribute(email.replyToEmail || senderEmail)}"></label>
+          </div>
+          <button class="primary-button" type="submit">Save sender details</button>
+          <p id="settingsMessage" class="form-message"></p>
+        </form>
+      </section>
+      <section class="settings-card">
+        <div class="settings-head">
+          <div>
+            <h2>Sender details</h2>
+            <p class="subtle">The name and email address your recipients will see.</p>
+          </div>
+        </div>
+        <div class="settings-body">
+          <div class="inbox-preview">
+            <span class="preview-dot"></span>
+            <strong>${escapeHtml(email.senderName || settings.storeName || "Your sender name")}</strong>
+            <span>&lt;${escapeHtml(senderEmail || "noreply@indoheals.in")}&gt;</span>
+          </div>
+        </div>
+      </section>
+    </section>
+  `);
+}
+
+function renderEmailPreviews() {
+  const groups = [
+    {
+      title: "Order confirmation",
+      items: [
+        ["order-confirmation", "Order confirmation", "Sent automatically when an order is placed."],
+        ["manual-payment", "Order confirmation (when manual payment used)", "Sent automatically when an order is placed using a manual payment method."],
+        ["delayed-payment", "Order confirmation (when delayed payment used)", "Sent automatically when an order is placed using a delayed payment method."]
+      ]
+    },
+    {
+      title: "Shipping",
+      items: [
+        ["shipping-confirmation", "Shipping confirmation (for physical products only)", "Sent automatically when an order is marked as fulfilled."],
+        ["shipping-tracking", "Shipping confirmation with tracking number (for physical products only)", "Sent automatically when a tracking number is added."],
+        ["shipping-update", "Shipping update (for physical products only)", "Sent automatically when tracking details are updated."]
+      ]
+    },
+    {
+      title: "Digital file download",
+      items: [["digital-download", "Digital file download link", "Sent automatically after successful payment for the digital file."]]
+    },
+    {
+      title: "Appointments",
+      items: [
+        ["appointment-confirmation", "Appointments confirmation", "Sent automatically after successful payment for the appointment."],
+        ["appointment-cancellation", "Appointment cancellation", "Sent automatically when an appointment is cancelled."],
+        ["appointment-rescheduled", "Appointment rescheduled", "Sent automatically when an appointment is rescheduled."]
+      ]
+    },
+    {
+      title: "Invoices",
+      items: [["invoice", "Invoice of the order", "Sent manually for every order."]]
+    }
+  ];
+  const delay = Number(settings.email?.reviewDelayDays || 7);
+
+  setWorkspace(`
+    <section class="page">
+      <div class="page-head"><h1>Email previews</h1></div>
+      ${groups.map(emailPreviewGroup).join("")}
+      <section class="settings-card">
+        <div class="settings-head"><h2>Product reviews</h2></div>
+        <div class="settings-body stack">
+          <div class="record-head">
+            <div>
+              <strong>Review your order from ${escapeHtml(settings.storeName || "Indo Heals")}</strong>
+              <p class="subtle">Sent automatically for every order after it is completed.</p>
+            </div>
+            <button class="link-button" type="button" onclick="previewEmailTemplate('product-review')">Preview</button>
+          </div>
+          <label class="wide-filter">Send (...) days after order completion
+            <select id="emailReviewDelay" onchange="saveEmailReviewDelay(this.value)">
+              ${[3, 7, 14, 30].map(value => `<option value="${value}" ${value === delay ? "selected" : ""}>${value} days</option>`).join("")}
+            </select>
+          </label>
+        </div>
       </section>
     </section>
   `);
@@ -778,6 +1080,178 @@ function settingsPage(title, heading, description, body) {
   `;
 }
 
+function productFilterBar(categories, resultCount) {
+  return `
+    <section class="product-filter-grid" aria-label="Product filters">
+      <label>Category
+        <select onchange="updateProductFilter('category', this.value)">
+          ${filterOption("all", "Select category", productFilters.category)}
+          ${categories.map(category => filterOption(category, category, productFilters.category)).join("")}
+        </select>
+      </label>
+      <label>Product
+        <select onchange="updateProductFilter('status', this.value)">
+          ${filterOption("all", "Select filter", productFilters.status)}
+          ${filterOption("active", "Active", productFilters.status)}
+          ${filterOption("inactive", "Inactive", productFilters.status)}
+          ${filterOption("low-stock", "Low stock", productFilters.status)}
+          ${filterOption("out-of-stock", "Out of stock", productFilters.status)}
+        </select>
+      </label>
+      <label>Sort by
+        <select onchange="updateProductFilter('sort', this.value)">
+          ${filterOption("newest", "Created: Newest first", productFilters.sort)}
+          ${filterOption("oldest", "Created: Oldest first", productFilters.sort)}
+          ${filterOption("name", "Name: A to Z", productFilters.sort)}
+          ${filterOption("price-high", "Price: High to low", productFilters.sort)}
+          ${filterOption("price-low", "Price: Low to high", productFilters.sort)}
+        </select>
+      </label>
+      <label class="filter-search">Search for product
+        <input id="productSearchInput" value="${escapeAttribute(productFilters.search)}" oninput="setProductSearch(this.value)" placeholder="Search for product">
+      </label>
+      <div class="filter-summary">
+        <strong>${Number(resultCount || 0).toLocaleString("en-IN")}</strong>
+        <span>matching products</span>
+      </div>
+    </section>
+  `;
+}
+
+function productEditorPanel(product = null) {
+  return `
+    <form id="productEditor" class="panel panel-body stack" onsubmit="saveProduct(event)">
+      <input id="productId" type="hidden" value="${escapeAttribute(product?._id || "")}">
+      <div class="record-head">
+        <h2 id="productFormTitle">${product ? "Edit product" : "Add product"}</h2>
+        <button class="small-button" type="button" onclick="hideProductEditor()">Close</button>
+      </div>
+      <label>Name<input id="productName" required value="${escapeAttribute(product?.name || "")}"></label>
+      <label>Slug<input id="productSlug" placeholder="breathe-classic" value="${escapeAttribute(product?.slug || "")}"></label>
+      <div class="form-grid">
+        <label>Price<input id="productPrice" type="number" min="0" step="1" required value="${Number(product?.price || 0)}"></label>
+        <label>Stock<input id="productStock" type="number" min="0" step="1" value="${Number(product?.stock || 0)}"></label>
+      </div>
+      <div class="form-grid">
+        <label>Category<input id="productCategory" value="${escapeAttribute(product?.category || "")}"></label>
+        <label>Badge<input id="productBadge" value="${escapeAttribute(product?.badge || "")}"></label>
+      </div>
+      <label>Image path<input id="productImage" placeholder="assets/breathe-classic-ai.png" value="${escapeAttribute(product?.image || "")}"></label>
+      <div class="form-grid">
+        <label>Weight<input id="productWeight" placeholder="40 g" value="${escapeAttribute(product?.weight || "")}"></label>
+        <label>Cocoa<input id="productCocoa" placeholder="55% dark cocoa" value="${escapeAttribute(product?.cocoa || "")}"></label>
+      </div>
+      <label>Wellness note<textarea id="productWellness" rows="2">${escapeHtml(product?.wellnessNote || "")}</textarea></label>
+      <label>Description<textarea id="productDescription" rows="4">${escapeHtml(product?.description || "")}</textarea></label>
+      <label>Ingredients, comma separated<input id="productIngredients" value="${escapeAttribute((product?.ingredients || []).join(", "))}"></label>
+      <label>Benefits, comma separated<input id="productBenefits" value="${escapeAttribute((product?.benefits || []).join(", "))}"></label>
+      <label class="check-row"><input id="productActive" type="checkbox" ${product?.isActive === false ? "" : "checked"}> Active product</label>
+      <button class="primary-button" type="submit">Save product</button>
+      <p id="productMessage" class="form-message"></p>
+    </form>
+  `;
+}
+
+function productsTable(items) {
+  if (!items.length) return `<div class="empty-state">No products match the current filters</div>`;
+  return `
+    <div class="table-wrap">
+      <table class="product-table">
+        <thead>
+          <tr>
+            <th><span class="fake-checkbox"></span></th>
+            <th>Product</th>
+            <th>Price</th>
+            <th>Variants</th>
+            <th>Inventory</th>
+            <th>SKU</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${items.map(productTableRow).join("")}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function productTableRow(product) {
+  const stock = Number(product.stock || 0);
+  const stockLabel = stock > LOW_STOCK_THRESHOLD ? "In stock" : stock > 0 ? `Low: ${stock}` : "Out of stock";
+  const status = product.isActive === false ? "Inactive" : "Active";
+  return `
+    <tr>
+      <td><span class="fake-checkbox"></span></td>
+      <td>
+        <div class="product-cell">
+          <img src="${escapeAttribute(product.image || "assets/indo-heals-logo.png")}" alt="">
+          <strong>${escapeHtml(product.name)}</strong>
+        </div>
+      </td>
+      <td>${formatRupee(product.price)}</td>
+      <td>—</td>
+      <td>${escapeHtml(stockLabel)}</td>
+      <td>${escapeHtml(product.slug || product._id || "SKU")}</td>
+      <td><span class="status-pill status-${product.isActive === false ? "failed" : "subscribed"}">${status}</span></td>
+      <td>
+        <div class="row-menu">
+          <button class="small-button" type="button" onclick="showProductEditor('${escapeAttribute(product._id)}')">Edit</button>
+          <button class="small-button" type="button" onclick="mapDigitalFile('${escapeAttribute(product._id)}')">Digital file</button>
+          <button class="danger-button" type="button" onclick="deleteProduct('${escapeAttribute(product._id)}')">Disable</button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function productReviewsTable(items) {
+  if (!items.length) return `<div class="empty-state">No product reviews found</div>`;
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Product</th><th>Customer</th><th>Rating</th><th>Review</th><th>Status</th><th>Created</th></tr></thead>
+        <tbody>${items
+          .map(
+            review => `
+              <tr>
+                <td>${escapeHtml(review.productName || review.product?.name || "Product")}</td>
+                <td>${escapeHtml(review.customerEmail || review.customerName || "Customer")}</td>
+                <td>${"★".repeat(Math.max(0, Math.min(5, Number(review.rating || 0)))) || "N/A"}</td>
+                <td>${escapeHtml(review.comment || "")}</td>
+                <td>${statusSelect(REVIEW_STATUS_OPTIONS, review.status || "new", `updateReviewStatus('${escapeAttribute(review._id)}', this.value)`)}</td>
+                <td>${formatDate(review.createdAt)}</td>
+              </tr>
+            `
+          )
+          .join("")}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function emailPreviewGroup(group) {
+  return `
+    <section class="settings-card email-preview-card">
+      <div class="settings-head"><h2>${escapeHtml(group.title)}</h2></div>
+      <div class="preview-list">
+        ${group.items
+          .map(
+            ([key, title, description]) => `
+              <div class="preview-row">
+                <div>
+                  <strong>${escapeHtml(title)}</strong>
+                  <p class="subtle">${escapeHtml(description)}</p>
+                </div>
+                <button class="link-button" type="button" onclick="previewEmailTemplate('${escapeAttribute(key)}')">Preview</button>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
 function metricCard(label, value) {
   return `<article class="metric-card"><span>${escapeHtml(label)}</span><strong>${value}</strong></article>`;
 }
@@ -913,6 +1387,7 @@ function ordersTable(items, options = {}) {
       <table>
         <thead>
           <tr>
+            ${options.selectable ? `<th><span class="fake-checkbox"></span></th>` : ""}
             <th>Order</th>
             <th>Date</th>
             <th>Email</th>
@@ -927,6 +1402,7 @@ function ordersTable(items, options = {}) {
             .map(
               order => `
                 <tr class="order-row ${order._id === selectedOrderId ? "active-row" : ""}" onclick="if (!event.target.closest('button, select')) showOrderDetails('${escapeAttribute(order._id)}')">
+                  ${options.selectable ? `<td><span class="fake-checkbox"></span></td>` : ""}
                   <td>${escapeHtml(shortId(order._id))}</td>
                   <td>${formatDate(order.createdAt)}</td>
                   <td>${escapeHtml(order.customerEmail || order.user?.email || "")}</td>
@@ -952,11 +1428,33 @@ function ordersTable(items, options = {}) {
   `;
 }
 
+function orderTabs() {
+  const tabs = [
+    ["all", "All"],
+    ["unfulfilled", "Unfulfilled"],
+    ["unpaid", "Unpaid"],
+    ["action", "Action needed"],
+    ["archived", "Archived"]
+  ];
+  return `
+    <div class="tab-row">
+      ${tabs
+        .map(
+          ([value, label]) => `
+            <button class="${orderFilters.tab === value ? "active" : ""}" type="button" onclick="updateOrderFilter('tab', '${value}')">${escapeHtml(label)}</button>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function orderFilterBar(resultCount) {
+  const orderProducts = orderProductOptions();
   return `
     <section class="filter-bar" aria-label="Order filters">
       <label class="filter-search">
-        <span>Search orders</span>
+        <span>Search for order</span>
         <input
           id="orderSearchInput"
           value="${escapeAttribute(orderFilters.search)}"
@@ -976,6 +1474,13 @@ function orderFilterBar(resultCount) {
         <select onchange="updateOrderFilter('fulfillment', this.value)">
           ${filterOption("all", "All fulfillment", orderFilters.fulfillment)}
           ${ORDER_FULFILLMENT_OPTIONS.map(option => filterOption(option, titleCase(option), orderFilters.fulfillment)).join("")}
+        </select>
+      </label>
+      <label>
+        <span>Product</span>
+        <select onchange="updateOrderFilter('product', this.value)">
+          ${filterOption("all", "Select filter", orderFilters.product)}
+          ${orderProducts.map(product => filterOption(product, product, orderFilters.product)).join("")}
         </select>
       </label>
       <div class="filter-summary">
@@ -1129,6 +1634,94 @@ function usersTable(items) {
   `;
 }
 
+function customerRows() {
+  const byEmail = new Map();
+  users.forEach(user => {
+    if (!user.email) return;
+    byEmail.set(user.email, {
+      email: user.email,
+      name: user.name || "",
+      orders: 0,
+      spent: 0,
+      marketing: "none",
+      subscriberSince: "",
+      joined: user.createdAt,
+      role: user.role || "user"
+    });
+  });
+
+  orders.forEach(order => {
+    const email = order.customerEmail || order.user?.email;
+    if (!email) return;
+    const row = byEmail.get(email) || {
+      email,
+      name: order.customerName || order.user?.name || "",
+      orders: 0,
+      spent: 0,
+      marketing: "none",
+      subscriberSince: "",
+      joined: order.createdAt,
+      role: "customer"
+    };
+    row.orders += 1;
+    row.spent += Number(order.total || 0);
+    if (!row.joined || new Date(order.createdAt || 0) < new Date(row.joined || 0)) row.joined = order.createdAt;
+    byEmail.set(email, row);
+  });
+
+  newsletterSubscriptions.forEach(item => {
+    if (!item.email) return;
+    const row = byEmail.get(item.email) || {
+      email: item.email,
+      name: "",
+      orders: 0,
+      spent: 0,
+      marketing: "none",
+      subscriberSince: "",
+      joined: item.createdAt,
+      role: "subscriber"
+    };
+    row.marketing = item.status || "subscribed";
+    row.subscriberSince = item.createdAt;
+    byEmail.set(item.email, row);
+  });
+
+  return [...byEmail.values()].sort((a, b) => Number(b.spent || 0) - Number(a.spent || 0));
+}
+
+function customersTable(rows) {
+  if (!rows.length) return `<div class="empty-state">No customers found</div>`;
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Email</th><th>Orders</th><th>Total spent</th><th>Marketing consent</th><th>Subscriber since</th><th></th></tr></thead>
+        <tbody>
+          ${rows
+            .map(
+              row => `
+                <tr>
+                  <td>${escapeHtml(row.email)}</td>
+                  <td>${Number(row.orders || 0)}</td>
+                  <td>${formatRupee(row.spent)}</td>
+                  <td>${marketingConsentCell(row.marketing)}</td>
+                  <td>${row.subscriberSince ? formatDate(row.subscriberSince) : "-"}</td>
+                  <td><button class="small-button" type="button" onclick="openOrdersForCustomer('${escapeAttribute(row.email)}')">Orders</button></td>
+                </tr>
+              `
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function marketingConsentCell(value) {
+  if (value === "subscribed") return `<span class="status-pill status-subscribed">Subscribed</span>`;
+  if (value === "unsubscribed") return `<span class="status-pill status-unsubscribed">Unsubscribed</span>`;
+  return `<span class="muted-icon">×</span>`;
+}
+
 function newsletterTable(items) {
   if (!items.length) return `<div class="empty-state">No newsletter subscriptions found</div>`;
   return `
@@ -1185,6 +1778,25 @@ function renderLoading() {
   setWorkspace(`<section class="page"><div class="panel panel-body"><p class="subtle">Loading store manager...</p></div></section>`);
 }
 
+function renderAuthRequiredView(message = "") {
+  setWorkspace(`
+    <section class="page">
+      <div class="page-head">
+        <div>
+          <h1>Admin account</h1>
+          <p class="subtle">Sign in once, then manage every admin section from this session.</p>
+        </div>
+        <button class="primary-button" type="button" onclick="toggleAccountMenu(true)">Account login</button>
+      </div>
+      <section class="panel panel-body stack">
+        <h2>Admin access required</h2>
+        <p class="subtle">Use the Account button in the left side of the header to continue.</p>
+        ${message ? `<p class="form-message error">${escapeHtml(message)}</p>` : ""}
+      </section>
+    </section>
+  `);
+}
+
 function renderErrorPage(message) {
   setWorkspace(`<section class="page"><div class="panel panel-body"><p class="form-message error">${escapeHtml(message)}</p></div></section>`);
 }
@@ -1218,6 +1830,7 @@ async function saveProduct(event) {
     benefits: splitCsv(valueOf("productBenefits")),
     isActive: checkedOf("productActive")
   };
+  if (!body.slug) delete body.slug;
 
   try {
     await apiFetch(id ? `/admin/products/${encodeURIComponent(id)}` : "/admin/products", {
@@ -1225,6 +1838,8 @@ async function saveProduct(event) {
       body
     });
     await loadProducts();
+    productEditorOpen = false;
+    productEditingId = "";
     renderProducts();
     showToast("Product saved.");
   } catch (error) {
@@ -1233,29 +1848,28 @@ async function saveProduct(event) {
 }
 
 function editProduct(id) {
-  const product = products.find(item => String(item._id) === String(id));
-  if (!product) return;
-  setText("productFormTitle", "Edit product");
-  setValue("productId", product._id);
-  setValue("productName", product.name);
-  setValue("productSlug", product.slug);
-  setValue("productPrice", product.price);
-  setValue("productStock", product.stock);
-  setValue("productCategory", product.category);
-  setValue("productBadge", product.badge);
-  setValue("productImage", product.image);
-  setValue("productWeight", product.weight);
-  setValue("productCocoa", product.cocoa);
-  setValue("productWellness", product.wellnessNote);
-  setValue("productDescription", product.description);
-  setValue("productIngredients", (product.ingredients || []).join(", "));
-  setValue("productBenefits", (product.benefits || []).join(", "));
-  setChecked("productActive", product.isActive !== false);
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  showProductEditor(id);
+}
+
+function showProductEditor(id = "") {
+  productEditorOpen = true;
+  productEditingId = id || "";
+  if (currentView !== "products") {
+    setView("products");
+    return;
+  }
+  renderProducts();
+  document.getElementById("productEditor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function hideProductEditor() {
+  productEditorOpen = false;
+  productEditingId = "";
+  renderProducts();
 }
 
 function resetProductForm() {
-  setView("products");
+  showProductEditor();
 }
 
 async function deleteProduct(id) {
@@ -1338,9 +1952,70 @@ function clearOrderFilters() {
   orderFilters = {
     search: "",
     payment: "all",
-    fulfillment: "all"
+    fulfillment: "all",
+    product: "all",
+    tab: "all"
   };
   renderOrders();
+}
+
+function setProductSearch(value) {
+  productFilters.search = value;
+  clearTimeout(productFilterTimer);
+  productFilterTimer = setTimeout(() => {
+    renderProducts();
+    const input = document.getElementById("productSearchInput");
+    if (input) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }, 180);
+}
+
+function updateProductFilter(key, value) {
+  clearTimeout(productFilterTimer);
+  productFilters = {
+    ...productFilters,
+    [key]: value
+  };
+  renderProducts();
+}
+
+function openProductsForCategory(category) {
+  productFilters.category = category;
+  productFilters.search = "";
+  productFilters.status = "all";
+  productEditorOpen = false;
+  productEditingId = "";
+  setView("products");
+}
+
+function setCustomerFilter(value) {
+  customerFilter = value;
+  renderCustomers();
+}
+
+function openOrdersForCustomer(email) {
+  orderFilters.search = email;
+  orderFilters.payment = "all";
+  orderFilters.fulfillment = "all";
+  orderFilters.product = "all";
+  orderFilters.tab = "all";
+  setView("orders");
+}
+
+async function updateReviewStatus(id, status) {
+  try {
+    await apiFetch(`/admin/product-reviews/${encodeURIComponent(id)}/status`, {
+      method: "PUT",
+      body: { status }
+    });
+    await loadProductReviews();
+    renderProductReviews();
+    showToast("Review updated.");
+  } catch (error) {
+    showToast(error.message);
+  }
 }
 
 async function updateAppointmentStatus(id, status) {
@@ -1574,15 +2249,53 @@ async function saveStoreSettings(event, section) {
     };
   }
 
+  if (section === "email") {
+    payload = {
+      supportEmail: valueOf("emailSenderEmail") || valueOf("emailReplyTo"),
+      email: {
+        ...(settings.email || {}),
+        domain: valueOf("emailDomain"),
+        senderName: valueOf("emailSenderName"),
+        senderEmail: valueOf("emailSenderEmail"),
+        replyToEmail: valueOf("emailReplyTo"),
+        domainStatus: valueOf("emailDomain") ? "connected" : "not_connected"
+      }
+    };
+  }
+
   try {
     settings = deepMerge(structuredClone(DEFAULT_SETTINGS), await apiFetch("/admin/settings", {
       method: "PUT",
       body: payload
     }));
-    renderSettings(currentView);
+    if (currentView === "email-settings") {
+      renderEmailSettings();
+    } else if (currentView === "email-previews") {
+      renderEmailPreviews();
+    } else {
+      renderSettings(currentView);
+    }
     showToast("Settings saved.");
   } catch (error) {
     setMessage("settingsMessage", error.message, "error");
+  }
+}
+
+async function saveEmailReviewDelay(value) {
+  try {
+    settings = deepMerge(structuredClone(DEFAULT_SETTINGS), await apiFetch("/admin/settings", {
+      method: "PUT",
+      body: {
+        email: {
+          ...(settings.email || {}),
+          reviewDelayDays: Number(value || 7)
+        }
+      }
+    }));
+    renderEmailPreviews();
+    showToast("Review email timing saved.");
+  } catch (error) {
+    showToast(error.message);
   }
 }
 
@@ -1610,11 +2323,79 @@ function lowStockProducts() {
   return products.filter(product => product.isActive !== false && Number(product.stock || 0) <= LOW_STOCK_THRESHOLD);
 }
 
+function productCategories() {
+  return [...new Set(products.map(product => product.category || "Uncategorized").filter(Boolean))].sort((a, b) => a.localeCompare(b));
+}
+
+function categorySummaryRows() {
+  const rows = new Map();
+  products.forEach(product => {
+    const name = product.category || "Uncategorized";
+    const row = rows.get(name) || { name, total: 0, active: 0, stock: 0 };
+    row.total += 1;
+    row.active += product.isActive === false ? 0 : 1;
+    row.stock += Number(product.stock || 0);
+    rows.set(name, row);
+  });
+  return [...rows.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function filteredProducts() {
+  const search = productFilters.search.trim().toLowerCase();
+  const filtered = products.filter(product => {
+    const category = product.category || "Uncategorized";
+    if (productFilters.category !== "all" && category !== productFilters.category) return false;
+    if (productFilters.status === "active" && product.isActive === false) return false;
+    if (productFilters.status === "inactive" && product.isActive !== false) return false;
+    if (productFilters.status === "low-stock" && !(Number(product.stock || 0) > 0 && Number(product.stock || 0) <= LOW_STOCK_THRESHOLD)) return false;
+    if (productFilters.status === "out-of-stock" && Number(product.stock || 0) > 0) return false;
+    if (!search) return true;
+    return [product.name, product.slug, product.category, product.badge, product.description]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(search);
+  });
+
+  return filtered.sort((a, b) => {
+    if (productFilters.sort === "oldest") return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+    if (productFilters.sort === "name") return String(a.name || "").localeCompare(String(b.name || ""));
+    if (productFilters.sort === "price-high") return Number(b.price || 0) - Number(a.price || 0);
+    if (productFilters.sort === "price-low") return Number(a.price || 0) - Number(b.price || 0);
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  });
+}
+
+function orderProductOptions() {
+  const values = new Set();
+  orders.forEach(order => {
+    (order.items || []).forEach(item => {
+      const value = item.name || item.productSlug || item.productId;
+      if (value) values.add(value);
+    });
+  });
+  return [...values].sort((a, b) => String(a).localeCompare(String(b)));
+}
+
 function filteredOrders(source = sortedOrders()) {
   const search = orderFilters.search.trim().toLowerCase();
   return source.filter(order => {
     if (orderFilters.payment !== "all" && (order.status || "pending") !== orderFilters.payment) return false;
     if (orderFilters.fulfillment !== "all" && (order.fulfillmentStatus || "new") !== orderFilters.fulfillment) return false;
+    if (orderFilters.product !== "all") {
+      const hasProduct = (order.items || []).some(item => (item.name || item.productSlug || item.productId) === orderFilters.product);
+      if (!hasProduct) return false;
+    }
+    if (orderFilters.tab === "unfulfilled" && ["delivered", "cancelled", "returned"].includes(order.fulfillmentStatus || "new")) return false;
+    if (orderFilters.tab === "unpaid" && (order.status || "pending") !== "pending") return false;
+    if (
+      orderFilters.tab === "action" &&
+      !["failed", "cancelled", "returned"].includes(order.status || "") &&
+      !["cancelled", "returned"].includes(order.fulfillmentStatus || "")
+    ) {
+      return false;
+    }
+    if (orderFilters.tab === "archived" && !["delivered", "cancelled", "returned"].includes(order.fulfillmentStatus || "new")) return false;
     if (!search) return true;
 
     const address = order.shippingAddress || {};
@@ -1659,6 +2440,44 @@ function topProductRows() {
   return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
 }
 
+function dailySalesRows() {
+  const rows = [];
+  const today = new Date();
+  for (let index = 29; index >= 0; index -= 1) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - index);
+    const key = date.toISOString().slice(0, 10);
+    const total = orders
+      .filter(order => order.status === "paid" && String(order.createdAt || "").slice(0, 10) === key)
+      .reduce((sum, order) => sum + Number(order.total || 0), 0);
+    rows.push([date.toLocaleDateString("en-IN", { day: "numeric", month: "short" }), total]);
+  }
+  return rows;
+}
+
+function analyticsLineChart(rows) {
+  const max = Math.max(...rows.map(row => Number(row[1] || 0)), 1);
+  return `
+    <div class="line-chart">
+      <div class="line-grid"></div>
+      <div class="line-points">
+        ${rows
+          .map(([, value], index) => {
+            const left = rows.length > 1 ? (index / (rows.length - 1)) * 100 : 0;
+            const bottom = Math.max(0, (Number(value || 0) / max) * 84);
+            return `<span style="left:${left}%; bottom:${bottom}%"></span>`;
+          })
+          .join("")}
+      </div>
+      <div class="line-labels">
+        <span>${escapeHtml(rows[0]?.[0] || "")}</span>
+        <span>${escapeHtml(rows[Math.floor(rows.length / 2)]?.[0] || "")}</span>
+        <span>${escapeHtml(rows[rows.length - 1]?.[0] || "")}</span>
+      </div>
+    </div>
+  `;
+}
+
 function currentMonthRange() {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1667,6 +2486,48 @@ function currentMonthRange() {
     month: "short",
     year: "numeric"
   })}`;
+}
+
+function lastThirtyDayRange() {
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate() - 29);
+  return `${start.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} - ${now.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  })}`;
+}
+
+function domainFromEmail(email = "") {
+  return String(email || "").includes("@") ? String(email).split("@").pop() : "";
+}
+
+function emailSubjectFor(type, storeName) {
+  const subjects = {
+    "order-confirmation": `Your ${storeName} order is confirmed`,
+    "manual-payment": `We received your ${storeName} order`,
+    "delayed-payment": `Payment details for your ${storeName} order`,
+    "shipping-confirmation": `Your ${storeName} order is on the way`,
+    "shipping-tracking": `Tracking details for your ${storeName} order`,
+    "shipping-update": `Shipping update from ${storeName}`,
+    "digital-download": `Your ${storeName} download is ready`,
+    "appointment-confirmation": `Your ${storeName} appointment is confirmed`,
+    "appointment-cancellation": `Your ${storeName} appointment was cancelled`,
+    "appointment-rescheduled": `Your ${storeName} appointment was rescheduled`,
+    invoice: `Invoice from ${storeName}`,
+    "product-review": `How was your ${storeName} order?`
+  };
+  return subjects[type] || `${storeName} update`;
+}
+
+function emailBodyFor(type, storeName) {
+  if (type === "digital-download") return "Your secure download link is ready. Sign in to your account to access it.";
+  if (type === "product-review") return "Tell us how your order went. Your feedback helps us improve every product.";
+  if (type.includes("shipping")) return "Your order status has changed. You can view the latest delivery details from your account.";
+  if (type.includes("appointment")) return "Your appointment details have been updated. Contact support if you need help.";
+  if (type === "invoice") return "Your invoice is attached and also available from your account.";
+  return `Thanks for shopping with ${storeName}. We will keep you updated as your order moves ahead.`;
 }
 
 function valueOf(id) {
@@ -1701,6 +2562,107 @@ function setMessage(id, message, type = "") {
   if (!element) return;
   element.textContent = message;
   element.className = `form-message ${type}`.trim();
+}
+
+function exportOrdersCsv() {
+  const rows = filteredOrders(sortedOrders()).map(order => ({
+    order: order._id,
+    date: formatDate(order.createdAt),
+    email: order.customerEmail || order.user?.email || "",
+    total: order.total || 0,
+    payment: order.status || "pending",
+    fulfillment: order.fulfillmentStatus || "new"
+  }));
+  downloadCsv("orders.csv", rows);
+}
+
+function exportProductsCsv() {
+  const rows = filteredProducts().map(product => ({
+    name: product.name,
+    slug: product.slug || "",
+    category: product.category || "",
+    price: product.price || 0,
+    stock: product.stock || 0,
+    active: product.isActive === false ? "no" : "yes",
+    digitalFile: product.digitalFile?.storagePath || ""
+  }));
+  downloadCsv("products.csv", rows);
+}
+
+function exportCustomersCsv() {
+  const rows = customerRows().map(row => ({
+    email: row.email,
+    orders: row.orders,
+    totalSpent: row.spent,
+    marketingConsent: row.marketing,
+    subscriberSince: row.subscriberSince ? formatDate(row.subscriberSince) : ""
+  }));
+  downloadCsv("customers.csv", rows);
+}
+
+function downloadCsv(filename, rows) {
+  if (!rows.length) {
+    showToast("No rows to export.");
+    return;
+  }
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(","), ...rows.map(row => headers.map(header => csvCell(row[header])).join(","))].join("\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+  showToast(`${filename} exported.`);
+}
+
+function csvCell(value = "") {
+  const text = String(value ?? "");
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function dismissElement(id) {
+  document.getElementById(id)?.remove();
+}
+
+function previewEmailTemplate(type) {
+  const email = settings.email || {};
+  const title = titleCase(type);
+  const storeName = settings.storeName || "Indo Heals";
+  const sender = email.senderName || storeName;
+  const senderEmail = email.senderEmail || settings.supportEmail || "contact@indoheals.in";
+  openModal(
+    `${title} preview`,
+    `
+      <div class="email-preview-shell">
+        <p class="meta-line">From: ${escapeHtml(sender)} &lt;${escapeHtml(senderEmail)}&gt;</p>
+        <h2>${escapeHtml(emailSubjectFor(type, storeName))}</h2>
+        <p>${escapeHtml(emailBodyFor(type, storeName))}</p>
+        <button class="primary-button" type="button" onclick="closeModal()">Done</button>
+      </div>
+    `
+  );
+}
+
+function openModal(title, body) {
+  const root = document.getElementById("modalRoot");
+  if (!root) return;
+  root.innerHTML = `
+    <div class="modal-backdrop" onclick="if (event.target === this) closeModal()">
+      <section class="modal-card" role="dialog" aria-modal="true" aria-label="${escapeAttribute(title)}">
+        <div class="modal-head">
+          <h2>${escapeHtml(title)}</h2>
+          <button class="ghost-close" type="button" onclick="closeModal()" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">${body}</div>
+      </section>
+    </div>
+  `;
+}
+
+function closeModal() {
+  const root = document.getElementById("modalRoot");
+  if (root) root.innerHTML = "";
 }
 
 function splitCsv(value) {
