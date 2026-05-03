@@ -10,6 +10,7 @@ const NewsletterSubscription = require("../models/NewsletterSubscription");
 const Discount = require("../models/Discount");
 const StoreSetting = require("../models/StoreSetting");
 const EmailCampaign = require("../models/EmailCampaign");
+const ProductReview = require("../models/ProductReview");
 const requireAuth = require("../middleware/auth");
 const { requireAdmin } = require("../middleware/auth");
 const validate = require("../middleware/validate");
@@ -20,7 +21,7 @@ router.use(requireAuth, requireAdmin);
 
 const productValidators = [
   body("name").trim().notEmpty().withMessage("Product name is required."),
-  body("slug").optional().trim().isSlug().withMessage("Slug must be URL safe."),
+  body("slug").optional({ checkFalsy: true }).trim().isSlug().withMessage("Slug must be URL safe."),
   body("price").isFloat({ min: 0 }).withMessage("Price must be a positive number."),
   body("stock").optional().isInt({ min: 0 }).withMessage("Stock must be a positive integer."),
   validate
@@ -55,6 +56,7 @@ const orderStatusValidators = [
 const appointmentStatusValues = ["new", "contacted", "confirmed", "completed", "cancelled"];
 const leadStatusValues = ["new", "contacted", "qualified", "closed"];
 const newsletterStatusValues = ["subscribed", "unsubscribed"];
+const productReviewStatusValues = ["new", "published", "hidden", "archived"];
 
 const discountValidators = [
   body("code").trim().notEmpty().withMessage("Discount code is required."),
@@ -150,7 +152,8 @@ router.put("/settings", async (req, res, next) => {
       "shipping",
       "checkout",
       "taxes",
-      "invoices"
+      "invoices",
+      "email"
     ];
     const updates = allowed.reduce((payload, key) => {
       if (req.body[key] !== undefined) payload[key] = req.body[key];
@@ -197,6 +200,33 @@ router.get("/products", async (req, res, next) => {
 
     const products = await Product.find().sort({ createdAt: -1 });
     return res.json(products);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/product-reviews", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const reviews = await ProductReview.find().populate("product", "name slug image").sort({ createdAt: -1 });
+    return res.json(reviews);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.put("/product-reviews/:id/status", [body("status").isIn(productReviewStatusValues), validate], async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    const review = await ProductReview.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true, runValidators: true }
+    ).populate("product", "name slug image");
+    if (!review) return res.status(404).json({ message: "Product review not found." });
+    return res.json(review);
   } catch (error) {
     return next(error);
   }

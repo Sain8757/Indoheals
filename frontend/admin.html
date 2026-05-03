@@ -10,22 +10,33 @@
 </head>
 <body>
   <main class="admin-shell">
-    <section id="loginPanel" class="login-screen">
-      <form class="login-card" onsubmit="loginAdmin(event)">
-        <img src="assets/indo-heals-logo.png" alt="Indo Heals logo">
-        <span class="eyebrow">Store manager</span>
-        <h1>Admin login</h1>
-        <label>Email<input id="adminEmail" type="email" autocomplete="email" required></label>
-        <label>Password<input id="adminPassword" type="password" autocomplete="current-password" required></label>
-        <button class="primary-button" type="submit">Login</button>
-        <p id="adminLoginMessage" class="form-message"></p>
-      </form>
-    </section>
-
-    <section id="appPanel" class="manager-app" hidden>
+    <section id="appPanel" class="manager-app">
       <header class="topbar">
         <div class="store-switcher">
-          <button class="store-button" type="button">Store manager <span aria-hidden="true">v</span></button>
+          <div class="account-menu">
+            <button id="accountToggle" class="store-button" type="button" onclick="toggleAccountMenu()" aria-expanded="false">
+              <span>Store manager</span>
+              <span aria-hidden="true">⌄</span>
+            </button>
+            <div id="loginPanel" class="account-panel" hidden>
+              <form id="adminLoginForm" class="account-login" onsubmit="loginAdmin(event)">
+                <img src="assets/indo-heals-logo.png" alt="Indo Heals logo">
+                <span class="eyebrow">Store manager</span>
+                <h2>Admin login</h2>
+                <label>Email<input id="adminEmail" type="email" autocomplete="email" required></label>
+                <label>Password<input id="adminPassword" type="password" autocomplete="current-password" required></label>
+                <button class="primary-button" type="submit">Login</button>
+                <p id="adminLoginMessage" class="form-message"></p>
+              </form>
+              <div id="accountSummary" class="account-summary" hidden>
+                <span class="eyebrow">Signed in</span>
+                <strong id="adminName">Admin</strong>
+                <span id="adminAccountEmail" class="meta-line"></span>
+                <p>Admin access is active for this browser.</p>
+                <button class="outline-button" type="button" onclick="logoutAdmin()">Logout</button>
+              </div>
+            </div>
+          </div>
           <span class="divider"></span>
           <span class="live-pill"><span></span>Live</span>
         </div>
@@ -41,12 +52,22 @@
         <nav class="main-nav" aria-label="Admin sections">
           <button class="active" data-view="overview" type="button"><span class="nav-icon"></span>Overview</button>
           <button data-view="orders" type="button"><span class="nav-icon"></span>Orders</button>
-          <button data-view="products" type="button"><span class="nav-icon"></span>Products</button>
+          <button data-view="products" data-section="products" type="button"><span class="nav-icon"></span>Products</button>
+          <div id="productNav" class="sub-nav">
+            <button data-view="products" type="button">Product list</button>
+            <button data-view="product-categories" type="button">Categories</button>
+            <button data-view="product-reviews" type="button">Product reviews</button>
+          </div>
           <button data-view="appointments" type="button"><span class="nav-icon"></span>Appointments</button>
           <button data-view="discounts" type="button"><span class="nav-icon"></span>Discounts</button>
           <button data-view="customers" type="button"><span class="nav-icon"></span>Customers</button>
           <button data-view="analytics" type="button"><span class="nav-icon"></span>Analytics</button>
-          <button data-view="emails" type="button"><span class="nav-icon"></span>Emails</button>
+          <button data-view="email-settings" data-section="emails" type="button"><span class="nav-icon"></span>Emails</button>
+          <div id="emailNav" class="sub-nav">
+            <button data-view="email-settings" type="button">Store email settings</button>
+            <button data-view="email-previews" type="button">Email previews</button>
+            <button data-view="emails" type="button">Campaigns</button>
+          </div>
           <button data-view="settings-store" data-section="settings" type="button"><span class="nav-icon"></span>Settings</button>
           <div id="settingsNav" class="sub-nav">
             <button data-view="settings-store" type="button">Store details</button>
@@ -64,7 +85,7 @@
         <div class="sidebar-footer">
           <button type="button" onclick="showToast('Feedback noted for the store manager experience.')">Feedback</button>
           <button type="button" onclick="showToast('Help docs are coming soon.')">Help and resources</button>
-          <button type="button" onclick="logoutAdmin()">Logout <span id="adminName"></span></button>
+          <button type="button" onclick="toggleAccountMenu(true)">Account</button>
         </div>
       </aside>
 
@@ -74,7 +95,8 @@
     </section>
   </main>
 
+  <div id="modalRoot"></div>
   <div id="toast" class="toast"></div>
-  <script src="admin.js?v=20260503-admin-polish"></script>
+  <script src="admin.js?v=20260503-manager-ui"></script>
 </body>
 </html>

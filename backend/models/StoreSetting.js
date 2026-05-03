@@ -107,6 +107,25 @@ const storeSettingSchema = new mongoose.Schema(
         min: 1
       },
       footerNote: String
+    },
+    email: {
+      domain: String,
+      domainStatus: {
+        type: String,
+        enum: ["not_connected", "connected", "pending", "failed"],
+        default: "not_connected"
+      },
+      senderName: {
+        type: String,
+        default: "Indo Heals"
+      },
+      senderEmail: String,
+      replyToEmail: String,
+      reviewDelayDays: {
+        type: Number,
+        default: 7,
+        min: 1
+      }
     }
   },
   { timestamps: true }
