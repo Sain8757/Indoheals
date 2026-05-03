@@ -16,6 +16,7 @@
       <li><a class="has-chevron" onclick="goToPage('products')">Brands</a></li>
       <li><a class="has-chevron" onclick="goToPage('about')">Businesses</a></li>
       <li><a class="has-chevron" onclick="goToPage('about')">Impact</a></li>
+      <li><a href="orders.html">My Orders</a></li>
     </ul>
 
     <a onclick="goToPage('home')" class="nav-logo" aria-label="Indo Heals home">
@@ -26,13 +27,30 @@
     </a>
 
     <ul class="nav-links nav-right">
-      <li><a onclick="goToPage('resources')">Resources</a></li>
-      <li><a onclick="goToPage('contact')">Contact</a></li>
-      <li><a id="cartLink" onclick="goToPage('cart')">Cart</a></li>
-      <li><a id="accountLink" onclick="openAccount()">Login</a></li>
+      <li>
+        <button class="nav-icon-button" type="button" onclick="focusSearch()" aria-label="Search site">
+          <span aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M21.7 20.3 16.9 15.5A8.5 8.5 0 1 0 15.5 16.9l4.8 4.8a1 1 0 0 0 1.4-1.4ZM4 10.5A6.5 6.5 0 1 1 10.5 17 6.5 6.5 0 0 1 4 10.5Z"></path></svg>
+          </span>
+        </button>
+      </li>
+      <li>
+        <button id="accountLink" class="nav-icon-button nav-account-button" type="button" onclick="openAccount()" aria-label="Open account">
+          <span class="nav-account-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M11.6 2 2 13h7.5L10 22 22 9.9h-7.5L14 2z"></path></svg>
+          </span>
+          <span id="navUserName" class="nav-account-name"></span>
+        </button>
+      </li>
+      <li>
+        <button id="cartLink" class="nav-icon-button" type="button" onclick="goToPage('cart')" aria-label="View cart">
+          <span aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H8.5L6 6Zm0-2a1 1 0 0 0-1 1v1H2v2h2l3.6 7.6a1 1 0 0 0 .9.6h8a1 1 0 0 0 .9-.6L22 8H8V6h-2V5a1 1 0 0 0-1-1Z"></path></svg>
+          </span>
+        </button>
+      </li>
       <li><a class="appointment-link" onclick="goToPage('appointment')">Book an Appointment</a></li>
     </ul>
-    <span id="navUser" class="nav-user"></span>
   </div>
 </nav>
 
@@ -137,7 +155,10 @@
   <section class="range-section">
     <div class="range-head">
       <span class="section-label">Signature Collection</span>
-      <h2 class="section-title">Herbal wellness, presented like a premium ritual</h2>
+      <div class="range-head-top">
+        <h2 class="section-title">Herbal wellness, presented like a premium ritual</h2>
+        <button type="button" class="link-button range-cta" onclick="goToPage('products')">See All</button>
+      </div>
       <p>Explore functional dark chocolate blends with carefully selected botanicals and an elegant e-commerce experience.</p>
     </div>
     <div class="range-grid">
@@ -147,10 +168,12 @@
           <span>Classic Blend</span>
           <h3>Breathe Classic</h3>
           <p>Ashwagandha and tulsi with deep cocoa richness.</p>
-          <small>View full specification</small>
+          <small>Premium herbal dark chocolate ritual</small>
           <div class="range-card-footer">
             <strong>&#8377;299</strong>
-            <button onclick="event.stopPropagation(); addToCart('breathe-classic')" class="product-btn">Add to Cart</button>
+            <div class="range-card-actions">
+              <button onclick="event.stopPropagation(); addToCart('breathe-classic')" class="product-btn">Add</button>
+            </div>
           </div>
         </div>
       </article>
@@ -160,10 +183,12 @@
           <span>Energy Blend</span>
           <h3>Breathe Energy</h3>
           <p>Moringa and almond for active everyday routines.</p>
-          <small>View full specification</small>
+          <small>Bright, energizing herbal formulation</small>
           <div class="range-card-footer">
             <strong>&#8377;349</strong>
-            <button onclick="event.stopPropagation(); addToCart('breathe-energy')" class="product-btn">Add to Cart</button>
+            <div class="range-card-actions">
+              <button onclick="event.stopPropagation(); addToCart('breathe-energy')" class="product-btn">Add</button>
+            </div>
           </div>
         </div>
       </article>
@@ -173,23 +198,28 @@
           <span>Immunity Blend</span>
           <h3>Breathe Immunity</h3>
           <p>Amla, cinnamon and mulethi in a smooth cacao base.</p>
-          <small>View full specification</small>
+          <small>Rich immunity support in premium cacao</small>
           <div class="range-card-footer">
             <strong>&#8377;349</strong>
-            <button onclick="event.stopPropagation(); addToCart('breathe-immunity')" class="product-btn">Add to Cart</button>
+            <div class="range-card-actions">
+              <button onclick="event.stopPropagation(); addToCart('breathe-immunity')" class="product-btn">Add</button>
+            </div>
           </div>
         </div>
       </article>
-      <article class="range-card reveal" role="button" tabindex="0" onclick="viewDetail('breathe-slim')" onkeydown="handleProductCardKey(event, 'breathe-slim')" aria-label="View Breathe Slim specifications">
+      <article class="range-card reveal range-card-cta-overlay" role="button" tabindex="0" onclick="viewDetail('breathe-slim')" onkeydown="handleProductCardKey(event, 'breathe-slim')" aria-label="View Breathe Slim specifications">
         <img src="assets/breathe-slim-ai.png" alt="Breathe Slim product packaging">
+        <button type="button" class="range-card-overlay-btn" onclick="event.stopPropagation(); goToPage('products')">See All</button>
         <div class="range-card-body">
           <span>Slim Blend</span>
           <h3>Breathe Slim</h3>
           <p>Ginger and black pepper for warm digestive balance.</p>
-          <small>View full specification</small>
+          <small>Metabolic support in a premium chocolate format</small>
           <div class="range-card-footer">
             <strong>&#8377;329</strong>
-            <button onclick="event.stopPropagation(); addToCart('breathe-slim')" class="product-btn">Add to Cart</button>
+            <div class="range-card-actions">
+              <button onclick="event.stopPropagation(); addToCart('breathe-slim')" class="product-btn">Add</button>
+            </div>
           </div>
         </div>
       </article>
@@ -687,23 +717,74 @@
   <section class="section account-page">
     <div class="account-shell">
       <div class="account-head">
-        <span class="section-label">My Account</span>
-        <h2 class="section-title">Orders & Profile</h2>
-        <button type="button" class="btn-outline" onclick="logout()">Logout</button>
+        <div>
+          <span class="section-label">My Account</span>
+          <h2 class="section-title">Welcome back, <span id="accountNameHeader">Member</span></h2>
+          <p class="account-subtitle">Manage your orders, support requests and profile details from one place.</p>
+        </div>
+        <button type="button" class="btn-outline" onclick="logout()">Sign Out</button>
       </div>
+
       <div class="account-grid">
-        <aside class="account-card">
-          <h3>Profile</h3>
-          <div id="accountProfile" class="profile-lines"></div>
+        <aside class="account-sidebar">
+          <div class="account-user-card">
+            <div class="account-avatar" id="accountAvatar">A</div>
+            <div>
+              <strong id="accountUserName">Account User</strong>
+              <p id="accountUserEmail">email@example.com</p>
+            </div>
+          </div>
+
+          <div class="account-action-list">
+            <button type="button" class="account-action-item" onclick="window.location.href='orders.html'">
+              <span class="account-action-icon">🛍️</span>
+              <div>
+                <strong>My Orders</strong>
+                <p>View order history and status</p>
+              </div>
+            </button>
+            <button type="button" class="account-action-item" onclick="goToPage('contact')">
+              <span class="account-action-icon">💬</span>
+              <div>
+                <strong>Help & Customer Support</strong>
+                <p>Get assistance with orders and products</p>
+              </div>
+            </button>
+            <button type="button" class="account-action-item" onclick="showToast('Address section is coming soon.')">
+              <span class="account-action-icon">📍</span>
+              <div>
+                <strong>My Address</strong>
+                <p>Update your delivery information</p>
+              </div>
+            </button>
+            <button type="button" class="account-action-item" onclick="downloadApp()">
+              <span class="account-action-icon">⬇️</span>
+              <div>
+                <strong>Download our App</strong>
+                <p>Get the Indo Heals app experience</p>
+              </div>
+            </button>
+          </div>
         </aside>
-        <div class="account-card order-history-card">
-          <div class="account-card-head">
-            <h3>Order History</h3>
-            <button type="button" class="back-btn" onclick="loadMyOrders()">Refresh</button>
-          </div>
-          <div id="myOrders" class="order-list">
-            <p class="form-message">Loading orders...</p>
-          </div>
+
+        <div>
+          <section class="account-card">
+            <div class="account-card-head">
+              <h3>Profile</h3>
+              <button type="button" class="back-btn" onclick="openAccount()">Refresh</button>
+            </div>
+            <div id="accountProfile" class="profile-lines"></div>
+          </section>
+
+          <section class="account-card order-history-card">
+            <div class="account-card-head">
+              <h3>Order History</h3>
+              <button type="button" class="back-btn" onclick="loadMyOrders()">Refresh</button>
+            </div>
+            <div id="myOrders" class="order-list">
+              <p class="form-message">Loading orders...</p>
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -715,7 +796,7 @@
     <div class="footer-brand">
       <img class="footer-logo" src="assets/indo-heals-logo.png" alt="Indo Heals logo">
       <div class="footer-brand-title">Indo Heals Private Limited</div>
-      <p>Unani, Ayurvedic & Herbal Wellness Manufacturing · Estd. 2026, New Delhi.</p>
+      <p>Crafting herbal wellness with Unani and Ayurvedic clarity. Trusted wellness experiences from New Delhi.</p>
     </div>
     <div class="footer-col">
       <div class="footer-col-title">Products</div>
@@ -730,7 +811,17 @@
       <div class="footer-col-title">Company</div>
       <ul>
         <li><a onclick="goToPage('about')">About Us</a></li>
-        <li><a onclick="goToPage('home')">Home</a></li>
+        <li><a onclick="goToPage('resources')">Order Tracking</a></li>
+        <li><a onclick="goToPage('resources')">Shipping & Return</a></li>
+        <li><a onclick="goToPage('resources')">FAQs</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Resources</div>
+      <ul>
+        <li><a onclick="goToPage('resources')">Blog</a></li>
+        <li><a onclick="goToPage('resources')">Bulk Buying</a></li>
+        <li><a onclick="goToPage('contact')">Contact</a></li>
         <li><a onclick="openAccount()">Account</a></li>
       </ul>
     </div>

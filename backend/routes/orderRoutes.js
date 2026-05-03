@@ -9,7 +9,12 @@ const requireAuth = require("../middleware/auth");
 const { requireAdmin } = require("../middleware/auth");
 const validate = require("../middleware/validate");
 const { createOpaqueToken } = require("../utils/auth");
-const { sendOrderConfirmationEmail } = require("../utils/email");
+const {
+  sendOrderConfirmationEmail,
+  sendOrderConfirmedEmail,
+  sendOrderShippedEmail,
+  sendOrderDeliveredEmail
+} = require("../utils/email");
 const { findFallbackProduct } = require("../utils/products");
 const {
   getRazorpay,
@@ -31,6 +36,7 @@ const orderValidators = [
   body("shippingAddress.state").trim().notEmpty().withMessage("State is required."),
   body("shippingAddress.postalCode").trim().notEmpty().withMessage("PIN code is required."),
   body("shippingAddress.country").optional().trim().notEmpty().withMessage("Country cannot be empty."),
+  body("paymentMethod").optional().trim().isIn(["UPI", "Card", "COD", "Razorpay", "Manual"]).withMessage("Invalid payment method."),
   body("notes").optional().trim(),
   validate
 ];
@@ -130,6 +136,7 @@ async function markOrderPaid(req, order, payment) {
   if (!order || order.status === "paid") return order;
 
   order.status = "paid";
+  order.paymentStatus = "Paid";
   order.paymentId = payment.paymentId || order.paymentId;
   order.paymentSignature = payment.signature || order.paymentSignature;
   order.paidAt = new Date();
@@ -151,6 +158,8 @@ router.post("/", requireAuth, orderValidators, async (req, res, next) => {
     const total = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const shippingAddress = normalizeShippingAddress(req);
     const customerPhone = shippingAddress.phone;
+    const paymentMethod = String(req.body.paymentMethod || "Card").trim();
+    const paymentStatus = paymentMethod === "COD" ? "COD" : "Pending";
 
     if (!req.app.locals.dbReady) {
       const order = {
@@ -162,7 +171,10 @@ router.post("/", requireAuth, orderValidators, async (req, res, next) => {
         shippingAddress,
         items: orderItems,
         total,
-        status: "pending",
+        status: paymentMethod === "COD" ? "paid" : "pending",
+        paymentStatus,
+        paymentMethod,
+        orderStatus: "Pending",
         fulfillmentStatus: "new",
         paymentOrderId: `dev-pay-order-${Date.now()}`,
         notes: String(req.body.notes || "").trim(),
@@ -201,8 +213,11 @@ router.post("/", requireAuth, orderValidators, async (req, res, next) => {
       shippingAddress,
       items: orderItems,
       total,
-      status: "pending",
-      paymentProvider: "razorpay",
+      status: paymentMethod === "COD" ? "paid" : "pending",
+      paymentStatus,
+      paymentMethod,
+      orderStatus: "Pending",
+      paymentProvider: razorpayConfigured() ? "razorpay" : "manual",
       paymentOrderId,
       notes: String(req.body.notes || "").trim()
     });
@@ -235,6 +250,7 @@ router.post("/:id/confirm-payment", requireAuth, async (req, res, next) => {
         signature: razorpay_signature
       })) {
         order.status = "failed";
+        order.paymentStatus = "Failed";
         return res.status(400).json({ message: "Payment verification failed." });
       }
       await markOrderPaid(req, order, {
@@ -256,6 +272,7 @@ router.post("/:id/confirm-payment", requireAuth, async (req, res, next) => {
 
     if (!verified || (razorpay_order_id && razorpay_order_id !== order.paymentOrderId)) {
       order.status = "failed";
+      order.paymentStatus = "Failed";
       order.failureReason = "Payment signature verification failed.";
       await order.save();
       return res.status(400).json({ message: "Payment verification failed." });
@@ -313,7 +330,9 @@ router.post("/webhook/razorpay", async (req, res, next) => {
 router.get("/my", requireAuth, async (req, res, next) => {
   try {
     if (!req.app.locals.dbReady) {
-      const orders = memoryOrders.filter(order => order.user === getUserId(req));
+      const orders = memoryOrders
+        .filter(order => order.user === getUserId(req))
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       return res.json(orders);
     }
 
@@ -323,6 +342,124 @@ router.get("/my", requireAuth, async (req, res, next) => {
     return next(error);
   }
 });
+
+router.get("/:id", requireAuth, async (req, res, next) => {
+  try {
+    if (!req.app.locals.dbReady) {
+      const order = memoryOrders.find(entry => entry._id === req.params.id);
+      if (!order) return res.status(404).json({ message: "Order not found." });
+      if (req.user.role !== "admin" && order.user !== getUserId(req)) {
+        return res.status(403).json({ message: "Access denied." });
+      }
+      return res.json(order);
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found." });
+    if (req.user.role !== "admin" && String(order.user) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Access denied." });
+    }
+    return res.json(order);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.put(
+  "/:id/status",
+  requireAuth,
+  requireAdmin,
+  [
+    body("orderStatus")
+      .trim()
+      .isIn(["Pending", "Confirmed", "Shipped", "Out for Delivery", "Delivered", "Cancelled"])
+      .withMessage("Enter a valid order status.")
+  ],
+  validate,
+  async (req, res, next) => {
+    try {
+      const order = await Order.findById(req.params.id);
+      if (!order) return res.status(404).json({ message: "Order not found." });
+
+      order.orderStatus = req.body.orderStatus;
+      await order.save();
+
+      if (order.orderStatus === "Confirmed") {
+        await sendOrderConfirmedEmail(order).catch(error => {
+          console.warn("Order confirmed email failed:", error.message);
+        });
+      }
+      if (order.orderStatus === "Delivered") {
+        await sendOrderDeliveredEmail(order).catch(error => {
+          console.warn("Order delivered email failed:", error.message);
+        });
+      }
+
+      return res.json(order);
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+router.post(
+  "/:id/track",
+  requireAuth,
+  requireAdmin,
+  [body("trackingNumber").trim().notEmpty().withMessage("Tracking number is required.")],
+  validate,
+  async (req, res, next) => {
+    try {
+      const order = await Order.findById(req.params.id);
+      if (!order) return res.status(404).json({ message: "Order not found." });
+
+      order.trackingNumber = String(req.body.trackingNumber).trim();
+      order.trackingLink = String(req.body.trackingLink || "").trim();
+      order.orderStatus = "Shipped";
+      await order.save();
+
+      await sendOrderShippedEmail(order).catch(error => {
+        console.warn("Order shipped email failed:", error.message);
+      });
+
+      return res.json(order);
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+router.post(
+  "/:id/support",
+  requireAuth,
+  [body("message").trim().notEmpty().withMessage("Support message is required.")],
+  validate,
+  async (req, res, next) => {
+    try {
+      if (!req.app.locals.dbReady) {
+        const order = memoryOrders.find(entry => entry._id === req.params.id && entry.user === getUserId(req));
+        if (!order) return res.status(404).json({ message: "Order not found." });
+        order.supportRequests = order.supportRequests || [];
+        order.supportRequests.push({ message: String(req.body.message).trim() });
+        return res.json({ message: "Support request created.", order });
+      }
+
+      const order = await Order.findById(req.params.id);
+      if (!order) return res.status(404).json({ message: "Order not found." });
+      if (req.user.role !== "admin" && String(order.user) !== String(req.user._id)) {
+        return res.status(403).json({ message: "Access denied." });
+      }
+
+      order.supportRequests = order.supportRequests || [];
+      order.supportRequests.push({ message: String(req.body.message).trim() });
+      await order.save();
+
+      return res.json({ message: "Support request created.", order });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
 
 router.get("/", requireAuth, requireAdmin, async (req, res, next) => {
   try {

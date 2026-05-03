@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Orders | Indo Heals</title>
+  <link rel="icon" type="image/png" href="assets/indo-heals-logo.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="orders.css">
+</head>
+<body class="orders-page">
+  <header class="orders-header">
+    <a class="orders-logo" href="index.html">
+      <img src="assets/indo-heals-logo.png" alt="Indo Heals logo" />
+      <span>Indo Heals</span>
+    </a>
+    <nav class="orders-header-nav">
+      <a href="index.html" class="btn-outline">Back to shop</a>
+    </nav>
+  </header>
+
+  <main class="orders-shell">
+    <section class="orders-hero">
+      <div>
+        <p class="section-label">My Orders</p>
+        <h1>Track your purchases with confidence</h1>
+        <p>Browse recent orders, review delivery details, and raise support issues directly from a modern dashboard.</p>
+      </div>
+    </section>
+
+    <div id="orders-root"></div>
+  </main>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <script type="text/babel" src="orders.jsx"></script>
+</body>
+</html>

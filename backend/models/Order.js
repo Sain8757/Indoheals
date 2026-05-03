@@ -50,6 +50,23 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "paid", "failed"],
       default: "pending"
     },
+    paymentStatus: {
+      type: String,
+      enum: ["Pending", "Paid", "COD", "Failed"],
+      default: "Pending"
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["UPI", "Card", "COD", "Razorpay", "Manual"],
+      default: "Card"
+    },
+    trackingNumber: String,
+    trackingLink: String,
+    orderStatus: {
+      type: String,
+      enum: ["Pending", "Confirmed", "Shipped", "Out for Delivery", "Delivered", "Cancelled"],
+      default: "Pending"
+    },
     paymentProvider: {
       type: String,
       enum: ["razorpay", "stripe", "manual"],
@@ -65,6 +82,20 @@ const orderSchema = new mongoose.Schema(
       default: "new"
     },
     notes: String,
+    supportRequests: [
+      {
+        message: String,
+        status: {
+          type: String,
+          enum: ["Open", "Resolved", "Closed"],
+          default: "Open"
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
     paidAt: Date
   },
   { timestamps: true }

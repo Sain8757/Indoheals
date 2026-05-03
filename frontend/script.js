@@ -1118,16 +1118,36 @@ function logout() {
   goToPage("home");
 }
 
+function focusSearch() {
+  goToPage("products");
+  setTimeout(() => {
+    const searchBox = document.getElementById("searchBox");
+    if (searchBox) searchBox.focus();
+  }, 200);
+}
+
+function scrollToOrders() {
+  goToPage("account");
+  const orders = document.getElementById("myOrders");
+  if (orders) {
+    orders.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function downloadApp() {
+  showToast("Download the app soon. Coming shortly.");
+}
+
 function updateAuthUI() {
   const accountLink = document.getElementById("accountLink");
-  const navUser = document.getElementById("navUser");
+  const navUserName = document.getElementById("navUserName");
 
   if (accountLink) {
-    accountLink.textContent = auth?.token ? "Account" : "Login";
+    accountLink.classList.toggle("logged-in", Boolean(auth?.token));
   }
 
-  if (navUser) {
-    navUser.textContent = auth?.user?.name ? auth.user.name.split(" ")[0] : "";
+  if (navUserName) {
+    navUserName.textContent = auth?.user?.name ? auth.user.name.split(" ")[0] : "";
   }
 
   updateCartBadge();
@@ -1140,6 +1160,27 @@ function renderAccount() {
   }
 
   const profile = document.getElementById("accountProfile");
+  const avatar = document.getElementById("accountAvatar");
+  const accountUserName = document.getElementById("accountUserName");
+  const accountUserEmail = document.getElementById("accountUserEmail");
+  const accountNameHeader = document.getElementById("accountNameHeader");
+
+  if (avatar) {
+    avatar.textContent = auth.user?.name ? auth.user.name.trim().charAt(0).toUpperCase() : "A";
+  }
+
+  if (accountUserName) {
+    accountUserName.textContent = auth.user?.name || "Member";
+  }
+
+  if (accountUserEmail) {
+    accountUserEmail.textContent = auth.user?.email || "";
+  }
+
+  if (accountNameHeader) {
+    accountNameHeader.textContent = auth.user?.name ? auth.user.name.split(" ")[0] : "Member";
+  }
+
   if (!profile) return;
 
   profile.innerHTML = `

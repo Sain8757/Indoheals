@@ -108,18 +108,83 @@ async function sendOrderConfirmationEmail(order, downloadLinks = []) {
 
   return sendMail({
     to: order.customerEmail,
-    subject: "Your Indo Heals order is confirmed",
-    text: `Thank you for your order ${order._id}.\n\nPayment status: ${order.status}\nTotal: ${formatRupee(
+    subject: "Your Indo Heals order payment is received",
+    text: `Thank you for your order ${order._id}.\n\nPayment status: ${order.paymentStatus}\nTotal: ${formatRupee(
       order.total
     )}\n\nItems:\n${itemLines}\n\nShipping:\n${addressText}${linksText}`,
     html: `<p>Thank you for your order <strong>${escapeHtml(order._id)}</strong>.</p><p>Payment status: ${escapeHtml(
-      order.status
+      order.paymentStatus
     )}</p><p>Total: <strong>${escapeHtml(
       formatRupee(order.total)
     )}</strong></p><ul>${itemHtml}</ul><p><strong>Shipping</strong><br>${escapeHtml(addressText).replaceAll(
       "\n",
       "<br>"
     )}</p>${linksHtml}`
+  });
+}
+
+async function sendOrderConfirmedEmail(order) {
+  const itemHtml = (order.items || [])
+    .map(
+      item =>
+        `<li>${escapeHtml(item.name)} x ${Number(item.quantity || 1)} - ${escapeHtml(
+          formatRupee(item.price * item.quantity)
+        )}</li>`
+    )
+    .join("");
+  const address = order.shippingAddress || {};
+  const addressHtml = [
+    address.fullName,
+    address.addressLine1,
+    address.addressLine2,
+    [address.city, address.state, address.postalCode].filter(Boolean).join(", "),
+    address.country,
+    address.phone ? `Phone: ${address.phone}` : ""
+  ]
+    .filter(Boolean)
+    .join("<br>");
+
+  return sendMail({
+    to: order.customerEmail,
+    subject: "Your order has been confirmed",
+    text: `Your order ${order._id} has been confirmed.\n\nTotal: ${formatRupee(order.total)}\n\nShipping address:\n${address.fullName}\n${address.addressLine1}\n${address.addressLine2}\n${address.city}, ${address.state} ${address.postalCode}\n${address.country}`,
+    html: `<p>Your order <strong>${escapeHtml(order._id)}</strong> has been confirmed.</p><p>Total: <strong>${escapeHtml(
+      formatRupee(order.total)
+    )}</strong></p><p><strong>Shipping address</strong><br>${escapeHtml(addressHtml)}</p><ul>${itemHtml}</ul>`
+  });
+}
+
+async function sendOrderShippedEmail(order) {
+  const itemHtml = (order.items || [])
+    .map(
+      item =>
+        `<li>${escapeHtml(item.name)} x ${Number(item.quantity || 1)} - ${escapeHtml(
+          formatRupee(item.price * item.quantity)
+        )}</li>`
+    )
+    .join("");
+
+  const trackingInfo = order.trackingNumber
+    ? `<p>Tracking number: <strong>${escapeHtml(order.trackingNumber)}</strong></p>`
+    : "";
+  const trackingLink = order.trackingLink
+    ? `<p><a href="${escapeHtml(order.trackingLink)}" target="_blank" rel="noreferrer">Track your shipment</a></p>`
+    : "";
+
+  return sendMail({
+    to: order.customerEmail,
+    subject: "Your order has shipped",
+    text: `Your order ${order._id} is on the way.${order.trackingNumber ? `\nTracking number: ${order.trackingNumber}` : ""}`,
+    html: `<p>Your order <strong>${escapeHtml(order._id)}</strong> is on the way.</p>${trackingInfo}${trackingLink}<ul>${itemHtml}</ul>`
+  });
+}
+
+async function sendOrderDeliveredEmail(order) {
+  return sendMail({
+    to: order.customerEmail,
+    subject: "Your order has been delivered",
+    text: `Good news! Your order ${order._id} has been delivered. Thank you for shopping with Indo Heals.`,
+    html: `<p>Good news! Your order <strong>${escapeHtml(order._id)}</strong> has been delivered.</p><p>Thank you for shopping with Indo Heals.</p>`
   });
 }
 
@@ -188,6 +253,9 @@ module.exports = {
   sendBusinessLeadNotification,
   sendNewsletterConfirmation,
   sendOrderConfirmationEmail,
+  sendOrderConfirmedEmail,
+  sendOrderShippedEmail,
+  sendOrderDeliveredEmail,
   sendPasswordResetEmail,
   sendSignupOtpEmail,
   sendWelcomeEmail
