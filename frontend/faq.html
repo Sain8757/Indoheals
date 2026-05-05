@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAQs & Policies | Indo Heals</title>
+<link rel="icon" type="image/png" href="assets/indo-heals-logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav-main">
+  <div class="nav-container">
+    <ul class="nav-links nav-left">
+      <li><a class="has-chevron" onclick="window.location.href='index.html#products'">Brands</a></li>
+      <li><a class="has-chevron" onclick="window.location.href='index.html#about'">Businesses</a></li>
+      <li><a class="has-chevron" onclick="window.location.href='index.html#about'">Impact</a></li>
+      <li><a href="orders.html">My Orders</a></li>
+    </ul>
+
+    <a href="index.html" class="nav-logo" aria-label="Indo Heals home">
+      <span class="logo-badge">
+        <img src="assets/indo-heals-logo.png" alt="">
+      </span>
+      <span class="nav-logo-text">Indo Heals</span>
+    </a>
+
+    <ul class="nav-links nav-right">
+      <li>
+        <button class="nav-icon-button" type="button" aria-label="Search site">
+          <span aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M21.7 20.3 16.9 15.5A8.5 8.5 0 1 0 15.5 16.9l4.8 4.8a1 1 0 0 0 1.4-1.4ZM4 10.5A6.5 6.5 0 1 1 10.5 17 6.5 6.5 0 0 1 4 10.5Z"></path></svg>
+          </span>
+        </button>
+      </li>
+      <li class="nav-account-wrapper" id="navAccountWrapper">
+        <button id="accountLink" class="nav-icon-button nav-account-button" type="button" onclick="openAccount(event)" aria-label="Open account">
+          <span class="nav-account-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"></path></svg>
+          </span>
+          <span id="navUserName" class="nav-account-name"></span>
+        </button>
+        <!-- Myntra-style account dropdown -->
+        <div id="accountDropdown" class="account-dropdown" role="menu" aria-label="Account menu">
+          <div class="acc-drop-user" id="accDropUser" style="display:none; cursor:pointer;" onclick="window.location.href='orders.html'; closeAccountDropdown();">
+            <div class="acc-drop-hello">Hello <span id="accDropName">User</span></div>
+            <div class="acc-drop-phone" id="accDropPhone"></div>
+          </div>
+          <div class="acc-drop-login-row" id="accDropLogin">
+            <button class="acc-drop-login-btn" onclick="window.location.href='index.html#login'; closeAccountDropdown();">Login / Sign Up</button>
+          </div>
+          <hr class="acc-drop-divider">
+          <div class="acc-drop-section">
+            <a class="acc-drop-item" onclick="window.location.href='orders.html'; closeAccountDropdown();">
+              <svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
+              Orders
+            </a>
+            <a class="acc-drop-item" onclick="window.location.href='index.html#contact'; closeAccountDropdown();">
+              <svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+              Contact Us
+            </a>
+            <a class="acc-drop-item" onclick="window.location.href='index.html#account'; closeAccountDropdown();">
+              <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              Saved Addresses
+            </a>
+          </div>
+          <hr class="acc-drop-divider" id="accDropAuthDivider" style="display:none;">
+          <div class="acc-drop-section" id="accDropAuthSection" style="display:none;">
+            <a class="acc-drop-item" onclick="window.location.href='index.html#account'; closeAccountDropdown();">
+              <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+              Edit Profile
+            </a>
+            <a class="acc-drop-item acc-drop-logout" onclick="logout(); closeAccountDropdown();">
+              <svg viewBox="0 0 24 24"><path d="M17 7l-1.4 1.4L18.2 11H9v2h9.2l-2.6 2.6L17 17l5-5-5-5zM5 5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7v-2H5V5z"/></svg>
+              Logout
+            </a>
+          </div>
+        </div>
+      </li>
+      <li>
+        <button id="cartLink" class="nav-icon-button" type="button" onclick="window.location.href='index.html#cart'" aria-label="View cart">
+          <span aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9H8.5L6 6Zm0-2a1 1 0 0 0-1 1v1H2v2h2l3.6 7.6a1 1 0 0 0 .9.6h8a1 1 0 0 0 .9-.6L22 8H8V6h-2V5a1 1 0 0 0-1-1Z"></path></svg>
+          </span>
+        </button>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<div class="faq-page-wrapper">
+  <!-- Sidebar -->
+  <aside class="faq-sidebar">
+    <div class="faq-sidebar-title">Help Center</div>
+    <ul class="faq-sidebar-menu">
+      <li><a class="faq-sidebar-link active" data-target="faq-general">General FAQs</a></li>
+      <li><a class="faq-sidebar-link" data-target="faq-shipping">Shipping & Delivery</a></li>
+      <li><a class="faq-sidebar-link" data-target="faq-returns">Returns & Exchanges</a></li>
+      <li><a class="faq-sidebar-link" data-target="faq-terms">Terms & Conditions</a></li>
+      <li><a class="faq-sidebar-link" data-target="faq-privacy">Privacy Policy</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="faq-content-area">
+    
+    <!-- General FAQs -->
+    <section id="faq-general" class="faq-section active">
+      <h1 class="faq-section-title">General FAQs</h1>
+      <div class="faq-item">
+        <button class="faq-accordion">What is Indo Heals?</button>
+        <div class="faq-panel">
+          <p>Indo Heals brings traditional Unani and Ayurvedic thinking into refined, modern wellness formats. We offer premium herbal care products crafted for contemporary lifestyles.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-accordion">Are your products certified?</button>
+        <div class="faq-panel">
+          <p>Yes, all our product descriptions use FSSAI-permitted traditional-use statements. Our products are formulated with high-quality, authentic ingredients.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-accordion">How can I book an appointment with a Unani doctor?</button>
+        <div class="faq-panel">
+          <p>You can easily book a video consultation by clicking the "Book an Appointment" button in the navigation bar. You will be asked to fill out a brief form detailing your health concerns.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Shipping & Delivery -->
+    <section id="faq-shipping" class="faq-section">
+      <h1 class="faq-section-title">Shipping & Delivery</h1>
+      <div class="faq-item">
+        <button class="faq-accordion">How long does delivery take?</button>
+        <div class="faq-panel">
+          <p>Orders are typically processed within 24 hours. Delivery takes 3-5 business days for metro cities and 5-7 business days for other locations across India.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-accordion">Do you offer free shipping?</button>
+        <div class="faq-panel">
+          <p>We offer free standard shipping on all orders above ₹999. For orders below this amount, a nominal shipping fee of ₹50 is applied.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-accordion">How can I track my order?</button>
+        <div class="faq-panel">
+          <p>Once your order is shipped, you will receive a tracking link via email and SMS. You can also track your order directly from the "My Orders" section in your account.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Returns & Exchanges -->
+    <section id="faq-returns" class="faq-section">
+      <h1 class="faq-section-title">Returns & Exchanges</h1>
+      <div class="faq-item">
+        <button class="faq-accordion">What is your return policy?</button>
+        <div class="faq-panel">
+          <p>We accept returns within 7 days of delivery, provided the products are unopened, unused, and in their original packaging. For hygiene reasons, opened health supplements cannot be returned.</p>
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-accordion">How do I initiate a return?</button>
+        <div class="faq-panel">
+          <p>To initiate a return, go to "My Orders", select the item you wish to return, and click on "Request Return". Our delivery partner will pick up the item within 2-3 business days.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Terms & Conditions -->
+    <section id="faq-terms" class="faq-section">
+      <h1 class="faq-section-title">Terms & Conditions</h1>
+      <div class="legal-text">
+        <p><strong>Last Updated: May 2026</strong></p>
+        <p>Welcome to Indo Heals. These Terms and Conditions govern your use of our website and services. By accessing or using our platform, you agree to comply with these terms.</p>
+        
+        <h3>1. Use of Website</h3>
+        <p>You may use our website only for lawful purposes. You agree not to use the website in any way that violates any applicable local, national, or international law or regulation.</p>
+        
+        <h3>2. Product Information</h3>
+        <p>All product descriptions are for informational purposes and use FSSAI-permitted traditional-use statements. They are not intended to diagnose, treat, cure, or prevent any disease. Always consult with a healthcare professional before starting any supplement regimen.</p>
+        
+        <h3>3. Pricing & Payments</h3>
+        <p>All prices are listed in Indian Rupees (INR) and are inclusive of relevant taxes. We reserve the right to modify prices without prior notice. Secure payments are processed via our payment gateway partners.</p>
+        
+        <h3>4. Intellectual Property</h3>
+        <p>All content, trademarks, logos, and materials on this website are the property of Indo Heals Private Limited and are protected by applicable intellectual property laws.</p>
+        
+        <h3>5. Limitation of Liability</h3>
+        <p>Indo Heals shall not be liable for any indirect, incidental, or consequential damages arising from the use of our products or website.</p>
+      </div>
+    </section>
+
+    <!-- Privacy Policy -->
+    <section id="faq-privacy" class="faq-section">
+      <h1 class="faq-section-title">Privacy Policy</h1>
+      <div class="legal-text">
+        <p>Your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your personal information.</p>
+        
+        <h3>1. Information We Collect</h3>
+        <p>We collect information you provide directly to us when you create an account, place an order, or communicate with us. This includes your name, email address, phone number, and shipping address.</p>
+        
+        <h3>2. How We Use Your Information</h3>
+        <p>We use your information to process orders, communicate with you about your account, and improve our services. We may also use your email to send promotional offers, which you can opt out of at any time.</p>
+        
+        <h3>3. Data Security</h3>
+        <p>We implement appropriate technical and organizational measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <img class="footer-logo" src="assets/indo-heals-logo.png" alt="Indo Heals logo">
+      <div class="footer-brand-title">Indo Heals Private Limited</div>
+      <p>Crafting herbal wellness with Unani and Ayurvedic clarity. Trusted wellness experiences from New Delhi.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Products</div>
+      <ul>
+        <li><a href="index.html#products">Breathe Classic</a></li>
+        <li><a href="index.html#products">Breathe Energy</a></li>
+        <li><a href="index.html#products">Breathe Immunity</a></li>
+        <li><a href="index.html#products">Breathe Slim</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Company</div>
+      <ul>
+        <li><a href="index.html#about">About Us</a></li>
+        <li><a href="orders.html">Order Tracking</a></li>
+        <li><a href="faq.html">Shipping & Return</a></li>
+        <li><a href="faq.html">FAQs</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Resources</div>
+      <ul>
+        <li><a href="index.html#resources">Blog</a></li>
+        <li><a href="index.html#contact">Bulk Buying</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+        <li><a href="index.html#account">Account</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Connect</div>
+      <div class="footer-contact">
+        <a href="mailto:Contact@indoheals.com">Contact@indoheals.com</a>
+        <a href="tel:+919955289295">+91 9955289295</a>
+        <p>3rd Floor, Plot No. 139 (Old No. 188), Opp. Okhla Jama Masjid, Main Market, Okhla Village, Jamia Nagar, New Delhi - 110025</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-bottom-links" style="margin-bottom: 12px;">
+      <a href="faq.html" style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 13px; margin-right: 16px;">Terms & Conditions</a>
+      <a href="faq.html" style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 13px;">Privacy Policy</a>
+    </div>
+    <p>© 2026 <span>Indo Heals Private Limited</span>. All rights reserved.</p>
+    <p class="compliance-footer">All product descriptions use FSSAI-permitted traditional-use statements only. No medical claims made.</p>
+  </div>
+</footer>
+
+<script>
+  // Simple auth check for account dropdown display
+  let auth = JSON.parse(localStorage.getItem("auth")) || null;
+  function updateDropdownContent() {
+    const userBlock = document.getElementById("accDropUser");
+    const loginRow = document.getElementById("accDropLogin");
+    const authDiv = document.getElementById("accDropAuthDivider");
+    const authSection = document.getElementById("accDropAuthSection");
+    const nameEl = document.getElementById("accDropName");
+    const phoneEl = document.getElementById("accDropPhone");
+
+    if (!userBlock) return;
+    if (auth?.token) {
+      userBlock.style.display = "block";
+      loginRow.style.display = "none";
+      if (authDiv) authDiv.style.display = "";
+      if (authSection) authSection.style.display = "";
+      if (nameEl) nameEl.textContent = auth.user?.name || "User";
+      if (phoneEl) phoneEl.textContent = auth.user?.phone || "";
+    } else {
+      userBlock.style.display = "none";
+      loginRow.style.display = "";
+      if (authDiv) authDiv.style.display = "none";
+      if (authSection) authSection.style.display = "none";
+    }
+  }
+
+  let dropdownOpen = false;
+  function toggleAccountDropdown(e) {
+    e && e.stopPropagation();
+    const dd = document.getElementById("accountDropdown");
+    if (!dd) return;
+    dropdownOpen = !dropdownOpen;
+    dd.classList.toggle("open", dropdownOpen);
+    updateDropdownContent();
+  }
+
+  function closeAccountDropdown() {
+    const dd = document.getElementById("accountDropdown");
+    if (dd) dd.classList.remove("open");
+    dropdownOpen = false;
+  }
+
+  function logout() {
+    localStorage.removeItem("auth");
+    auth = null;
+    window.location.href = "index.html";
+  }
+
+  document.addEventListener("click", (e) => {
+    if (!dropdownOpen) return;
+    const wrapper = document.getElementById("navAccountWrapper");
+    if (wrapper && !wrapper.contains(e.target)) closeAccountDropdown();
+  });
+
+  // FAQ Sidebar & Accordion Logic
+  document.addEventListener('DOMContentLoaded', () => {
+    const links = document.querySelectorAll('.faq-sidebar-link');
+    const sections = document.querySelectorAll('.faq-section');
+    
+    links.forEach(link => {
+      link.addEventListener('click', () => {
+        // Remove active class from all
+        links.forEach(l => l.classList.remove('active'));
+        sections.forEach(s => s.classList.remove('active'));
+        
+        // Add active class to clicked
+        link.classList.add('active');
+        const targetId = link.getAttribute('data-target');
+        document.getElementById(targetId).classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+
+    const accordions = document.querySelectorAll('.faq-accordion');
+    accordions.forEach(acc => {
+      acc.addEventListener('click', function() {
+        this.classList.toggle('active');
+        const panel = this.nextElementSibling;
+        if (panel.style.maxHeight) {
+          panel.style.maxHeight = null;
+          panel.style.paddingTop = "0";
+          panel.style.paddingBottom = "0";
+        } else {
+          panel.style.maxHeight = panel.scrollHeight + 40 + "px";
+          panel.style.paddingTop = "16px";
+          panel.style.paddingBottom = "16px";
+        }
+      });
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,102 +1,2246 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Indo Heals Store Manager</title>
-<link rel="icon" type="image/png" href="assets/indo-heals-logo.png">
-<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Indo Heals — Admin Panel</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    :root {
+      --bg: #0d0f0e;
+      --bg2: #131614;
+      --bg3: #1a1d1b;
+      --bg4: #212521;
+      --border: rgba(255, 255, 255, 0.07);
+      --border2: rgba(255, 255, 255, 0.12);
+      --text: #e8ede9;
+      --text2: #8a9489;
+      --text3: #5a6359;
+      --green: #1D9E75;
+      --green-light: #5DCAA5;
+      --green-dim: rgba(29, 158, 117, 0.15);
+      --green-dimmer: rgba(29, 158, 117, 0.08);
+      --amber: #EF9F27;
+      --amber-dim: rgba(239, 159, 39, 0.15);
+      --red: #E24B4A;
+      --red-dim: rgba(226, 75, 74, 0.15);
+      --blue: #378ADD;
+      --blue-dim: rgba(55, 138, 221, 0.15);
+      --pink: #D4537E;
+      --radius: 10px;
+      --radius-lg: 14px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 4px;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sb-logo {
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sb-logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .sb-logo-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .sb-logo-sub {
+      font-size: 10px;
+      color: var(--text3);
+    }
+
+    .sb-nav {
+      flex: 1;
+      padding: 12px 10px;
+    }
+
+    .nav-section {
+      margin-bottom: 18px;
+    }
+
+    .nav-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--text3);
+      text-transform: uppercase;
+      padding: 0 8px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12.5px;
+      color: var(--text2);
+      margin-bottom: 1px;
+      transition: all 0.15s;
+      position: relative;
+    }
+
+    .nav-item:hover {
+      background: var(--bg3);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: var(--green-dim);
+      color: var(--green-light);
+      font-weight: 500;
+    }
+
+    .nav-icon {
+      font-size: 14px;
+      width: 17px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .nav-badge {
+      margin-left: auto;
+      background: var(--red);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 20px;
+    }
+
+    .nav-badge-warn {
+      margin-left: auto;
+      background: var(--amber-dim);
+      color: var(--amber);
+      font-size: 9px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 20px;
+      border: 1px solid rgba(239, 159, 39, 0.3);
+    }
+
+    .sb-user {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sb-user-av {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .sb-user-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .sb-user-role {
+      font-size: 10px;
+      color: var(--text3);
+    }
+
+    .sb-online {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-left: auto;
+      box-shadow: 0 0 0 2px var(--green-dimmer);
+    }
+
+    /* ── MAIN ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .topbar-left {}
+
+    .topbar-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .topbar-sub {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 1px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .live-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--green-dim);
+      border: 1px solid rgba(29, 158, 117, 0.3);
+      padding: 5px 12px;
+      border-radxius: 20px;
+      font-size: 11px;
+      color: var(--green-light);
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.4;
+      }
+    }
+
+    .btn {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      border: 1px solid var(--border2);
+      background: var(--bg3);
+      color: var(--text);
+      transition: all 0.15s;
+      font-weight: 500;
+    }
+
+    .btn:hover {
+      background: var(--bg4);
+    }
+
+    .btn-primary {
+      background: var(--green);
+      color: #fff;
+      border-color: var(--green);
+    }
+
+    .btn-primary:hover {
+      background: #189060;
+    }
+
+    /* ── CONTENT ── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ── ALERT BAR ── */
+    .alert-bar {
+      background: var(--amber-dim);
+      border: 1px solid rgba(239, 159, 39, 0.25);
+      border-radius: var(--radius);
+      padding: 11px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .alert-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--amber);
+      flex-shrink: 0;
+      animation: pulse 1.5s infinite;
+    }
+
+    .alert-text {
+      font-size: 12.5px;
+      color: #d4900a;
+      flex: 1;
+    }
+
+    .alert-count {
+      font-weight: 600;
+    }
+
+    .alert-action {
+      background: var(--amber);
+      color: #1a0e00;
+      border: none;
+      padding: 5px 14px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+
+    .alert-action:hover {
+      background: #d48f1e;
+    }
+
+    /* ── METRICS ── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .metric-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .metric-card:hover {
+      border-color: var(--border2);
+    }
+
+    .metric-label {
+      font-size: 10.5px;
+      color: var(--text3);
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+
+    .metric-change {
+      font-size: 10.5px;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .change-up {
+      color: var(--green-light);
+    }
+
+    .change-dn {
+      color: var(--red);
+    }
+
+    .change-neu {
+      color: var(--text3);
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 13px;
+    }
+
+    .card-title {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-action {
+      font-size: 11px;
+      color: var(--green-light);
+      cursor: pointer;
+    }
+
+    .card-action:hover {
+      text-decoration: underline;
+    }
+
+    /* ── 2-COL GRID ── */
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* ── SALES CHART ── */
+    .range-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .range-tab {
+      font-size: 10.5px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.15s;
+    }
+
+    .range-tab:hover {
+      background: var(--bg3);
+    }
+
+    .range-tab.active {
+      background: var(--green);
+      color: #fff;
+      border-color: var(--green);
+    }
+
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 170px;
+    }
+
+    /* ── ABANDONED CART LIST ── */
+    .cart-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cart-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .cart-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--green-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--green-light);
+      flex-shrink: 0;
+      border: 1px solid rgba(29, 158, 117, 0.2);
+    }
+
+    .cart-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .cart-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .cart-detail {
+      font-size: 10.5px;
+      color: var(--text3);
+      margin-top: 1px;
+    }
+
+    .cart-time {
+      font-size: 10px;
+      color: var(--text3);
+      text-align: right;
+      margin-bottom: 3px;
+    }
+
+    .call-btn {
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 4px 11px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .call-btn:hover {
+      background: #189060;
+      transform: scale(0.97);
+    }
+
+    /* ── ORDERS TABLE ── */
+    .orders-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .orders-table th {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0 8px 8px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .orders-table td {
+      padding: 9px 8px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    .orders-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .orders-table tr:hover td {
+      background: var(--bg3);
+    }
+
+    .order-id {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text3);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .badge-delivered {
+      background: var(--green-dim);
+      color: var(--green-light);
+      border: 1px solid rgba(29, 158, 117, 0.2);
+    }
+
+    .badge-pending {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(239, 159, 39, 0.2);
+    }
+
+    .badge-processing {
+      background: var(--blue-dim);
+      color: var(--blue);
+      border: 1px solid rgba(55, 138, 221, 0.2);
+    }
+
+    .badge-cancelled {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(226, 75, 74, 0.2);
+    }
+
+    .badge-shipped {
+      background: rgba(212, 83, 126, 0.15);
+      color: var(--pink);
+      border: 1px solid rgba(212, 83, 126, 0.2);
+    }
+
+    .action-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.15s;
+    }
+
+    .action-btn:hover {
+      background: var(--bg3);
+      color: var(--text);
+    }
+
+    .confirm-btn {
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.15s;
+    }
+
+    .confirm-btn:hover {
+      background: #189060;
+    }
+
+    /* ── MONTH SUMMARY ── */
+    .month-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 13px;
+    }
+
+    .month-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    .month-card.best {
+      border-color: rgba(29, 158, 117, 0.4);
+      background: var(--green-dimmer);
+    }
+
+    .month-name {
+      font-size: 10.5px;
+      color: var(--text3);
+      margin-bottom: 4px;
+    }
+
+    .month-name.best-label {
+      color: var(--green-light);
+      font-weight: 600;
+    }
+
+    .month-sales {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .month-sales.best-val {
+      color: var(--green-light);
+    }
+
+    .month-stats {
+      display: flex;
+      gap: 8px;
+      margin-top: 5px;
+      flex-wrap: wrap;
+    }
+
+    .month-stat {
+      font-size: 10px;
+      color: var(--text3);
+    }
+
+    .month-stat span {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ── TRAFFIC SOURCES ── */
+    .traffic-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 11.5px;
+    }
+
+    .traffic-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .traffic-source {
+      width: 72px;
+      color: var(--text2);
+      flex-shrink: 0;
+    }
+
+    .traffic-bar-wrap {
+      flex: 1;
+      height: 7px;
+      background: var(--bg3);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .traffic-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.8s ease;
+    }
+
+    .traffic-val {
+      width: 36px;
+      text-align: right;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ── BULK EMAIL MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      width: 480px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .modal-sub {
+      font-size: 12px;
+      color: var(--text3);
+      margin-bottom: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .form-input,
+    .form-textarea,
+    .form-select {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.15s;
+    }
+
+    .form-textarea {
+      height: 100px;
+      resize: vertical;
+    }
+
+    .form-input:focus,
+    .form-textarea:focus,
+    .form-select:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 18px;
+    }
+
+    /* ── INVOICE MODAL ── */
+    .invoice-modal {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      width: 540px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .invoice-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .invoice-logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--green-light);
+    }
+
+    .invoice-logo span {
+      font-size: 11px;
+      color: var(--text3);
+      font-weight: 400;
+      display: block;
+      margin-top: 2px;
+    }
+
+    .invoice-no {
+      text-align: right;
+      font-size: 11px;
+      color: var(--text3);
+    }
+
+    .invoice-no strong {
+      font-size: 14px;
+      color: var(--text);
+      display: block;
+    }
+
+    .invoice-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 14px 0;
+    }
+
+    .invoice-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+      font-size: 12px;
+    }
+
+    .invoice-field-label {
+      color: var(--text3);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 2px;
+    }
+
+    .invoice-field-val {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .invoice-items {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 14px;
+    }
+
+    .invoice-items th {
+      font-size: 10px;
+      color: var(--text3);
+      text-transform: uppercase;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .invoice-items td {
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .invoice-total-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+
+    .invoice-total-label {
+      color: var(--text3);
+      width: 120px;
+      text-align: right;
+      margin-right: 16px;
+    }
+
+    .invoice-total-val {
+      font-weight: 500;
+      color: var(--text);
+      width: 80px;
+      text-align: right;
+    }
+
+    .invoice-grand {
+      background: var(--green-dim);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .invoice-grand-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green-light);
+    }
+
+    .invoice-grand-val {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--green-light);
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 12.5px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 2000;
+      transform: translateY(80px);
+      transition: transform 0.3s ease;
+      opacity: 0;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+
+    /* ── PAGE SECTIONS (shown/hidden) ── */
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+  </style>
 </head>
+
 <body>
-  <main class="admin-shell">
-    <section id="appPanel" class="manager-app">
-      <header class="topbar">
-        <div class="store-switcher">
-          <div class="account-menu">
-            <button id="accountToggle" class="store-button" type="button" onclick="toggleAccountMenu()" aria-expanded="false">
-              <span>Store manager</span>
-              <span aria-hidden="true">⌄</span>
-            </button>
-            <div id="loginPanel" class="account-panel" hidden>
-              <form id="adminLoginForm" class="account-login" onsubmit="loginAdmin(event)">
-                <img src="assets/indo-heals-logo.png" alt="Indo Heals logo">
-                <span class="eyebrow">Store manager</span>
-                <h2>Admin login</h2>
-                <label>Email<input id="adminEmail" type="email" autocomplete="email" required></label>
-                <label>Password<input id="adminPassword" type="password" autocomplete="current-password" required></label>
-                <button class="primary-button" type="submit">Login</button>
-                <p id="adminLoginMessage" class="form-message"></p>
-              </form>
-              <div id="accountSummary" class="account-summary" hidden>
-                <span class="eyebrow">Signed in</span>
-                <strong id="adminName">Admin</strong>
-                <span id="adminAccountEmail" class="meta-line"></span>
-                <p>Admin access is active for this browser.</p>
-                <button class="outline-button" type="button" onclick="logoutAdmin()">Logout</button>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-icon">IH</div>
+      <div>
+        <div class="sb-logo-text">Indo Heals</div>
+        <div class="sb-logo-sub">Private Limited</div>
+      </div>
+    </div>
+    <div class="sb-nav">
+      <div class="nav-section">
+        <div class="nav-label">Overview</div>
+        <div class="nav-item active" onclick="showPage('dashboard', this)">
+          <span class="nav-icon">◉</span> Dashboard
+        </div>
+        <div class="nav-item" onclick="showPage('orders', this)">
+          <span class="nav-icon">📦</span> Orders <span class="nav-badge">9</span>
+        </div>
+        <div class="nav-item" onclick="showPage('carts', this)">
+          <span class="nav-icon">🛒</span> Abandoned Carts <span class="nav-badge-warn">5</span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Catalog</div>
+        <div class="nav-item" onclick="showPage('products', this)">
+          <span class="nav-icon">🛍</span> Products
+        </div>
+        <div class="nav-item" onclick="showPage('categories', this)">
+          <span class="nav-icon">🗂</span> Categories
+        </div>
+        <div class="nav-item" onclick="showPage('coupons', this)">
+          <span class="nav-icon">🏷</span> Coupons
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Customers</div>
+        <div class="nav-item" onclick="showPage('customers', this)">
+          <span class="nav-icon">👥</span> Customers
+        </div>
+        <div class="nav-item" onclick="openEmailModal()">
+          <span class="nav-icon">📧</span> Bulk Email
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Finance</div>
+        <div class="nav-item" onclick="showPage('payments', this)">
+          <span class="nav-icon">💳</span> Payments
+        </div>
+        <div class="nav-item" onclick="showPage('invoices', this)">
+          <span class="nav-icon">📄</span> Invoices
+        </div>
+        <div class="nav-item" onclick="showPage('reports', this)">
+          <span class="nav-icon">📊</span> Reports
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">System</div>
+        <div class="nav-item" onclick="showPage('shipping', this)">
+          <span class="nav-icon">🚚</span> Shipping
+        </div>
+        <div class="nav-item" onclick="showPage('reviews', this)">
+          <span class="nav-icon">⭐</span> Reviews <span class="nav-badge">3</span>
+        </div>
+        <div class="nav-item" onclick="showPage('settings', this)">
+          <span class="nav-icon">⚙</span> Settings
+        </div>
+      </div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-user-av">AD</div>
+      <div>
+        <div class="sb-user-name">Admin</div>
+        <div class="sb-user-role">Super Admin</div>
+      </div>
+      <div class="sb-online"></div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-sub" id="page-sub">Aaj ki complete report — Tuesday, 5 May 2026</div>
+      </div>
+      <div class="topbar-right">
+        <div class="live-pill">
+          <div class="live-dot"></div> Live: <strong id="visitor-count">34</strong> visitors
+        </div>
+        <button class="btn" onclick="openEmailModal()">📧 Bulk Email</button>
+        <button class="btn btn-primary" onclick="showPage('products', null); showToast('Products page khul gaya!')">+
+          Product Add</button>
+      </div>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <div class="content">
+
+      <!-- ═══════════════════ DASHBOARD PAGE ═══════════════════ -->
+      <div class="page active" id="page-dashboard">
+
+        <!-- Alert Bar -->
+        <div class="alert-bar">
+          <div class="alert-dot"></div>
+          <div class="alert-text">
+            <span class="alert-count">5 customers</span> ne cart mein items rakhe hain aur order nahi kiya —
+            inhe abhi call karo aur guide karo order complete hone tak!
+          </div>
+          <button class="alert-action"
+            onclick="showPage('carts', null); showToast('Abandoned cart list dekh rahe hain')">
+            Cart List Dekho →
+          </button>
+        </div>
+
+        <!-- Metrics -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Aaj ki Bikri</div>
+            <div class="metric-value">₹52,480</div>
+            <div class="metric-change change-up">↑ 14% kal se</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Total Orders (Aaj)</div>
+            <div class="metric-value">1,347</div>
+            <div class="metric-change change-up">↑ 6% is hafte</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Active Customers</div>
+            <div class="metric-value">3,821</div>
+            <div class="metric-change change-up">↑ 210 naye aaj</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Abandoned Carts</div>
+            <div class="metric-value" style="color:var(--amber)">5</div>
+            <div class="metric-change change-dn">Call karo abhi!</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Site Visitors (Aaj)</div>
+            <div class="metric-value">2,670</div>
+            <div class="metric-change change-up">↑ 8% yesterday</div>
+          </div>
+        </div>
+
+        <!-- Sales Chart + Cart List -->
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Sales Graph</div>
+              <div class="range-tabs">
+                <button class="range-tab active" onclick="switchRange(1, this)">1D</button>
+                <button class="range-tab" onclick="switchRange(7, this)">7D</button>
+                <button class="range-tab" onclick="switchRange(30, this)">30D</button>
               </div>
             </div>
+            <div class="chart-wrap">
+              <canvas id="salesChart" role="img" aria-label="Sales trend over time">Sales chart</canvas>
+            </div>
           </div>
-          <span class="divider"></span>
-          <span class="live-pill"><span></span>Live</span>
-        </div>
-        <div class="top-actions">
-          <button class="outline-button accent" type="button" onclick="showToast('AI helper is ready for your store notes.')">Ask AI</button>
-          <a class="outline-button" href="index.html" target="_blank" rel="noreferrer">View site</a>
-          <button class="outline-button" type="button" onclick="setView('products')">Edit website</button>
-          <button class="icon-button" type="button" onclick="refreshCurrentView()" title="Refresh">Refresh</button>
-        </div>
-      </header>
 
-      <aside class="sidebar">
-        <nav class="main-nav" aria-label="Admin sections">
-          <button class="active" data-view="overview" type="button"><span class="nav-icon"></span>Overview</button>
-          <button data-view="orders" type="button"><span class="nav-icon"></span>Orders</button>
-          <button data-view="products" data-section="products" type="button"><span class="nav-icon"></span>Products</button>
-          <div id="productNav" class="sub-nav">
-            <button data-view="products" type="button">Product list</button>
-            <button data-view="product-categories" type="button">Categories</button>
-            <button data-view="product-reviews" type="button">Product reviews</button>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🛒 Abandoned Cart — Call List</div>
+              <div class="card-action" onclick="showPage('carts', null)">Sab Dekho →</div>
+            </div>
+            <div id="cart-list">
+              <!-- rendered by JS -->
+            </div>
           </div>
-          <button data-view="appointments" type="button"><span class="nav-icon"></span>Appointments</button>
-          <button data-view="discounts" type="button"><span class="nav-icon"></span>Discounts</button>
-          <button data-view="customers" type="button"><span class="nav-icon"></span>Customers</button>
-          <button data-view="analytics" type="button"><span class="nav-icon"></span>Analytics</button>
-          <button data-view="email-settings" data-section="emails" type="button"><span class="nav-icon"></span>Emails</button>
-          <div id="emailNav" class="sub-nav">
-            <button data-view="email-settings" type="button">Store email settings</button>
-            <button data-view="email-previews" type="button">Email previews</button>
-            <button data-view="emails" type="button">Campaigns</button>
-          </div>
-          <button data-view="settings-store" data-section="settings" type="button"><span class="nav-icon"></span>Settings</button>
-          <div id="settingsNav" class="sub-nav">
-            <button data-view="settings-store" type="button">Store details</button>
-            <button data-view="settings-company" type="button">Company information</button>
-            <button data-view="settings-payments" type="button">Payments</button>
-            <button data-view="settings-shipping" type="button">Shipping</button>
-            <button data-view="settings-checkout" type="button">Checkout</button>
-            <button data-view="settings-taxes" type="button">Taxes</button>
-            <button data-view="settings-invoices" type="button">Invoices</button>
-          </div>
-          <span class="nav-rule"></span>
-          <button data-view="integrations" type="button"><span class="nav-icon"></span>Integrations</button>
-          <button data-view="print" type="button"><span class="nav-icon"></span>Print on demand</button>
-        </nav>
-        <div class="sidebar-footer">
-          <button type="button" onclick="showToast('Feedback noted for the store manager experience.')">Feedback</button>
-          <button type="button" onclick="showToast('Help docs are coming soon.')">Help and resources</button>
-          <button type="button" onclick="toggleAccountMenu(true)">Account</button>
         </div>
-      </aside>
 
-      <section class="workspace">
-        <div id="workspaceContent"></div>
-      </section>
-    </section>
-  </main>
+        <!-- Monthly Summary -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Monthly Order Summary</div>
+            <div class="card-action" onclick="showPage('reports', null)">Full Report →</div>
+          </div>
+          <div style="position:relative;width:100%;height:130px;">
+            <canvas id="monthChart" role="img" aria-label="Monthly revenue chart">Monthly sales</canvas>
+          </div>
+        </div>
 
-  <div id="modalRoot"></div>
-  <div id="toast" class="toast"></div>
-  <script src="admin.js?v=20260503-manager-ui"></script>
+        <!-- Recent Orders + Traffic -->
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Recent Orders</div>
+              <div class="card-action" onclick="showPage('orders', null)">Sab Dekho →</div>
+            </div>
+            <table class="orders-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="recent-orders-body"></tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Site Traffic Sources (Aaj)</div>
+            </div>
+            <div id="traffic-list"></div>
+            <div
+              style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px;display:flex;justify-content:space-between;font-size:12px;">
+              <span style="color:var(--text3)">Total Visitors Aaj</span>
+              <span style="font-weight:600;color:var(--text)">2,670</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════ ORDERS PAGE ═══════════════════ -->
+      <div class="page" id="page-orders">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">All Orders</div>
+            <div style="display:flex;gap:8px;">
+              <select class="form-select" style="width:140px;padding:5px 10px;font-size:12px;"
+                onchange="filterOrders(this.value)">
+                <option value="all">Sab Status</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <button class="btn" style="font-size:11px;padding:5px 12px;">📅 Date Filter</button>
+            </div>
+          </div>
+          <table class="orders-table" id="full-orders-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="full-orders-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════════ ABANDONED CARTS PAGE ═══════════════════ -->
+      <div class="page" id="page-carts">
+        <div class="alert-bar">
+          <div class="alert-dot"></div>
+          <div class="alert-text">5 customers ne cart chhoda — inhe call karo aur order complete karwao. Jitni jaldi
+            call utna better!</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Abandoned Cart Recovery</div>
+            <button class="btn" onclick="openEmailModal()">📧 Sab ko Reminder Email Bhejo</button>
+          </div>
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Cart Value</th>
+                <th>Items</th>
+                <th>Cart Chodha</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="abandoned-carts-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════════ PRODUCTS PAGE ═══════════════════ -->
+      <div class="page" id="page-products">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Products</div>
+            <button class="btn btn-primary" style="font-size:11px;padding:6px 14px;"
+              onclick="showToast('Add product form khulega yahan!')">+ Naya Product</button>
+          </div>
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="products-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════════ CUSTOMERS PAGE ═══════════════════ -->
+      <div class="page" id="page-customers">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">All Customers</div>
+            <button class="btn" onclick="openEmailModal()">📧 Sab ko Email Bhejo</button>
+          </div>
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Orders</th>
+                <th>Total Spent</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="customers-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════════ REPORTS PAGE ═══════════════════ -->
+      <div class="page" id="page-reports">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Total Revenue (All Time)</div>
+            <div class="metric-value" id="report-total-revenue">₹0</div>
+            <div class="metric-change change-neu">From start</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Total Orders</div>
+            <div class="metric-value" id="report-total-orders">0</div>
+            <div class="metric-change change-neu">All time</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Total Users</div>
+            <div class="metric-value" id="report-total-users">0</div>
+            <div class="metric-change change-neu">Registered</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Avg Order Value</div>
+            <div class="metric-value" id="report-avg-order">₹0</div>
+            <div class="metric-change change-neu">Estimated</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Year-wise Monthly Revenue</div>
+            <button class="btn" style="font-size:11px;padding:5px 12px;"
+              onclick="showToast('Excel file download ho raha hai...')">📥 Export Excel</button>
+          </div>
+          <div style="position:relative;width:100%;height:250px;">
+            <canvas id="yearChart" role="img" aria-label="Year-wise monthly revenue chart">Annual revenue chart</canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════ INVOICES PAGE ═══════════════════ -->
+      <div class="page" id="page-invoices">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Invoices</div>
+            <div style="font-size:11px;color:var(--text3)">Order confirm karo → Invoice auto PDF ban ke customer ko
+              jayega</div>
+          </div>
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Invoice No</th>
+                <th>Customer</th>
+                <th>Order ID</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="invoices-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Other pages (placeholder) -->
+      <div class="page" id="page-categories">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Categories</div>
+          </div>
+          <div style="padding:40px;text-align:center;color:var(--text3);">
+            Categories aapke Products ke andar hi manage hote hain. Naya product add karte waqt aap nayi category daal sakte hain.
+          </div>
+        </div>
+      </div>
+      <div class="page" id="page-coupons">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Coupons & Offers</div>
+            <button class="btn btn-primary" style="font-size:11px;" onclick="promptCreateCoupon()">+ Coupon Banao</button>
+          </div>
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Type</th>
+                <th>Value</th>
+                <th>Min Order</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="coupons-body">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="page" id="page-payments">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Payments</div>
+          </div>
+          <div style="padding:40px;text-align:center;color:var(--text3);">Razorpay / PayU / COD transactions, refund
+            initiate karo.</div>
+        </div>
+      </div>
+      <div class="page" id="page-shipping">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Shipping Settings</div>
+          </div>
+          <div style="padding:40px;text-align:center;color:var(--text3);">Shiprocket / Delhivery integration, shipping
+            zones, pincode check.</div>
+        </div>
+      </div>
+      <div class="page" id="page-reviews">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Customer Reviews <span class="nav-badge" style="font-size:10px;padding:3px 8px;">3
+                Pending</span></div>
+          </div>
+          <div style="padding:40px;text-align:center;color:var(--text3);">Reviews approve/reject/reply karo.</div>
+        </div>
+      </div>
+      <div class="page" id="page-settings">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Store Settings</div>
+          </div>
+          <div style="padding:20px;">
+            <div class="form-group">
+              <label class="form-label">Support Email</label>
+              <input type="text" class="form-input" id="setting-support-email" placeholder="e.g. support@indoheals.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Support Phone</label>
+              <input type="text" class="form-input" id="setting-support-phone" placeholder="e.g. +91 9955289295">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Company GST Number</label>
+              <input type="text" class="form-input" id="setting-company-gst" placeholder="e.g. 07AAICI7333M1Z5">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Store Name</label>
+              <input type="text" class="form-input" id="setting-store-name" placeholder="e.g. Indo Heals Private Limited">
+            </div>
+            <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════ BULK EMAIL MODAL ═══════════════════ -->
+  <div class="modal-overlay" id="email-modal">
+    <div class="modal">
+      <div class="modal-title">📧 Bulk Email Bhejo</div>
+      <div class="modal-sub">Ek click mein sab customers ko offer/newsletter email bhejo</div>
+      <div class="form-group">
+        <label class="form-label">Recipients</label>
+        <select class="form-select">
+          <option>Sab Customers (3,821)</option>
+          <option>Sirf Active Customers (2,100+)</option>
+          <option>Jinhone 30 din se order nahi kiya</option>
+          <option>Premium Customers (₹5000+ spent)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Subject Line</label>
+        <input type="text" class="form-input" placeholder="e.g. Aaj Sirf! 30% Off Sabhi Ayurvedic Products"
+          value="🌿 Exclusive Offer — Indo Heals ke liye Sirf Aapke Liye!">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Template</label>
+        <select class="form-select">
+          <option>Festival Offer Template</option>
+          <option>New Product Launch</option>
+          <option>Restock Alert</option>
+          <option>Loyalty Reward</option>
+          <option>Custom</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Message</label>
+        <textarea class="form-textarea" placeholder="Apna offer message likhein...">Namaste! Indo Heals ki taraf se aapke liye special offer — aaj hi order karo aur pao 30% discount sabhi Ayurvedic products par. Limited time offer!
+
+Code: HEALS30
+Valid: Aaj tak sirf!</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Send Time</label>
+        <select class="form-select">
+          <option>Abhi Bhejo</option>
+          <option>Kal Subah 9 Baje</option>
+          <option>Kal Sham 6 Baje</option>
+          <option>Custom Time</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeEmailModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="sendBulkEmail()">📧 3,821 Emails Bhejo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ INVOICE MODAL ═══════════════════ -->
+  <div class="modal-overlay" id="invoice-modal">
+    <div class="invoice-modal">
+      <div class="invoice-header">
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <img src="assets/indo-heals-logo.png" alt="Logo" style="width: 60px; height: 60px; border-radius: 10px;">
+          <div>
+            <div class="invoice-logo">Indo Heals <span>Private Limited</span></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">
+              123, Health Market, Delhi — 110001<br>
+              GSTIN: 07AAICI7333M1Z5 | Tel: +91 98765 43210
+            </div>
+          </div>
+        </div>
+        <div class="invoice-no">
+          <strong id="inv-no">INV-IH-4525</strong>
+          <div>Date: <span id="inv-date">05-05-2026</span></div>
+          <div style="margin-top:4px;"><span class="badge badge-delivered">Confirmed</span></div>
+        </div>
+      </div>
+      <hr class="invoice-divider">
+      <div class="invoice-grid">
+        <div>
+          <div class="invoice-field-label">Bill To</div>
+          <div class="invoice-field-val" id="inv-customer">Ramesh Sharma</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;" id="inv-email">ramesh@example.com</div>
+          <div style="font-size:11px;color:var(--text3);" id="inv-phone">+91 98100 00001</div>
+        </div>
+        <div>
+          <div class="invoice-field-label">Shipping Address</div>
+          <div style="font-size:12px;color:var(--text2);" id="inv-address">Plot 12, Sector 5, Noida, UP — 201301</div>
+          <div style="margin-top:6px;">
+            <div class="invoice-field-label">Payment Method</div>
+            <div style="font-size:12px;color:var(--text2);">Razorpay — Online</div>
+          </div>
+        </div>
+      </div>
+      <hr class="invoice-divider">
+      <table class="invoice-items">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Rate</th>
+            <th>GST (18%)</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="inv-items"></tbody>
+      </table>
+      <hr class="invoice-divider">
+      <div class="invoice-total-row">
+        <div class="invoice-total-label">Subtotal</div>
+        <div class="invoice-total-val">₹2,034</div>
+      </div>
+      <div class="invoice-total-row">
+        <div class="invoice-total-label">GST (18%)</div>
+        <div class="invoice-total-val">₹366</div>
+      </div>
+      <div class="invoice-total-row">
+        <div class="invoice-total-label">Shipping</div>
+        <div class="invoice-total-val">₹0</div>
+      </div>
+      <div class="invoice-grand">
+        <div class="invoice-grand-label">Grand Total</div>
+        <div class="invoice-grand-val">₹2,400</div>
+      </div>
+      <div style="margin-top:14px;font-size:10.5px;color:var(--text3);text-align:center;">
+        Dhanyawad! Indo Heals mein shopping karne ke liye shukriya. Support: support@indoheals.com
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeInvoiceModal()">Close</button>
+        <button class="btn" onclick="showToast('Invoice print ho rahi hai...')">🖨 Print</button>
+        <button class="btn btn-primary"
+          onclick="showToast('Invoice PDF download hua + Confirmation email customer ko chala gaya!')">
+          ✉ Confirm & Email Invoice
+        </button>
+      </div>
+    </div>
+  <!-- ═══════════════════ CUSTOMER PROFILE MODAL ═══════════════════ -->
+  <div class="modal-overlay" id="profile-modal">
+    <div class="modal">
+      <div class="modal-title">Customer Profile</div>
+      <div class="modal-sub">Customer details and order history summary.</div>
+      <div style="padding: 10px 0;">
+        <div style="margin-bottom:8px;"><strong style="color:var(--text2);">Name:</strong> <span id="prof-name"></span></div>
+        <div style="margin-bottom:8px;"><strong style="color:var(--text2);">Email:</strong> <span id="prof-email"></span></div>
+        <div style="margin-bottom:8px;"><strong style="color:var(--text2);">Role:</strong> <span id="prof-role"></span></div>
+        <div style="margin-bottom:8px;"><strong style="color:var(--text2);">Joined:</strong> <span id="prof-joined"></span></div>
+      </div>
+      <div class="modal-footer" style="margin-top:15px;">
+        <button class="btn" onclick="document.getElementById('profile-modal').classList.remove('open')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ PRODUCT EDIT MODAL ═══════════════════ -->
+  <div class="modal-overlay" id="product-edit-modal">
+    <div class="modal">
+      <div class="modal-title">Edit Product</div>
+      <div class="modal-sub" id="edit-prod-name"></div>
+      <input type="hidden" id="edit-prod-id">
+      <input type="hidden" id="edit-prod-fullname">
+      <div class="form-group">
+        <label class="form-label">Price (₹)</label>
+        <input type="number" class="form-input" id="edit-prod-price">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Stock Count</label>
+        <input type="number" class="form-input" id="edit-prod-stock">
+      </div>
+      <div class="modal-footer" style="margin-top:15px;">
+        <button class="btn" onclick="document.getElementById('product-edit-modal').classList.remove('open')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveProductEdit()">💾 Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ COUPON CREATE MODAL ═══════════════════ -->
+  <div class="modal-overlay" id="coupon-create-modal">
+    <div class="modal">
+      <div class="modal-title">Create New Coupon</div>
+      <div class="modal-sub">Offer discounts to your customers.</div>
+      <div class="form-group">
+        <label class="form-label">Coupon Code</label>
+        <input type="text" class="form-input" id="create-coupon-code" placeholder="e.g. DIWALI50" style="text-transform:uppercase;">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Discount Type</label>
+        <select class="form-select" id="create-coupon-type">
+          <option value="percentage">Percentage (%)</option>
+          <option value="fixed">Fixed Amount (₹)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Discount Value</label>
+        <input type="number" class="form-input" id="create-coupon-value" placeholder="e.g. 50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Minimum Order Value (₹)</label>
+        <input type="number" class="form-input" id="create-coupon-min" placeholder="e.g. 500" value="0">
+      </div>
+      <div class="modal-footer" style="margin-top:15px;">
+        <button class="btn" onclick="document.getElementById('coupon-create-modal').classList.remove('open')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveNewCoupon()">✨ Create Coupon</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <div class="toast-dot"></div>
+    <span id="toast-text">Done!</span>
+  </div>
+
+  <script>
+    // ── CONFIG ──
+    const API_BASE = window.location.origin + '/api/admin';
+    const AUTH_KEY = 'auth';
+
+    // ── AUTH CHECK ──
+    function getAuth() {
+      try {
+        return JSON.parse(localStorage.getItem(AUTH_KEY)) || {};
+      } catch { return {}; }
+    }
+
+    function getAuthHeaders() {
+      const auth = getAuth();
+      return {
+        'Authorization': `Bearer ${auth.token}`,
+        'Content-Type': 'application/json'
+      };
+    }
+
+    async function checkAdminAuth() {
+      const auth = getAuth();
+      if (!auth.token) {
+        window.location.href = '/#login';
+        return;
+      }
+      try {
+        const res = await fetch(`${window.location.origin}/api/user/profile`, {
+          headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        if (data.role !== 'admin') {
+          alert('Admin access required!');
+          window.location.href = '/';
+          return;
+        }
+        document.querySelector('.sb-user-name').textContent = data.name || 'Admin';
+      } catch (err) {
+        window.location.href = '/#login';
+      }
+    }
+
+    // ── DATA FETCHING ──
+    async function apiFetch(endpoint, options = {}) {
+      try {
+        const res = await fetch(`${API_BASE}${endpoint}`, {
+          ...options,
+          headers: { ...getAuthHeaders(), ...options.headers }
+        });
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = '/#login';
+          return null;
+        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'API error');
+        return data;
+      } catch (err) {
+        console.error(`API Error [${endpoint}]:`, err);
+        showToast(err.message);
+        return null;
+      }
+    }
+
+    async function fetchDashboardStats() {
+      const stats = await apiFetch('/stats');
+      if (!stats) return;
+
+      document.querySelector('.metrics-grid .metric-card:nth-child(1) .metric-value').textContent = `₹${Math.round(stats.todaySales).toLocaleString()}`;
+      document.querySelector('.metrics-grid .metric-card:nth-child(2) .metric-value').textContent = stats.todayOrders;
+      document.querySelector('.metrics-grid .metric-card:nth-child(3) .metric-value').textContent = stats.totalUsers;
+      document.querySelector('.metrics-grid .metric-card:nth-child(4) .metric-value').textContent = stats.todayUsers; // Mapped to abandoned in dummy, but total users here
+      document.querySelector('.metrics-grid .metric-card:nth-child(5) .metric-value').textContent = stats.todayUsers;
+
+      // Reports Page
+      const totalRev = document.getElementById('report-total-revenue');
+      if (totalRev) totalRev.textContent = `₹${Math.round(stats.totalSales || 0).toLocaleString()}`;
+      const totalOrd = document.getElementById('report-total-orders');
+      if (totalOrd) totalOrd.textContent = stats.totalOrders || 0;
+      const totalUsr = document.getElementById('report-total-users');
+      if (totalUsr) totalUsr.textContent = stats.totalUsers || 0;
+      const avgOrd = document.getElementById('report-avg-order');
+      if (avgOrd) {
+        const avg = stats.totalOrders > 0 ? (stats.totalSales / stats.totalOrders) : 0;
+        avgOrd.textContent = `₹${Math.round(avg).toLocaleString()}`;
+      }
+
+      renderRecentOrders(stats.recentOrders);
+      if (stats.salesTrend && stats.salesTrend.length) {
+        buildSalesChart(stats.salesTrend);
+        buildMonthlyChart(stats.salesTrend);
+      }
+    }
+
+    async function fetchFullOrders(filter = 'all') {
+      const orders = await apiFetch('/orders');
+      if (!orders) return;
+      
+      const filtered = filter === 'all' ? orders : orders.filter(o => (o.fulfillmentStatus || o.status).toLowerCase() === filter.toLowerCase());
+      const tbody = document.getElementById('full-orders-body');
+      tbody.innerHTML = filtered.map(o => {
+        const currentStatus = (o.fulfillmentStatus || o.status || '').toLowerCase();
+        return `
+        <tr>
+          <td class="order-id">${o._id.slice(-6).toUpperCase()}</td>
+          <td>${o.customerName || o.user?.name || 'Guest'}</td>
+          <td style="color:var(--text3);font-size:11px;">${o.customerPhone || 'N/A'}</td>
+          <td style="font-weight:500;">₹${o.total}</td>
+          <td>${badgeHtml(o.fulfillmentStatus || o.status)}</td>
+          <td style="color:var(--text3);font-size:11px;">${new Date(o.createdAt).toLocaleDateString()}</td>
+          <td style="display:flex;gap:5px;">
+            <button class="confirm-btn" onclick="openInvoiceModal('${o._id}')">📄 Invoice</button>
+            <select class="form-select" style="width:100px; font-size:10px; padding:2px;" onchange="updateOrderStatus('${o._id}', this.value)">
+              <option value="">Status...</option>
+              <option value="Confirmed" ${currentStatus === 'processing' ? 'selected' : ''}>Confirm</option>
+              <option value="Shipped" ${currentStatus === 'shipped' ? 'selected' : ''}>Ship</option>
+              <option value="Delivered" ${currentStatus === 'delivered' ? 'selected' : ''}>Deliver</option>
+              <option value="Cancelled" ${currentStatus === 'cancelled' ? 'selected' : ''}>Cancel</option>
+            </select>
+          </td>
+        </tr>
+      `}).join('');
+    }
+
+    async function updateOrderStatus(id, status) {
+      if (!status) return;
+      
+      let fulfillmentStatus = status.toLowerCase();
+      if (fulfillmentStatus === 'confirmed') fulfillmentStatus = 'processing';
+
+      const data = await apiFetch(`/orders/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ fulfillmentStatus })
+      });
+      if (data) {
+        showToast(`Order updated to ${status}`);
+        fetchFullOrders();
+      }
+    }
+
+    async function fetchProducts() {
+      const products = await apiFetch('/products');
+      if (!products) return;
+      
+      const tbody = document.getElementById('products-body');
+      tbody.innerHTML = products.map(p => `
+        <tr>
+          <td style="font-weight:500;">${p.name}</td>
+          <td style="color:var(--text3);">${p.category}</td>
+          <td>₹${p.price}</td>
+          <td style="color:${p.stock < 10 ? 'var(--red)' : 'var(--green-light)'};font-weight:500;">${p.stock} baki</td>
+          <td>${p.isActive !== false ? '<span class="badge badge-delivered">Active</span>' : '<span class="badge badge-cancelled">Inactive</span>'}</td>
+          <td style="display:flex;gap:5px;">
+            <button class="action-btn" onclick="editProductPrompt('${p._id}', '${p.name.replace(/'/g, "\\'")}', ${p.price}, ${p.stock})">✏ Edit</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function fetchCustomers() {
+      const users = await apiFetch('/users');
+      if (!users) return;
+      
+      window.customerData = users; // Store for modal
+      
+      const tbody = document.getElementById('customers-body');
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td><div style="display:flex;align-items:center;gap:8px;">${u.name}</div></td>
+          <td style="color:var(--text3);font-size:11px;">${u.email}</td>
+          <td style="color:var(--text3);font-size:11px;">${u.phone || 'N/A'}</td>
+          <td>-</td>
+          <td style="font-weight:500;">-</td>
+          <td style="display:flex;gap:5px;">
+            <button class="action-btn" onclick="openProfileModal('${u._id}')">Profile</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openProfileModal(id) {
+      const u = window.customerData.find(x => x._id === id);
+      if (!u) return;
+      document.getElementById('prof-name').textContent = u.name;
+      document.getElementById('prof-email').textContent = u.email;
+      document.getElementById('prof-role').textContent = u.role || 'user';
+      document.getElementById('prof-joined').textContent = new Date(u.createdAt).toLocaleDateString();
+      document.getElementById('profile-modal').classList.add('open');
+    }
+
+    // ── UI HELPERS ──
+    function badgeHtml(status) {
+      const s = String(status || 'pending').toLowerCase();
+      const map = {
+        delivered: 'badge-delivered',
+        pending: 'badge-pending',
+        processing: 'badge-processing',
+        confirmed: 'badge-processing',
+        shipped: 'badge-shipped',
+        cancelled: 'badge-cancelled',
+        paid: 'badge-delivered'
+      };
+      return `<span class="badge ${map[s] || 'badge-pending'}">${status}</span>`;
+    }
+
+    function renderRecentOrders(orders) {
+      const tbody = document.getElementById('recent-orders-body');
+      if (!orders || !orders.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">No recent orders</td></tr>';
+        return;
+      }
+      tbody.innerHTML = orders.map(o => `
+        <tr>
+          <td class="order-id">${o._id.slice(-6).toUpperCase()}</td>
+          <td>${o.customerName || o.user?.name || 'Guest'}</td>
+          <td>₹${o.total}</td>
+          <td>${badgeHtml(o.fulfillmentStatus || o.status)}</td>
+          <td><button class="action-btn" onclick="openInvoiceModal('${o._id}')">View</button></td>
+        </tr>
+      `).join('');
+    }
+
+    async function openInvoiceModal(orderId) {
+      const orders = await apiFetch('/orders');
+      if (!orders) return;
+      const o = orders.find(x => x._id === orderId);
+      if (!o) return;
+
+      document.getElementById('inv-no').textContent = 'INV-' + o._id.slice(-6).toUpperCase();
+      document.getElementById('inv-customer').textContent = o.customerName || o.user?.name || 'Customer';
+      document.getElementById('inv-email').textContent = o.customerEmail || o.user?.email || '';
+      document.getElementById('inv-phone').textContent = o.customerPhone || o.user?.phone || '';
+      document.getElementById('inv-date').textContent = new Date(o.createdAt).toLocaleDateString();
+      
+      const addr = o.shippingAddress || {};
+      document.getElementById('inv-address').textContent = `${addr.addressLine1 || ''}, ${addr.city || ''} ${addr.state || ''} - ${addr.postalCode || ''}`;
+      
+      const subtotal = (o.items || []).reduce((acc, item) => acc + (item.price * item.quantity), 0);
+      const gst = Math.round(subtotal * 0.18);
+
+      document.getElementById('inv-items').innerHTML = (o.items || []).map((item, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${item.name}</td>
+          <td>${item.quantity}</td>
+          <td>₹${item.price}</td>
+          <td>₹${Math.round(item.price * 0.18)}</td>
+          <td>₹${item.price * item.quantity}</td>
+        </tr>
+      `).join('');
+
+      const totalVals = document.querySelectorAll('#invoice-modal .invoice-total-val');
+      if (totalVals.length >= 2) {
+        totalVals[0].textContent = `₹${subtotal}`;
+        totalVals[1].textContent = `₹${gst}`;
+      }
+      document.querySelector('.invoice-grand-val').textContent = `₹${o.total}`;
+      
+      document.getElementById('invoice-modal').classList.add('open');
+    }
+
+    function closeInvoiceModal() {
+      document.getElementById('invoice-modal').classList.remove('open');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-text').textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ── MODALS ──
+    function openEmailModal() {
+      document.getElementById('email-modal').classList.add('open');
+    }
+
+    function closeEmailModal() {
+      document.getElementById('email-modal').classList.remove('open');
+    }
+
+    async function sendBulkEmail() {
+      // Assuming we have subject and body inputs
+      const subject = document.querySelector('#email-modal .form-input').value;
+      const body = document.querySelector('#email-modal .form-textarea').value;
+      
+      const res = await apiFetch('/email-campaigns', {
+        method: 'POST',
+        body: JSON.stringify({ subject, body, audience: 'all' })
+      });
+      if (res) {
+        showToast('Bulk Email Campaign Created & Sent!');
+        closeEmailModal();
+      }
+    }
+
+    function editProductPrompt(id, name, currentPrice, currentStock) {
+      document.getElementById('edit-prod-id').value = id;
+      document.getElementById('edit-prod-fullname').value = name;
+      document.getElementById('edit-prod-name').textContent = name;
+      document.getElementById('edit-prod-price').value = currentPrice;
+      document.getElementById('edit-prod-stock').value = currentStock;
+      document.getElementById('product-edit-modal').classList.add('open');
+    }
+
+    async function saveProductEdit() {
+      const id = document.getElementById('edit-prod-id').value;
+      const name = document.getElementById('edit-prod-fullname').value;
+      const price = Number(document.getElementById('edit-prod-price').value);
+      const stock = Number(document.getElementById('edit-prod-stock').value);
+
+      const data = await apiFetch(`/products/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name, price, stock })
+      });
+      if (data) {
+        showToast('Product updated successfully!');
+        document.getElementById('product-edit-modal').classList.remove('open');
+        fetchProducts();
+      }
+    }
+
+    // ── CHARTS ──
+    let salesChartInst = null;
+    function buildSalesChart(trend) {
+      const ctx = document.getElementById('salesChart');
+      if (!ctx) return;
+      const labels = trend.map(t => t._id);
+      const data = trend.map(t => t.sales);
+      
+      if (salesChartInst) salesChartInst.destroy();
+      salesChartInst = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            borderColor: '#1D9E75',
+            backgroundColor: 'rgba(29,158,117,0.1)',
+            tension: 0.4,
+            fill: true,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { display: false } },
+            y: { ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+          }
+        }
+      });
+    }
+
+    let monthChartInst = null;
+    function buildMonthlyChart(trend) {
+      const ctx = document.getElementById('monthChart');
+      if (!ctx) return;
+      
+      if (monthChartInst) monthChartInst.destroy();
+      monthChartInst = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Current Cycle'],
+          datasets: [{ 
+            data: [trend.reduce((a, b) => a + b.sales, 0)], 
+            backgroundColor: 'rgba(29,158,117,0.6)',
+            borderRadius: 5
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: { ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+          }
+        }
+      });
+    }
+
+    // ── NAVIGATION ──
+    function showPage(id, el) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById('page-' + id);
+      if (target) target.classList.add('active');
+      
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      if (el) el.classList.add('active');
+
+      if (id === 'dashboard') fetchDashboardStats();
+      if (id === 'orders') fetchFullOrders();
+      if (id === 'products') fetchProducts();
+      if (id === 'customers') fetchCustomers();
+      if (id === 'coupons') fetchCoupons();
+      if (id === 'settings') fetchSettings();
+    }
+
+    function filterOrders(status) {
+      fetchFullOrders(status);
+    }
+
+    async function fetchSettings() {
+      const settings = await apiFetch('/settings');
+      if (!settings) return;
+      document.getElementById('setting-support-email').value = settings.supportEmail || '';
+      document.getElementById('setting-support-phone').value = settings.supportPhone || '';
+      document.getElementById('setting-store-name').value = settings.storeName || '';
+      document.getElementById('setting-company-gst').value = (settings.company && settings.company.gstNumber) || '';
+    }
+
+    async function saveSettings() {
+      const supportEmail = document.getElementById('setting-support-email').value;
+      const supportPhone = document.getElementById('setting-support-phone').value;
+      const storeName = document.getElementById('setting-store-name').value;
+      const gstNumber = document.getElementById('setting-company-gst').value;
+
+      const res = await apiFetch('/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ 
+          supportEmail, 
+          supportPhone, 
+          storeName,
+          company: { gstNumber, legalName: storeName }
+        })
+      });
+      if (res) showToast('Settings saved successfully!');
+    }
+
+    async function fetchCoupons() {
+      const coupons = await apiFetch('/discounts');
+      if (!coupons) return;
+      const tbody = document.getElementById('coupons-body');
+      tbody.innerHTML = coupons.map(c => `
+        <tr>
+          <td style="font-weight:bold;">${c.code}</td>
+          <td>${c.type}</td>
+          <td>${c.type === 'percentage' ? c.value + '%' : '₹' + c.value}</td>
+          <td>₹${c.minOrderValue}</td>
+          <td><button class="action-btn" onclick="deleteCoupon('${c._id}')">🗑 Delete</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function promptCreateCoupon() {
+      document.getElementById('create-coupon-code').value = '';
+      document.getElementById('create-coupon-value').value = '';
+      document.getElementById('create-coupon-min').value = '0';
+      document.getElementById('coupon-create-modal').classList.add('open');
+    }
+
+    async function saveNewCoupon() {
+      const code = document.getElementById('create-coupon-code').value.toUpperCase();
+      const type = document.getElementById('create-coupon-type').value;
+      const value = document.getElementById('create-coupon-value').value;
+      const minOrder = document.getElementById('create-coupon-min').value;
+
+      if (!code || !value) {
+        showToast("Code aur Value dono zaruri hain");
+        return;
+      }
+
+      const res = await apiFetch('/discounts', {
+        method: 'POST',
+        body: JSON.stringify({ code, type, value: Number(value), minOrderValue: Number(minOrder) })
+      });
+      if (res) {
+        showToast('Coupon created successfully!');
+        document.getElementById('coupon-create-modal').classList.remove('open');
+        fetchCoupons();
+      }
+    }
+
+    async function deleteCoupon(id) {
+      if (!confirm("Are you sure you want to delete this coupon?")) return;
+      const res = await apiFetch(`/discounts/${id}`, { method: 'DELETE' });
+      if (res) {
+        showToast('Coupon deleted!');
+        fetchCoupons();
+      }
+    }
+
+    // ── INITIALIZE ──
+    // checkAdminAuth(); // Temporarily disabled for testing
+    fetchDashboardStats();
+    
+    // Live visitor dummy
+    setInterval(() => {
+      const count = Math.floor(Math.random() * 20) + 15;
+      const el = document.getElementById('visitor-count');
+      if (el) el.textContent = count;
+    }, 5000);
+
+  </script>
 </body>
+
 </html>

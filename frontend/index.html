@@ -34,13 +34,45 @@
           </span>
         </button>
       </li>
-      <li>
-        <button id="accountLink" class="nav-icon-button nav-account-button" type="button" onclick="openAccount()" aria-label="Open account">
+      <li class="nav-account-wrapper" id="navAccountWrapper">
+        <button id="accountLink" class="nav-icon-button nav-account-button" type="button" onclick="openAccount(event)" aria-label="Open account">
           <span class="nav-account-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M11.6 2 2 13h7.5L10 22 22 9.9h-7.5L14 2z"></path></svg>
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"></path></svg>
           </span>
           <span id="navUserName" class="nav-account-name"></span>
         </button>
+        <!-- Myntra-style account dropdown -->
+        <div id="accountDropdown" class="account-dropdown" role="menu" aria-label="Account menu">
+          <div class="acc-drop-user" id="accDropUser" style="display:none; cursor:pointer;" onclick="window.location.href='orders.html'; closeAccountDropdown();">
+            <div class="acc-drop-hello">Hello <span id="accDropName">User</span></div>
+            <div class="acc-drop-phone" id="accDropPhone"></div>
+          </div>
+          <div class="acc-drop-login-row" id="accDropLogin">
+            <button class="acc-drop-login-btn" onclick="goToPage('login'); closeAccountDropdown();">Login / Sign Up</button>
+          </div>
+          <hr class="acc-drop-divider">
+          <div class="acc-drop-section">
+            <a class="acc-drop-item" onclick="window.location.href='orders.html'; closeAccountDropdown();">
+              <svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
+              Orders
+            </a>
+            <a class="acc-drop-item" onclick="goToPage('contact'); closeAccountDropdown();">
+              <svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+              Contact Us
+            </a>
+            <a class="acc-drop-item" onclick="openAccountTab('address'); closeAccountDropdown();">
+              <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              Saved Addresses
+            </a>
+          </div>
+          <hr class="acc-drop-divider" id="accDropAuthDivider" style="display:none;">
+          <div class="acc-drop-section" id="accDropAuthSection" style="display:none;">
+            <a class="acc-drop-item acc-drop-logout" onclick="logout(); closeAccountDropdown();">
+              <svg viewBox="0 0 24 24"><path d="M17 7l-1.4 1.4L18.2 11H9v2h9.2l-2.6 2.6L17 17l5-5-5-5zM5 5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7v-2H5V5z"/></svg>
+              Logout
+            </a>
+          </div>
+        </div>
       </li>
       <li>
         <button id="cartLink" class="nav-icon-button" type="button" onclick="goToPage('cart')" aria-label="View cart">
@@ -391,68 +423,146 @@
 </div>
 
 <div id="contact-page" class="page" style="display:none;">
-  <section class="section appointment-page contact-page">
-    <div class="appointment-shell contact-shell">
-      <div class="appointment-copy contact-copy">
-        <span class="section-label">Contact Us</span>
-        <h2 class="section-title">Start a business conversation with Indo Heals</h2>
-        <p>For fast-track international partnerships, wholesale opportunities, or product enquiries, share your details and our team will connect with you.</p>
-        <div class="appointment-points">
-          <div><strong>01</strong><span>International partnerships</span></div>
-          <div><strong>02</strong><span>Wholesale and imports</span></div>
-          <div><strong>03</strong><span>Product collaboration</span></div>
+  <section class="section help-center-page">
+    
+    <div class="hc-header">
+      <h1 class="hc-title">Indo Heals Help Center</h1>
+      <p class="hc-subtitle">We are here to help you</p>
+    </div>
+
+    <div id="hc-main-view">
+      <div class="hc-grid">
+        <div class="hc-card" onclick="window.location.href='orders.html'">
+          <div class="hc-icon">
+            <svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm5 12H7v-.5c0-2.5 2.2-4.5 5-4.5s5 2 5 4.5V18z"/></svg>
+          </div>
+          <div class="hc-card-content">
+            <h3>Track, Cancel, Return/Exchange</h3>
+            <p>Manage your orders and returns easily.</p>
+          </div>
+        </div>
+        <div class="hc-card" onclick="window.location.href='faq.html'">
+          <div class="hc-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4V6h16v12zM12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
+          </div>
+          <div class="hc-card-content">
+            <h3>Payment & Refunds</h3>
+            <p>Issues with payments or refund status.</p>
+          </div>
+        </div>
+        <div class="hc-card" onclick="window.location.href='faq.html'">
+          <div class="hc-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          </div>
+          <div class="hc-card-content">
+            <h3>Product Enquiries</h3>
+            <p>Questions about ingredients, usage, and safety.</p>
+          </div>
+        </div>
+        <div class="hc-card" onclick="toggleBusinessForm()">
+          <div class="hc-icon">
+            <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          </div>
+          <div class="hc-card-content">
+            <h3>Business Partnerships</h3>
+            <p>Wholesale, import, and collaboration enquiries.</p>
+          </div>
         </div>
       </div>
 
-      <form class="appointment-form business-contact-form" onsubmit="handleBusinessContact(event)">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Name of Company</label>
-            <input type="text" id="business-company" required placeholder="Enter company name">
+      <div class="hc-direct-contact">
+        <h2 class="hc-direct-title">Still need help?</h2>
+        <div class="hc-contact-methods">
+          <div class="hc-method">
+            <div class="hc-method-icon">✉️</div>
+            <h4>Write to Us</h4>
+            <p>We'll reply within 24 hours.</p>
+            <a href="mailto:Contact@indoheals.com" class="hc-link">Contact@indoheals.com</a>
           </div>
-          <div class="form-group">
-            <label>City</label>
-            <input type="text" id="business-city" required placeholder="Enter city">
+          <div class="hc-method">
+            <div class="hc-method-icon">📞</div>
+            <h4>Call Us</h4>
+            <p>Available Mon-Fri, 9am - 6pm.</p>
+            <a href="tel:+919955289295" class="hc-link">+91 9955289295</a>
           </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Country</label>
-            <input type="text" id="business-country" required placeholder="Enter country">
-          </div>
-          <div class="form-group">
-            <label>Website</label>
-            <input type="url" id="business-website" placeholder="https://example.com">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Contact Person Name</label>
-            <input type="text" id="business-person" required placeholder="Enter contact person name">
-          </div>
-          <div class="form-group">
-            <label>Mobile Number</label>
-            <input type="tel" id="business-mobile" required placeholder="Enter mobile number">
+          <div class="hc-method">
+            <div class="hc-method-icon">📍</div>
+            <h4>Visit Us</h4>
+            <p>Okhla Village, Jamia Nagar, New Delhi - 110025</p>
+            <a class="hc-link">Get Directions</a>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Email ID</label>
-            <input type="email" id="business-email" required placeholder="Enter email address">
-          </div>
-          <div class="form-group">
-            <label>Currently Importing</label>
-            <input type="text" id="business-current-products" placeholder="Mention current imported products">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Message</label>
-          <textarea id="business-message" rows="4" placeholder="Write your message"></textarea>
-        </div>
-        <button type="submit" class="btn-primary">Submit</button>
-        <p id="businessContactMessage" class="form-message"></p>
-      </form>
+      </div>
     </div>
+
+    <div id="hc-business-view" style="display:none;">
+      <button class="hc-back-btn" onclick="toggleBusinessForm()">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        Back to Help Center
+      </button>
+      <div class="appointment-shell contact-shell" style="margin-top: 24px; max-width: 1000px; margin-inline: auto;">
+        <div class="appointment-copy contact-copy">
+          <span class="section-label">Contact Us</span>
+          <h2 class="section-title">Start a business conversation with Indo Heals</h2>
+          <p>For fast-track international partnerships, wholesale opportunities, or product enquiries, share your details and our team will connect with you.</p>
+          <div class="appointment-points">
+            <div><strong>01</strong><span>International partnerships</span></div>
+            <div><strong>02</strong><span>Wholesale and imports</span></div>
+            <div><strong>03</strong><span>Product collaboration</span></div>
+          </div>
+        </div>
+
+        <form class="appointment-form business-contact-form" onsubmit="handleBusinessContact(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Name of Company</label>
+              <input type="text" id="business-company" required placeholder="Enter company name">
+            </div>
+            <div class="form-group">
+              <label>City</label>
+              <input type="text" id="business-city" required placeholder="Enter city">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Country</label>
+              <input type="text" id="business-country" required placeholder="Enter country">
+            </div>
+            <div class="form-group">
+              <label>Website</label>
+              <input type="url" id="business-website" placeholder="https://example.com">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Contact Person Name</label>
+              <input type="text" id="business-person" required placeholder="Enter contact person name">
+            </div>
+            <div class="form-group">
+              <label>Mobile Number</label>
+              <input type="tel" id="business-mobile" required placeholder="Enter mobile number">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email ID</label>
+              <input type="email" id="business-email" required placeholder="Enter email address">
+            </div>
+            <div class="form-group">
+              <label>Currently Importing</label>
+              <input type="text" id="business-current-products" placeholder="Mention current imported products">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Message</label>
+            <textarea id="business-message" rows="4" placeholder="Write your message"></textarea>
+          </div>
+          <button type="submit" class="btn-primary">Submit</button>
+          <p id="businessContactMessage" class="form-message"></p>
+        </form>
+      </div>
+    </div>
+
   </section>
 </div>
 
@@ -559,7 +669,7 @@
       <h2 class="section-title">Thank you for your order</h2>
       <div id="confirmationDetails" class="confirmation-details"></div>
       <div class="confirmation-actions">
-        <button type="button" class="btn-primary" onclick="openAccount()">View Account</button>
+        <button type="button" class="btn-primary" onclick="goToAccountPage()">View Account</button>
         <button type="button" class="btn-outline" onclick="goToPage('products')">Continue Shopping</button>
       </div>
     </div>
@@ -708,7 +818,7 @@
       <h2>Welcome</h2>
       <p id="signupConfirmationText">Your Indo Heals account is ready.</p>
       <button type="button" class="btn-primary" onclick="goToPage('products')">Start Shopping</button>
-      <button type="button" class="btn-outline" onclick="openAccount()">View Account</button>
+      <button type="button" class="btn-outline" onclick="goToAccountPage()">View Account</button>
     </div>
   </section>
 </div>
@@ -720,73 +830,203 @@
         <div>
           <span class="section-label">My Account</span>
           <h2 class="section-title">Welcome back, <span id="accountNameHeader">Member</span></h2>
-          <p class="account-subtitle">Manage your orders, support requests and profile details from one place.</p>
+          <p class="account-subtitle">Manage your orders and profile details from one place.</p>
         </div>
         <button type="button" class="btn-outline" onclick="logout()">Sign Out</button>
       </div>
 
-      <div class="account-grid">
-        <aside class="account-sidebar">
-          <div class="account-user-card">
-            <div class="account-avatar" id="accountAvatar">A</div>
-            <div>
-              <strong id="accountUserName">Account User</strong>
-              <p id="accountUserEmail">email@example.com</p>
+      <!-- Account Tab Navigation -->
+      <div class="account-tabs" role="tablist">
+        <button class="account-tab active" id="tab-profile" role="tab" aria-selected="true" onclick="switchAccountTab('profile')">👤 Profile</button>
+        <button class="account-tab" id="tab-address" role="tab" aria-selected="false" onclick="switchAccountTab('address')">📍 My Addresses</button>
+        <button class="account-tab" id="tab-orders" role="tab" aria-selected="false" onclick="window.location.href='orders.html'">🛍️ My Orders</button>
+      </div>
+
+      <!-- Profile Tab -->
+      <div id="accountTabProfile" class="account-tab-panel">
+        <div class="account-grid">
+          <aside class="account-sidebar">
+            <div class="account-user-card">
+              <div class="account-avatar" id="accountAvatar">A</div>
+              <div>
+                <strong id="accountUserName">Account User</strong>
+                <p id="accountUserEmail">email@example.com</p>
+              </div>
             </div>
+            <div class="account-action-list">
+              <button type="button" class="account-action-item" onclick="window.location.href='orders.html'">
+                <span class="account-action-icon">🛍️</span>
+                <div><strong>My Orders</strong><p>View order history and tracking</p></div>
+              </button>
+              <button type="button" class="account-action-item" onclick="switchAccountTab('address')">
+                <span class="account-action-icon">📍</span>
+                <div><strong>My Addresses</strong><p>Manage delivery addresses</p></div>
+              </button>
+              <button type="button" class="account-action-item" onclick="goToPage('contact')">
+                <span class="account-action-icon">💬</span>
+                <div><strong>Help &amp; Support</strong><p>Get order and product help</p></div>
+              </button>
+            </div>
+          </aside>
+
+          <div>
+            <!-- Profile View -->
+            <section class="account-card" id="profileViewCard">
+              <div class="account-card-head">
+                <h3>Profile Details</h3>
+              </div>
+              <div id="accountProfile" class="profile-lines"></div>
+            </section>
+
+            <!-- Profile Edit Form -->
+            <section class="account-card" id="profileEditCard" style="display:none;">
+              <div class="account-card-head" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 16px; margin-bottom: 24px;">
+                <h3 style="font-size: 20px;">Edit Details</h3>
+              </div>
+              <form class="appointment-form profile-edit-extended" onsubmit="saveProfileUpdate(event)">
+                
+                <!-- Contact Methods with Change buttons -->
+                <div class="profile-field-readonly">
+                  <div class="pfr-info">
+                    <span class="pfr-label">Mobile Number*</span>
+                    <div class="pfr-value"><span id="editProfilePhoneText"></span> <span class="verified-tick">
+                      <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.4-1.4 3.6 3.6 7.6-7.6L19 8l-9 9z"/></svg>
+                    </span></div>
+                  </div>
+                  <button type="button" class="btn-outline-small" onclick="alert('Mobile change requires OTP verification. (Feature coming soon)')">CHANGE</button>
+                </div>
+
+                <div class="profile-field-readonly">
+                  <div class="pfr-info">
+                    <span class="pfr-label">Email</span>
+                    <div class="pfr-value"><span id="editProfileEmailText"></span> <span class="verified-tick" id="editProfileEmailTick" style="display:none;">
+                      <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.4-1.4 3.6 3.6 7.6-7.6L19 8l-9 9z"/></svg>
+                    </span></div>
+                  </div>
+                  <button type="button" class="btn-outline-small" onclick="alert('Email change requires verification. (Feature coming soon)')">CHANGE</button>
+                </div>
+
+                <!-- Editable Fields -->
+                <div class="form-group floating-group">
+                  <input type="text" id="editProfileName" class="floating-input" required placeholder=" ">
+                  <label class="floating-label">Full Name</label>
+                </div>
+
+                <div class="form-group gender-toggle">
+                  <label class="gender-radio">
+                    <input type="radio" name="profileGender" value="Male">
+                    <span class="gender-btn">
+                      <span class="gender-check">✔</span> Male
+                    </span>
+                  </label>
+                  <label class="gender-radio">
+                    <input type="radio" name="profileGender" value="Female">
+                    <span class="gender-btn">
+                      <span class="gender-check">✔</span> Female
+                    </span>
+                  </label>
+                </div>
+
+                <div class="form-group floating-group">
+                  <input type="date" id="editProfileDob" class="floating-input" placeholder=" ">
+                  <label class="floating-label">Birthday (dd/mm/yyyy)</label>
+                </div>
+
+                <div class="alternate-details-section">
+                  <div class="alternate-title">Alternate mobile details</div>
+                  <div class="alternate-inputs">
+                    <div class="alt-mobile-input-group">
+                      <span class="country-code">+91</span>
+                      <input type="tel" id="editProfileAltMobile" placeholder="Alternate Mobile" pattern="[0-9]{10}">
+                    </div>
+                    <div class="form-group floating-group">
+                      <input type="text" id="editProfileAltName" class="floating-input" placeholder=" ">
+                      <label class="floating-label">Hint name</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="alternate-details-section">
+                  <div class="alternate-title">Alternate email details</div>
+                  <div class="form-group floating-group">
+                    <input type="email" id="editProfileAltEmail" class="floating-input" placeholder=" ">
+                    <label class="floating-label">Alternate Email ID</label>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn-primary" style="width:100%; margin-top:24px;">SAVE DETAILS</button>
+                <div style="text-align:center; margin-top:16px;">
+                  <button type="button" class="back-btn" onclick="cancelProfileEdit()">Cancel</button>
+                </div>
+                <p id="profileUpdateMsg" class="form-message"></p>
+              </form>
+            </section>
           </div>
-
-          <div class="account-action-list">
-            <button type="button" class="account-action-item" onclick="window.location.href='orders.html'">
-              <span class="account-action-icon">🛍️</span>
-              <div>
-                <strong>My Orders</strong>
-                <p>View order history and status</p>
-              </div>
-            </button>
-            <button type="button" class="account-action-item" onclick="goToPage('contact')">
-              <span class="account-action-icon">💬</span>
-              <div>
-                <strong>Help & Customer Support</strong>
-                <p>Get assistance with orders and products</p>
-              </div>
-            </button>
-            <button type="button" class="account-action-item" onclick="showToast('Address section is coming soon.')">
-              <span class="account-action-icon">📍</span>
-              <div>
-                <strong>My Address</strong>
-                <p>Update your delivery information</p>
-              </div>
-            </button>
-            <button type="button" class="account-action-item" onclick="downloadApp()">
-              <span class="account-action-icon">⬇️</span>
-              <div>
-                <strong>Download our App</strong>
-                <p>Get the Indo Heals app experience</p>
-              </div>
-            </button>
-          </div>
-        </aside>
-
-        <div>
-          <section class="account-card">
-            <div class="account-card-head">
-              <h3>Profile</h3>
-              <button type="button" class="back-btn" onclick="openAccount()">Refresh</button>
-            </div>
-            <div id="accountProfile" class="profile-lines"></div>
-          </section>
-
-          <section class="account-card order-history-card">
-            <div class="account-card-head">
-              <h3>Order History</h3>
-              <button type="button" class="back-btn" onclick="loadMyOrders()">Refresh</button>
-            </div>
-            <div id="myOrders" class="order-list">
-              <p class="form-message">Loading orders...</p>
-            </div>
-          </section>
         </div>
       </div>
+
+      <!-- Address Tab -->
+      <div id="accountTabAddress" class="account-tab-panel" style="display:none;">
+        <div class="account-card">
+          <div class="account-card-head">
+            <h3>Saved Addresses</h3>
+            <button type="button" class="back-btn" onclick="showAddressForm()">+ Add New</button>
+          </div>
+          <div id="addressList" class="address-list"></div>
+
+          <!-- Add / Edit Address Form -->
+          <div id="addressFormWrap" style="display:none; padding:20px 0 0;">
+            <h4 style="margin-bottom:16px; font-size:16px;">Add / Edit Address</h4>
+            <form class="appointment-form" onsubmit="saveAddress(event)">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Full Name</label>
+                  <input type="text" id="addr-name" required placeholder="Recipient name">
+                </div>
+                <div class="form-group">
+                  <label>Phone</label>
+                  <input type="tel" id="addr-phone" required placeholder="Phone number">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Address Line 1</label>
+                <input type="text" id="addr-line1" required placeholder="House, street, area">
+              </div>
+              <div class="form-group">
+                <label>Address Line 2</label>
+                <input type="text" id="addr-line2" placeholder="Landmark, apartment, floor">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>City</label>
+                  <input type="text" id="addr-city" required placeholder="City">
+                </div>
+                <div class="form-group">
+                  <label>State</label>
+                  <input type="text" id="addr-state" required placeholder="State">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>PIN Code</label>
+                  <input type="text" id="addr-pin" required placeholder="PIN code" maxlength="6">
+                </div>
+                <div class="form-group">
+                  <label>Country</label>
+                  <input type="text" id="addr-country" required value="India">
+                </div>
+              </div>
+              <input type="hidden" id="addr-edit-index" value="">
+              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <button type="submit" class="btn-primary">Save Address</button>
+                <button type="button" class="btn-outline" onclick="cancelAddressForm()">Cancel</button>
+              </div>
+              <p id="addressFormMsg" class="form-message"></p>
+            </form>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 </div>
@@ -811,9 +1051,9 @@
       <div class="footer-col-title">Company</div>
       <ul>
         <li><a onclick="goToPage('about')">About Us</a></li>
-        <li><a onclick="goToPage('resources')">Order Tracking</a></li>
-        <li><a onclick="goToPage('resources')">Shipping & Return</a></li>
-        <li><a onclick="goToPage('resources')">FAQs</a></li>
+        <li><a href="faq.html">Order Tracking</a></li>
+        <li><a href="faq.html">Shipping & Return</a></li>
+        <li><a href="faq.html">FAQs</a></li>
       </ul>
     </div>
     <div class="footer-col">
@@ -822,7 +1062,7 @@
         <li><a onclick="goToPage('resources')">Blog</a></li>
         <li><a onclick="goToPage('resources')">Bulk Buying</a></li>
         <li><a onclick="goToPage('contact')">Contact</a></li>
-        <li><a onclick="openAccount()">Account</a></li>
+        <li><a onclick="goToAccountPage()">Account</a></li>
       </ul>
     </div>
     <div class="footer-col">
@@ -835,12 +1075,82 @@
     </div>
   </div>
   <div class="footer-bottom">
+    <div class="footer-bottom-links" style="margin-bottom: 12px;">
+      <a href="faq.html" style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 13px; margin-right: 16px;">Terms & Conditions</a>
+      <a href="faq.html" style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 13px;">Privacy Policy</a>
+    </div>
     <p>© 2026 <span>Indo Heals Private Limited</span>. All rights reserved.</p>
     <p class="compliance-footer">All product descriptions use FSSAI-permitted traditional-use statements only. No medical claims made.</p>
   </div>
 </footer>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<!-- ===== AI CHAT WIDGET ===== -->
+<div id="chatWidget" class="chat-widget" aria-label="Indo Heals AI Wellness Assistant" role="complementary">
+  <button id="chatToggleBtn" class="chat-toggle-btn" onclick="toggleChat()" aria-label="Open wellness chat assistant" aria-expanded="false">
+    <span class="chat-toggle-icon chat-icon-open" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </span>
+    <span class="chat-toggle-icon chat-icon-close" aria-hidden="true" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </span>
+    <span class="chat-badge" id="chatBadge">1</span>
+  </button>
+
+  <div id="chatPanel" class="chat-panel" style="display:none;" role="dialog" aria-label="Wellness Chat Assistant" aria-modal="false">
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <div class="chat-avatar">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        </div>
+        <div>
+          <strong>Indo Heals Assistant</strong>
+          <span class="chat-status">● Online</span>
+        </div>
+      </div>
+      <button class="chat-close-btn" onclick="toggleChat()" aria-label="Close chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions">
+      <div class="chat-message bot">
+        <div class="chat-bubble">
+          Namaste! 🙏 I'm your Indo Heals wellness assistant. Ask me about our herbal products, book an appointment, or get support!
+        </div>
+        <div class="chat-time">Just now</div>
+      </div>
+    </div>
+
+    <div class="chat-suggestions" id="chatSuggestions">
+      <button onclick="sendSuggestion('What products do you offer?')" class="chat-chip">Our products</button>
+      <button onclick="sendSuggestion('How do I book an appointment?')" class="chat-chip">Book appointment</button>
+      <button onclick="sendSuggestion('What are the prices?')" class="chat-chip">Pricing</button>
+    </div>
+
+    <form class="chat-input-area" onsubmit="sendChatMessage(event)" role="search">
+      <input
+        type="text"
+        id="chatInput"
+        class="chat-input"
+        placeholder="Ask about wellness, products..."
+        autocomplete="off"
+        maxlength="300"
+        aria-label="Type your message"
+      >
+      <button type="submit" class="chat-send-btn" aria-label="Send message">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </form>
+  </div>
+</div>
+
 <script src="script.js?v=20260503-signup-otp"></script>
+<script src="chat.js"></script>
 </body>
 </html>

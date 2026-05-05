@@ -1,39 +1,311 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Orders | Indo Heals</title>
+  <meta name="description" content="Track your Indo Heals orders — view status, delivery timeline, and manage returns.">
   <link rel="icon" type="image/png" href="assets/indo-heals-logo.png">
-  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="orders.css">
 </head>
-<body class="orders-page">
-  <header class="orders-header">
-    <a class="orders-logo" href="index.html">
-      <img src="assets/indo-heals-logo.png" alt="Indo Heals logo" />
+
+<body>
+
+  <!-- TOP HEADER -->
+  <header class="oh-topbar">
+    <a href="index.html" class="oh-brand">
+      <img src="assets/indo-heals-logo.png" alt="Indo Heals">
       <span>Indo Heals</span>
     </a>
-    <nav class="orders-header-nav">
-      <a href="index.html" class="btn-outline">Back to shop</a>
-    </nav>
+    <div class="oh-topbar-right">
+      <a href="javascript:history.back()" class="oh-back-btn">← Back</a>
+    </div>
   </header>
 
-  <main class="orders-shell">
-    <section class="orders-hero">
-      <div>
-        <p class="section-label">My Orders</p>
-        <h1>Track your purchases with confidence</h1>
-        <p>Browse recent orders, review delivery details, and raise support issues directly from a modern dashboard.</p>
+  <!-- PAGE WRAPPER -->
+  <div class="oh-wrapper">
+
+    <!-- SIDEBAR -->
+    <aside class="oh-sidebar">
+      <div class="oh-user-block" id="sidebarUser" onclick="switchTab('overview')" style="cursor:pointer;">
+        <div class="oh-user-avatar" id="sidebarAvatar">U</div>
+        <div>
+          <div class="oh-user-name" id="sidebarName">Account</div>
+          <div class="oh-user-email" id="sidebarEmail">Loading...</div>
+        </div>
       </div>
-    </section>
 
-    <div id="orders-root"></div>
-  </main>
+      <nav class="oh-sidenav">
+        <div class="oh-sidenav-group">
+          <a class="oh-sidenav-item active" id="side-overview" onclick="switchTab('overview')">Overview</a>
+        </div>
+        <div class="oh-sidenav-group">
+          <div class="oh-sidenav-label">ORDERS</div>
+          <a class="oh-sidenav-item" id="side-orders" onclick="switchTab('orders')">Orders & Returns</a>
+        </div>
+        <div class="oh-sidenav-group">
+          <div class="oh-sidenav-label">CREDITS</div>
+          <a class="oh-sidenav-item" id="side-coupons" onclick="switchTab('overview')">Coupons</a>
+          <a class="oh-sidenav-item" id="side-Indohealscredit" onclick="switchTab('overview')">Indo Heals Credit</a>
+          <a class="oh-sidenav-item" id="side-IndoHealscash" onclick="switchTab('overview')">Indo Heals Cash</a>
+        </div>
+        <div class="oh-sidenav-group">
+          <div class="oh-sidenav-label">ACCOUNT</div>
+          <a class="oh-sidenav-item" id="side-profile" onclick="switchTab('profile')">Profile</a>
+          <a class="oh-sidenav-item" id="side-savedcards" onclick="switchTab('overview')">Saved Cards</a>
+          <a class="oh-sidenav-item" id="side-savedupi" onclick="switchTab('overview')">Saved UPI</a>
+          <a class="oh-sidenav-item" id="side-savedwallets" onclick="switchTab('overview')">Saved Wallets/BNPL</a>
+          <a class="oh-sidenav-item" id="side-addresses" onclick="switchTab('overview')">Addresses</a>
+          <a class="oh-sidenav-item" id="side-IndoHealsInsider" onclick="switchTab('overview')">Indo Heals Insider</a>
+          <a class="oh-sidenav-item" id="side-deleteaccount" onclick="switchTab('overview')">Delete Account</a>
+        </div>
+        <div class="oh-sidenav-group">
+          <div class="oh-sidenav-label">LEGAL</div>
+          <a class="oh-sidenav-item" id="side-termsofuse" onclick="switchTab('overview')">Terms of Use</a>
+          <a class="oh-sidenav-item" id="side-privacycenter" onclick="switchTab('overview')">Privacy Center</a>
+        </div>
+      </nav>
+    </aside>
 
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-  <script type="text/babel" src="orders.jsx"></script>
+    <!-- MAIN CONTENT -->
+    <main class="oh-main">
+
+      <!-- OVERVIEW VIEW -->
+      <div id="overviewView">
+        <div class="oh-profile-banner"
+          style="display:flex;align-items:center;justify-content:space-between;padding:32px 40px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:24px;">
+            <div id="overviewAvatar"
+              style="width:100px;height:100px;background:linear-gradient(135deg, var(--gold-d), var(--gold));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:800;color:var(--navy-deep);border:4px solid rgba(212,175,55,0.4);">
+              U</div>
+            <div>
+              <h1 id="overviewName" style="font-size:24px;font-weight:800;color:var(--text);">Account</h1>
+              <p id="overviewEmail" style="font-size:14px;color:var(--muted);margin-top:2px;">Loading...</p>
+            </div>
+          </div>
+          <button class="oh-btn-primary" onclick="switchTab('profile')">Edit Profile</button>
+        </div>
+
+        <div class="oh-overview-grid"
+          style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:24px;margin-bottom:32px;">
+          <!-- Card: Orders -->
+          <div class="oh-card" onclick="switchTab('orders')"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow);text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">📦</div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Orders</h3>
+            <p style="font-size:12px;color:var(--muted);">Check your order status</p>
+          </div>
+          <!-- Card: Collections & Wishlist -->
+          <div class="oh-card" onclick="switchTab('overview')"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow);text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">📑</div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Collections & Wishlist</h3>
+            <p style="font-size:12px;color:var(--muted);">All your curated product collections</p>
+          </div>
+          <!-- Card: Indo Heals Credit -->
+          <div class="oh-card" onclick="switchTab('overview')"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow);text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">💳</div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Indo HealsCredit</h3>
+            <p style="font-size:12px;color:var(--muted);">Manage all your refunds & gift cards</p>
+          </div>
+          <!-- Card: IndoCash -->
+          <div class="oh-card" onclick="switchTab('overview')"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow);text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">💰</div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">IndoCash</h3>
+            <p style="font-size:12px;color:var(--muted);">Earn IndoCash as you shop</p>
+          </div>
+          <!-- Card: Saved Cards -->
+          <div class="oh-card" onclick="switchTab('overview')"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow);text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">🏦</div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Saved Cards</h3>
+            <p style="font-size:12px;color:var(--muted);">Save your cards for faster checkout</p>
+          </div>
+          <!-- Card: Saved UPI -->
+          <div class="oh-card" onclick="switchTab('overview')"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow);text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">📱</div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Saved UPI</h3>
+            <p style="font-size:12px;color:var(--muted);">View your saved UPI</p>
+          </div>
+          <!-- Card: Wallets -->
+          <div class="oh-card" onclick="switchTab('overview')"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow);text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">🛍️</div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Wallets</h3>
+            <p style="font-size:12px;color:var(--muted);">View your saved Wallets</p>
+          </div>
+          <!-- Card: Addresses -->
+          <div class="oh-card" onclick="switchTab('overview')"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow);text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">📍</div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Addresses</h3>
+            <p style="font-size:12px;color:var(--muted);">Save addresses for faster checkout</p>
+          </div>
+          <!-- Card: Coupons -->
+          <div class="oh-card" onclick="switchTab('overview')"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow);text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">🎟️</div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Coupons</h3>
+            <p style="font-size:12px;color:var(--muted);">Manage coupons for discounts</p>
+          </div>
+          <!-- Card: Profile Details -->
+          <div class="oh-card" onclick="switchTab('profile')"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow);text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">👤</div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Profile Details</h3>
+            <p style="font-size:12px;color:var(--muted);">Change your profile details</p>
+          </div>
+        </div>
+
+        <div style="text-align:center;margin-top:16px;">
+          <button class="oh-logout-btn" onclick="doLogout()"
+            style="display:inline-flex;align-items:center;gap:10px;padding:12px 48px;background:#ff5252;color:#fff;font-weight:700;font-size:14px;border-radius:4px;cursor:pointer;border:none;box-shadow:0 2px 12px rgba(255,82,82,0.3);text-transform:uppercase;letter-spacing:0.05em;transition:all 0.2s;">Logout</button>
+        </div>
+      </div>
+
+      <!-- PROFILE VIEW -->
+      <div id="profileView"
+        style="display:none;background:#ffffff;border:1px solid #eaeaec;border-radius:4px;padding:60px 48px;box-shadow:0 1px 4px rgba(0,0,0,0.03);max-width:860px;">
+        <h2
+          style="font-size:18px;font-weight:700;color:var(--navy);border-bottom:1px solid #f5f5f6;padding-bottom:16px;margin-bottom:36px;">
+          Profile Details</h2>
+        <div style="display:flex;flex-direction:column;gap:24px;max-width:580px;margin-bottom:44px;">
+          <div style="display:flex;align-items:center;">
+            <span style="width:180px;font-size:14px;color:var(--navy);opacity:0.8;">Full Name</span>
+            <strong id="prof-fullName" style="font-size:15px;color:var(--text);font-weight:600;">- not added -</strong>
+          </div>
+          <div style="display:flex;align-items:center;">
+            <span style="width:180px;font-size:14px;color:var(--navy);opacity:0.8;">Mobile Number</span>
+            <strong id="prof-phone" style="font-size:15px;color:var(--text);font-weight:600;">- not added -</strong>
+          </div>
+          <div style="display:flex;align-items:center;">
+            <span style="width:180px;font-size:14px;color:var(--navy);opacity:0.8;">Email ID</span>
+            <strong id="prof-email" style="font-size:15px;color:var(--text);font-weight:600;">- not added -</strong>
+          </div>
+          <div style="display:flex;align-items:center;">
+            <span style="width:180px;font-size:14px;color:var(--navy);opacity:0.8;">Gender</span>
+            <strong id="prof-gender" style="font-size:15px;color:var(--text);font-weight:600;">- not added -</strong>
+          </div>
+          <div style="display:flex;align-items:center;">
+            <span style="width:180px;font-size:14px;color:var(--navy);opacity:0.8;">Date of Birth</span>
+            <strong id="prof-dob" style="font-size:15px;color:var(--text);font-weight:600;">- not added -</strong>
+          </div>
+          <div style="display:flex;align-items:center;">
+            <span style="width:180px;font-size:14px;color:var(--navy);opacity:0.8;">Location</span>
+            <strong id="prof-location" style="font-size:15px;color:var(--text);font-weight:600;">- not added -</strong>
+          </div>
+          <div style="display:flex;align-items:center;">
+            <span style="width:180px;font-size:14px;color:var(--navy);opacity:0.8;">Alternate Mobile</span>
+            <strong id="prof-altMobile" style="font-size:15px;color:var(--text);font-weight:600;">- not added -</strong>
+          </div>
+          <div style="display:flex;align-items:center;">
+            <span style="width:180px;font-size:14px;color:var(--navy);opacity:0.8;">Hint Name</span>
+            <strong id="prof-hint" style="font-size:15px;color:var(--text);font-weight:600;">- not added -</strong>
+          </div>
+        </div>
+        <div style="text-align:left;max-width:580px;">
+          <button onclick="window.location.href='index.html#account'"
+            style="background:var(--navy);color:var(--gold-l);font-weight:700;font-size:14px;padding:14px 0;width:100%;border:1px solid var(--gold);border-radius:4px;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;box-shadow:0 1px 2px rgba(0,0,0,0.1);text-align:center;">Edit</button>
+        </div>
+      </div>
+
+      <!-- ALL ORDERS VIEW -->
+      <div id="ordersListView" style="display:none;">
+        <div class="oh-list-header">
+          <div>
+            <h1 class="oh-list-title">All orders</h1>
+            <p class="oh-list-sub">from anytime</p>
+          </div>
+          <div class="oh-list-controls">
+            <div class="oh-search-box">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.5 6.5 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.5 6.5 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z" />
+              </svg>
+              <input type="text" id="orderSearch" placeholder="Search orders…" oninput="filterOrders()">
+            </div>
+            <div class="oh-filter-box">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M4.25 5.61C6.27 8.2 10 13 10 13v6a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-6s3.72-4.8 5.74-7.39A1 1 0 0 0 18.95 4H5.04a1 1 0 0 0-.79 1.61z" />
+              </svg>
+              <select id="statusFilter" onchange="filterOrders()">
+                <option value="">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Out for Delivery">Out for Delivery</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Not logged in -->
+        <div id="notLoggedIn" class="oh-state-card" style="display:none;">
+          <div class="oh-state-icon">🔐</div>
+          <h2>Login required</h2>
+          <p>Please log in to view your orders.</p>
+          <a href="index.html" class="oh-btn-primary">Go to Login</a>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingState" class="oh-state-card" style="display:none;">
+          <div class="oh-spinner"></div>
+          <p>Loading your orders…</p>
+        </div>
+
+        <!-- Error -->
+        <div id="errorState" class="oh-state-card" style="display:none;">
+          <div class="oh-state-icon">⚠️</div>
+          <h2>Could not load orders</h2>
+          <p id="errorMsg"></p>
+          <button class="oh-btn-primary" onclick="loadOrders()">Retry</button>
+        </div>
+
+        <!-- Empty -->
+        <div id="emptyState" class="oh-state-card" style="display:none;">
+          <div class="oh-state-icon">📦</div>
+          <h2>No orders yet</h2>
+          <p>Your purchases will appear here once you place an order.</p>
+          <a href="index.html" class="oh-btn-primary">Start Shopping</a>
+        </div>
+
+        <!-- Orders list -->
+        <div id="ordersList" class="oh-orders-list"></div>
+      </div>
+
+      <!-- ORDER DETAIL VIEW -->
+      <div id="orderDetailView" style="display:none;">
+        <button class="oh-back-link" onclick="showListView()">
+          <svg viewBox="0 0 24 24">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+          </svg>
+          Back to Orders
+        </button>
+        <div id="orderDetailContent"></div>
+      </div>
+
+      <!-- PRODUCT DETAIL VIEW -->
+      <div id="productDetailView" style="display:none;">
+        <button class="oh-back-link" onclick="goBackFromProductView()">
+          <svg viewBox="0 0 24 24">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+          </svg>
+          Back
+        </button>
+        <div id="productDetailContent"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="orders-new.js"></script>
 </body>
+
 </html>

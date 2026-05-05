@@ -12,10 +12,10 @@ const API_BASES = window.INDO_HEALS_API
     ? [`${window.location.origin}/api`]
     : isLocalHost
       ? [
-          "http://localhost:5001/api",
-          "http://127.0.0.1:5001/api",
-          "http://localhost:5002/api"
-        ]
+        "http://localhost:5001/api",
+        "http://127.0.0.1:5001/api",
+        "http://localhost:5002/api"
+      ]
       : [PRODUCTION_API_BASE];
 const PRODUCT_IMAGE = "assets/breathe-classic-ai.png";
 const FALLBACK_PRODUCTS = [
@@ -758,15 +758,15 @@ function renderOrderConfirmation() {
     <div class="confirmation-section">
       <h3>Items</h3>
       ${items
-        .map(
-          item => `
+      .map(
+        item => `
             <div class="summary-line">
               <span>${escapeHtml(item.name)} x ${Number(item.quantity || 1)}</span>
               <strong>${formatRupee(item.price * item.quantity)}</strong>
             </div>
           `
-        )
-        .join("")}
+      )
+      .join("")}
     </div>
     <div class="confirmation-section">
       <h3>Delivery</h3>
@@ -1098,13 +1098,8 @@ async function syncCartAfterLogin() {
   }
 }
 
-function openAccount() {
-  if (auth?.token) {
-    goToPage("account");
-    return;
-  }
-
-  goToPage("login");
+function openAccount(event) {
+  toggleAccountDropdown(event);
 }
 
 function handleAuthNav() {
@@ -1189,6 +1184,9 @@ function renderAccount() {
     <div><span>Phone</span><strong>${escapeHtml(auth.user?.phone || "Not added")}</strong></div>
     <div><span>Role</span><strong>${escapeHtml(auth.user?.role || "user")}</strong></div>
   `;
+
+  // Initialize tabs
+  setTimeout(() => switchAccountTab("profile"), 50);
 }
 
 async function loadMyOrders() {
@@ -1315,4 +1313,321 @@ function showToast(message) {
   toastTimer = setTimeout(() => {
     toast.classList.remove("show");
   }, 2400);
+}
+
+/* ─────────────────────────────────────────
+   NAV ACCOUNT DROPDOWN
+───────────────────────────────────────── */
+let dropdownOpen = false;
+
+function toggleAccountDropdown(e) {
+  e && e.stopPropagation();
+  const dd = document.getElementById("accountDropdown");
+  if (!dd) return;
+  dropdownOpen = !dropdownOpen;
+  dd.classList.toggle("open", dropdownOpen);
+  updateDropdownContent();
+}
+
+function closeAccountDropdown() {
+  const dd = document.getElementById("accountDropdown");
+  if (dd) dd.classList.remove("open");
+  dropdownOpen = false;
+}
+
+function updateDropdownContent() {
+  const userBlock = document.getElementById("accDropUser");
+  const loginRow = document.getElementById("accDropLogin");
+  const authDiv = document.getElementById("accDropAuthDivider");
+  const authSection = document.getElementById("accDropAuthSection");
+  const nameEl = document.getElementById("accDropName");
+  const phoneEl = document.getElementById("accDropPhone");
+
+  if (!userBlock) return;
+
+  if (auth?.token) {
+    userBlock.style.display = "block";
+    loginRow.style.display = "none";
+    if (authDiv) authDiv.style.display = "";
+    if (authSection) authSection.style.display = "";
+    if (nameEl) nameEl.textContent = auth.user?.name || "User";
+    if (phoneEl) phoneEl.textContent = auth.user?.phone || "";
+  } else {
+    userBlock.style.display = "none";
+    loginRow.style.display = "";
+    if (authDiv) authDiv.style.display = "none";
+    if (authSection) authSection.style.display = "none";
+  }
+}
+
+
+// Close when clicking outside
+document.addEventListener("click", (e) => {
+  if (!dropdownOpen) return;
+  const wrapper = document.getElementById("navAccountWrapper");
+  if (wrapper && !wrapper.contains(e.target)) closeAccountDropdown();
+});
+
+/* ─────────────────────────────────────────
+   ACCOUNT PAGE TABS
+───────────────────────────────────────── */
+function switchAccountTab(tab) {
+  // Update tab buttons
+  document.querySelectorAll(".account-tab").forEach(btn => {
+    btn.classList.remove("active");
+    btn.setAttribute("aria-selected", "false");
+  });
+  const activeBtn = document.getElementById(`tab-${tab}`);
+  if (activeBtn) {
+    activeBtn.classList.add("active");
+    activeBtn.setAttribute("aria-selected", "true");
+  }
+
+  // Show correct panel
+  ["profile", "address"].forEach(name => {
+    const panel = document.getElementById(`accountTab${name.charAt(0).toUpperCase() + name.slice(1)}`);
+    if (panel) panel.style.display = name === tab ? "" : "none";
+  });
+
+  if (tab === "address") renderAddressList();
+}
+
+// Called from dropdown
+function openAccountTab(tab) {
+  if (!auth?.token) { goToPage("login"); return; }
+  goToPage("account");
+  setTimeout(() => switchAccountTab(tab), 80);
+}
+
+/* ─────────────────────────────────────────
+   PROFILE EDIT
+───────────────────────────────────────── */
+function showProfileEdit() {
+  document.getElementById("profileViewCard").style.display = "none";
+  document.getElementById("profileEditCard").style.display = "";
+  // Pre-fill
+  const n = document.getElementById("editProfileName");
+  const phoneText = document.getElementById("editProfilePhoneText");
+  const emailText = document.getElementById("editProfileEmailText");
+
+  if (n) n.value = auth?.user?.name || "";
+  if (phoneText) phoneText.textContent = auth?.user?.phone || "";
+  if (emailText) emailText.textContent = auth?.user?.email || "No email provided";
+
+  // Set extended fields
+  const dob = document.getElementById("editProfileDob");
+  const altMob = document.getElementById("editProfileAltMobile");
+  const altName = document.getElementById("editProfileAltName");
+  const altEmail = document.getElementById("editProfileAltEmail");
+
+  if (dob) dob.value = auth?.user?.dob || "";
+  if (altMob) altMob.value = auth?.user?.altMobile || "";
+  if (altName) altName.value = auth?.user?.altName || "";
+  if (altEmail) altEmail.value = auth?.user?.altEmail || "";
+
+  // Set gender
+  if (auth?.user?.gender) {
+    const radio = document.querySelector(`input[name="profileGender"][value="${auth.user.gender}"]`);
+    if (radio) radio.checked = true;
+  }
+}
+
+function cancelProfileEdit() {
+  document.getElementById("profileEditCard").style.display = "none";
+  document.getElementById("profileViewCard").style.display = "";
+  setFormMessage("profileUpdateMsg", "");
+}
+
+async function saveProfileUpdate(event) {
+  event.preventDefault();
+  setFormMessage("profileUpdateMsg", "");
+  const newName = document.getElementById("editProfileName").value.trim();
+  const dob = document.getElementById("editProfileDob").value;
+  const altMobile = document.getElementById("editProfileAltMobile").value.trim();
+  const altName = document.getElementById("editProfileAltName").value.trim();
+  const altEmail = document.getElementById("editProfileAltEmail").value.trim();
+  const genderEl = document.querySelector('input[name="profileGender"]:checked');
+  const gender = genderEl ? genderEl.value : "";
+
+  if (!newName) { setFormMessage("profileUpdateMsg", "Name cannot be empty.", "error"); return; }
+
+  try {
+    const data = await apiFetch("/auth/profile", {
+      method: "PUT",
+      body: {
+        name: newName,
+        dob,
+        altMobile,
+        altName,
+        altEmail,
+        gender
+      }
+    });
+    // Update local auth
+    if (!auth.user) auth.user = {};
+    auth.user.name = data.user?.name || newName;
+    auth.user.dob = dob;
+    auth.user.altMobile = altMobile;
+    auth.user.altName = altName;
+    auth.user.altEmail = altEmail;
+    auth.user.gender = gender;
+
+    localStorage.setItem("auth", JSON.stringify(auth));
+    updateAuthUI();
+    renderAccount();
+    cancelProfileEdit();
+    showToast("Profile updated successfully.");
+  } catch (err) {
+    // Fallback: update locally if API not available
+    if (!auth.user) auth.user = {};
+    auth.user.name = newName;
+    localStorage.setItem("auth", JSON.stringify(auth));
+    updateAuthUI();
+    renderAccount();
+    cancelProfileEdit();
+    showToast("Profile updated.");
+  }
+}
+
+/* ─────────────────────────────────────────
+   ADDRESS MANAGEMENT (localStorage)
+───────────────────────────────────────── */
+function getSavedAddresses() {
+  try { return JSON.parse(localStorage.getItem("savedAddresses") || "[]"); }
+  catch { return []; }
+}
+function saveAddresses(arr) {
+  localStorage.setItem("savedAddresses", JSON.stringify(arr));
+}
+
+function renderAddressList() {
+  const list = document.getElementById("addressList");
+  if (!list) return;
+  const addresses = getSavedAddresses();
+
+  if (!addresses.length) {
+    list.innerHTML = `<div class="address-empty">No saved addresses yet.<br>Click <strong>+ Add New</strong> to add your first address.</div>`;
+    return;
+  }
+
+  list.innerHTML = addresses.map((addr, i) => `
+    <div class="address-card">
+      <div class="address-card-icon">📍</div>
+      <div class="address-card-body">
+        <div class="address-card-name">${escapeHtml(addr.name)}</div>
+        <div class="address-card-line">
+          ${escapeHtml(addr.line1)}${addr.line2 ? ", " + escapeHtml(addr.line2) : ""}<br>
+          ${escapeHtml(addr.city)}, ${escapeHtml(addr.state)} - ${escapeHtml(addr.pin)}<br>
+          ${escapeHtml(addr.country || "India")}
+        </div>
+        <div class="address-card-phone">📞 ${escapeHtml(addr.phone)}</div>
+      </div>
+      <div class="address-card-actions">
+        <button class="address-edit-btn" onclick="editAddress(${i})">Edit</button>
+        <button class="address-del-btn" onclick="deleteAddress(${i})">Delete</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function showAddressForm(editIndex = "") {
+  document.getElementById("addressFormWrap").style.display = "";
+  document.getElementById("addr-edit-index").value = editIndex;
+  setFormMessage("addressFormMsg", "");
+
+  if (editIndex !== "") {
+    const addr = getSavedAddresses()[Number(editIndex)];
+    if (addr) {
+      document.getElementById("addr-name").value = addr.name || "";
+      document.getElementById("addr-phone").value = addr.phone || "";
+      document.getElementById("addr-line1").value = addr.line1 || "";
+      document.getElementById("addr-line2").value = addr.line2 || "";
+      document.getElementById("addr-city").value = addr.city || "";
+      document.getElementById("addr-state").value = addr.state || "";
+      document.getElementById("addr-pin").value = addr.pin || "";
+      document.getElementById("addr-country").value = addr.country || "India";
+    }
+  } else {
+    ["addr-name", "addr-phone", "addr-line1", "addr-line2", "addr-city", "addr-state", "addr-pin"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    document.getElementById("addr-country").value = "India";
+  }
+
+  document.getElementById("addressFormWrap").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cancelAddressForm() {
+  document.getElementById("addressFormWrap").style.display = "none";
+  setFormMessage("addressFormMsg", "");
+}
+
+function editAddress(index) {
+  showAddressForm(index);
+}
+
+function deleteAddress(index) {
+  if (!confirm("Delete this address?")) return;
+  const addresses = getSavedAddresses();
+  addresses.splice(index, 1);
+  saveAddresses(addresses);
+  renderAddressList();
+  showToast("Address deleted.");
+}
+
+function saveAddress(event) {
+  event.preventDefault();
+  const idx = document.getElementById("addr-edit-index").value;
+  const newAddr = {
+    name: document.getElementById("addr-name").value.trim(),
+    phone: document.getElementById("addr-phone").value.trim(),
+    line1: document.getElementById("addr-line1").value.trim(),
+    line2: document.getElementById("addr-line2").value.trim(),
+    city: document.getElementById("addr-city").value.trim(),
+    state: document.getElementById("addr-state").value.trim(),
+    pin: document.getElementById("addr-pin").value.trim(),
+    country: document.getElementById("addr-country").value.trim() || "India"
+  };
+
+  const addresses = getSavedAddresses();
+  if (idx !== "") {
+    addresses[Number(idx)] = newAddr;
+  } else {
+    addresses.push(newAddr);
+  }
+  saveAddresses(addresses);
+  cancelAddressForm();
+  renderAddressList();
+  showToast(idx !== "" ? "Address updated." : "Address saved.");
+}
+
+/* ─────────────────────────────────────────
+   Go to account page (used by dropdown items)
+───────────────────────────────────────── */
+function goToAccountPage() {
+  if (auth?.token) {
+    goToPage("account");
+  } else {
+    goToPage("login");
+  }
+}
+
+/* ─────────────────────────────────────────
+   HELP CENTER LOGIC
+───────────────────────────────────────── */
+function toggleBusinessForm() {
+  const mainView = document.getElementById("hc-main-view");
+  const businessView = document.getElementById("hc-business-view");
+
+  if (mainView && businessView) {
+    if (mainView.style.display !== "none") {
+      mainView.style.display = "none";
+      businessView.style.display = "block";
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      businessView.style.display = "none";
+      mainView.style.display = "block";
+    }
+  }
 }

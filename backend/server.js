@@ -47,6 +47,7 @@ const cartRoutes = require("./routes/cartRoutes");
 const downloadRoutes = require("./routes/downloadRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const contactRoutes = require("./routes/contactRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
 app.get("/api/health", (req, res) => {
   res.json({
@@ -67,6 +68,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/downloads", downloadRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/chat", chatRoutes);
 
 const frontendPath = path.join(__dirname, "../frontend");
 app.use(express.static(frontendPath));
