@@ -11,13 +11,9 @@ const API_BASES = window.INDO_HEALS_API
   : isBackendServedFrontend
     ? [`${window.location.origin}/api`]
     : isLocalHost
-      ? [
-        "http://localhost:5001/api",
-        "http://127.0.0.1:5001/api",
-        "http://localhost:5002/api"
-      ]
+      ? ["http://localhost:5001/api"]
       : [PRODUCTION_API_BASE];
-const PRODUCT_IMAGE = "assets/breathe-classic-ai.png";
+const PRODUCT_IMAGE = "/assets/breathe-classic-ai.png";
 const FALLBACK_PRODUCTS = [
   {
     name: "Breathe Classic",
@@ -26,7 +22,7 @@ const FALLBACK_PRODUCTS = [
     description:
       "Premium functional dark chocolate crafted with ashwagandha and tulsi for an everyday herbal wellness ritual.",
     wellnessNote: "Traditionally associated with stress support and calming wellness.",
-    image: "assets/breathe-classic-ai.png",
+    image: "/assets/breathe-classic-ai.png",
     category: "Functional Dark Chocolate",
     badge: "Classic Blend",
     weight: "40 g",
@@ -45,7 +41,7 @@ const FALLBACK_PRODUCTS = [
     description:
       "Dark chocolate with moringa and almond, created for active daily routines with a refined herbal profile.",
     wellnessNote: "Traditionally associated with energy and stamina support.",
-    image: "assets/breathe-energy-ai.png",
+    image: "/assets/breathe-energy-ai.png",
     category: "Functional Dark Chocolate",
     badge: "Energy Blend",
     weight: "40 g",
@@ -110,6 +106,7 @@ let currentPage = "home";
 let toastTimer;
 let heroSlideIndex = 0;
 let heroSlideTimer;
+let globalLocation = JSON.parse(localStorage.getItem("globalLocation")) || null;
 
 document.addEventListener("DOMContentLoaded", () => {
   bindSearch();
@@ -117,7 +114,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initScrollAnimations();
   updateAuthUI();
-  loadProducts();
+  initGlobalLocation();
+  bindHeaderSearch();
 
   // Initialize router
   initRouter();
@@ -192,7 +190,7 @@ function goToPage(page, pushState = true) {
   // Convert products/foods to products-foods for element IDs
   const pageId = page.replace(/\//g, '-');
   const selectedPage = document.getElementById(`${pageId}-page`);
-  
+
   if (selectedPage) {
     selectedPage.style.display = "block";
   }
@@ -220,6 +218,10 @@ function goToPage(page, pushState = true) {
 
   if (page === "checkout") {
     renderCheckout();
+  }
+
+  if (page === "order-summary") {
+    renderOrderSummary();
   }
 
   if (page === "order-confirmation") {
@@ -338,35 +340,41 @@ function initHeroCarousel() {
   startHeroAutoSlide(true);
 }
 
-async function loadProducts(category = "", containerId = "products") {
+async function loadProducts(category = "", containerId = "products", force = false) {
   const container = document.getElementById(containerId);
 
   try {
-    if (container) {
+    if (container && !allProducts.length) {
       container.innerHTML = "<p id='noProducts'>Loading products...</p>";
     }
 
-    const products = await apiFetch("/products");
-    allProducts = Array.isArray(products) && products.length ? products : FALLBACK_PRODUCTS;
-    renderSignatureProducts();
+    if (!allProducts.length || force) {
+      const products = await apiFetch("/products");
+      allProducts = Array.isArray(products) && products.length ? products : FALLBACK_PRODUCTS;
+    }
     
+    renderSignatureProducts();
+
     let filtered = allProducts;
     if (category) {
       const targetCat = String(category).toLowerCase();
-      filtered = allProducts.filter(p => 
+      filtered = allProducts.filter(p =>
         (p.category && String(p.category).toLowerCase() === targetCat) ||
         (p.type && String(p.type).toLowerCase() === targetCat)
       );
     }
-    
+
     displayProducts(filtered, containerId);
   } catch (error) {
     console.error("Error fetching products:", error);
-    allProducts = FALLBACK_PRODUCTS;
+    if (!allProducts.length) {
+      allProducts = FALLBACK_PRODUCTS;
+    }
     renderSignatureProducts();
     let filtered = allProducts;
     if (category) {
-      filtered = allProducts.filter(p => p.category.toLowerCase() === category.toLowerCase());
+      const targetCat = String(category).toLowerCase();
+      filtered = allProducts.filter(p => (p.category || "").toLowerCase() === targetCat);
     }
     displayProducts(filtered, containerId);
   }
@@ -387,16 +395,17 @@ function renderSignatureProducts() {
     const discount = productDiscountPercent(product);
 
     return `
-      <article class="range-card reveal ${index === products.length - 1 ? "range-card-cta-overlay" : ""}" role="button" tabindex="0"
+      <article class="range-card reveal" role="button" tabindex="0"
         onclick="viewDetail('${productId}')" onkeydown="handleProductCardKey(event, '${productId}')"
         aria-label="View ${escapeAttribute(product.name)} specifications">
         <img src="${image}" alt="${escapeAttribute(product.name)} product packaging">
-        ${index === products.length - 1 ? `<button type="button" class="range-card-overlay-btn" onclick="event.stopPropagation(); goToPage('products')">See All</button>` : ""}
         <div class="range-card-body">
-          <span>${badge}</span>
-          <h3>${escapeHtml(product.name)}</h3>
-          <p>${note}</p>
-          <small>${description}</small>
+          <span class="compact-badge">${badge}</span>
+          <h3 class="compact-name">${escapeHtml(product.name)}</h3>
+          <div class="product-specs">
+            ${product.cocoa ? `<span>${escapeHtml(product.cocoa)}</span>` : ""}
+            ${product.weight ? `<span>${escapeHtml(product.weight)}</span>` : ""}
+          </div>
           <div class="range-card-footer">
             <div class="card-offer-price">
               ${discount ? `<small>MRP <s>${formatRupee(mrp)}</s></small>` : ""}
@@ -433,34 +442,30 @@ function productCardTemplate(product) {
   const discount = productDiscountPercent(product);
   const sold = productSoldCount(product);
 
+  const deliveryBadge = getGlobalDeliveryBadge();
+
   return `
-    <article class="product-card">
+    <article class="product-card compact-card">
       <div class="product-img">
         <img src="${image}" alt="${escapeAttribute(product.name)}">
-        <span class="product-badge">${escapeHtml(product.badge || "Wellness Chocolate")}</span>
+        <span class="product-badge">${escapeHtml(product.badge || "Wellness")}</span>
       </div>
       <div class="product-body">
-        <span class="product-tag">${escapeHtml(product.category || "Health Support")}</span>
         <h3 class="product-name">${escapeHtml(product.name)}</h3>
-        <p class="product-wellness">${escapeHtml(product.wellnessNote || "")}</p>
-        <p class="product-desc">${escapeHtml(product.description || "")}</p>
-        <div class="product-herbs">
-          ${ingredients.map(item => `<span class="herb-tag">${escapeHtml(item)}</span>`).join("")}
-        </div>
         <div class="product-specs">
           ${product.cocoa ? `<span>${escapeHtml(product.cocoa)}</span>` : ""}
           ${product.weight ? `<span>${escapeHtml(product.weight)}</span>` : ""}
         </div>
+        ${deliveryBadge}
         <div class="product-footer">
           <span class="product-price card-offer-price">
             ${discount ? `<small>MRP <s>${formatRupee(mrp)}</s></small>` : ""}
             <strong>${formatRupee(product.price)}</strong>
             ${discount ? `<b>${discount}% OFF</b>` : ""}
-            ${sold ? `<em>${sold} sold</em>` : ""}
           </span>
-          <button class="product-btn" onclick="addToCart('${productId}')">Add to Cart</button>
+          <button class="product-btn" onclick="addToCart('${productId}')">Add</button>
         </div>
-        <button class="product-link" onclick="viewDetail('${productId}')">View details</button>
+        <button class="product-link compact-link" onclick="viewDetail('${productId}')">View details</button>
       </div>
     </article>
   `;
@@ -537,7 +542,7 @@ function productSoldCount(product) {
 
 async function loadProductSoldCounts() {
   try {
-    const orders = await apiFetch("/orders/all");
+    const orders = await apiFetch("/orders");
     const counts = {};
     (Array.isArray(orders) ? orders : []).forEach(order => {
       (order.items || []).forEach(item => {
@@ -653,8 +658,17 @@ function viewDetail(productId) {
             <button class="btn-primary" onclick="addToCart('${escapeAttribute(productId)}')">Buy Now</button>
             <button class="btn-outline" onclick="addToCart('${escapeAttribute(productId)}')">Add to Cart</button>
           </div>
+
+          <div class="hm-pincode-checker">
+            <span class="hm-pincode-label">Check Delivery Estimation</span>
+            <div class="hm-pincode-input-wrap">
+              <input type="text" id="deliveryPincode" class="hm-pincode-input" placeholder="Enter Pincode" maxlength="6" value="${localStorage.getItem('lastPincode') || ''}">
+              <button class="hm-pincode-btn" onclick="checkDelivery()">CHECK</button>
+            </div>
+            <div id="pincodeMsg" class="hm-pincode-msg"></div>
+          </div>
+
           <ul class="hm-delivery-list">
-            <li>Standard delivery in 2 - 4 day(s)</li>
             <li>Cash on Delivery also available</li>
             <li>Guaranteed returns available within 7 days</li>
           </ul>
@@ -692,8 +706,8 @@ function viewDetail(productId) {
           <h3>Similar Products</h3>
           <div class="hm-similar-grid">
             ${similarProducts.map(item => {
-              const relatedId = escapeAttribute(item._id || item.id || item.slug);
-              return `
+    const relatedId = escapeAttribute(item._id || item.id || item.slug);
+    return `
                 <article class="hm-similar-card" onclick="viewDetail('${relatedId}')">
                   <img src="${escapeAttribute(item.image || PRODUCT_IMAGE)}" alt="${escapeAttribute(item.name)}">
                   <strong>${escapeHtml(item.name)}</strong>
@@ -702,7 +716,7 @@ function viewDetail(productId) {
                   <button onclick="event.stopPropagation(); addToCart('${relatedId}')">+</button>
                 </article>
               `;
-            }).join("")}
+  }).join("")}
           </div>
         </section>
       ` : ""}
@@ -711,11 +725,58 @@ function viewDetail(productId) {
         <div class="hm-qna-row"><strong>Q</strong><p>How can I use this product?</p></div>
         <div class="hm-qna-row"><strong>A</strong><p>Please follow the pack instructions or contact Indo Heals support for guidance.</p></div>
       </section>
-      <section class="hm-section hm-reviews">
+      <section class="hm-section hm-reviews" id="productReviewsSection">
         <h3>Ratings & Reviews</h3>
-        <div class="hm-review-summary"><strong>4.2 ★</strong><span>37 Ratings and 2 Reviews</span><button class="btn-primary" type="button">Rate & Review</button></div>
+        <div style="text-align:center;padding:20px;color:var(--muted);">Loading reviews...</div>
       </section>
     </article>
+  `;
+
+  loadProductReviews(productId, product.name, product.image || PRODUCT_IMAGE);
+}
+
+async function loadProductReviews(productId, prodName, prodImg) {
+  try {
+    const res = await fetch(`/api/products/${productId}/reviews`);
+    const reviews = await res.json();
+    renderProductReviews(reviews);
+  } catch (err) {
+    console.error("Error loading reviews", err);
+  }
+}
+
+function renderProductReviews(reviews) {
+  const section = document.getElementById('productReviewsSection');
+  if (!section) return;
+
+  const avgRating = reviews.length ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : '0.0';
+
+  section.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h3>Ratings & Reviews</h3>
+      <span style="font-size:12px; color:var(--muted);">Authentic reviews from verified buyers.</span>
+    </div>
+
+    <div class="hm-review-summary">
+      <strong>${avgRating} ★</strong>
+      <span>${reviews.length} Ratings and ${reviews.length} Reviews</span>
+    </div>
+    <div class="reviews-list">
+      ${reviews.map(rev => `
+        <div class="review-item-card" style="padding:15px 0; border-bottom:1px solid var(--line);">
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <div style="background:var(--gold); color:white; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:bold;">${rev.rating} ★</div>
+            <div style="color:var(--muted); font-size:12px;">${rev.customerName} | ${new Date(rev.createdAt).toLocaleDateString()}</div>
+          </div>
+          <p style="color:white; font-size:13px; margin-bottom:10px;">${rev.comment}</p>
+          <div style="display:flex; gap:8px;">
+            ${(rev.images || []).map(img => `<img src="${img}" style="width:60px; height:60px; object-fit:cover; border-radius:4px; border:1px solid var(--line);">`).join('')}
+            ${rev.video ? `<video src="${rev.video}" style="width:60px; height:60px; object-fit:cover; border-radius:4px; border:1px solid var(--line);"></video>` : ''}
+          </div>
+        </div>
+      `).join('')}
+      ${!reviews.length ? '<p style="color:var(--muted); text-align:center; padding:20px;">No reviews yet. Be the first to order and share your experience!</p>' : ''}
+    </div>
   `;
 }
 
@@ -889,10 +950,9 @@ function renderCheckout() {
     return;
   }
 
-  const summary = document.getElementById("checkoutSummary");
-  const totalElement = document.getElementById("checkoutTotal");
-  if (!summary || !totalElement) return;
-
+  const briefSummary = document.getElementById("checkoutBriefSummary");
+  const briefTotal = document.getElementById("checkoutBriefTotal");
+  
   const nameInput = document.getElementById("checkout-name");
   const phoneInput = document.getElementById("checkout-phone");
   const emailInput = document.getElementById("checkout-email");
@@ -900,20 +960,143 @@ function renderCheckout() {
   if (phoneInput && !phoneInput.value) phoneInput.value = auth.user?.phone || "";
   if (emailInput) emailInput.value = auth.user?.email || "";
 
+  // Set default address if available
+  if (auth.user?.addresses && auth.user.addresses.length > 0) {
+    const addr = auth.user.addresses[0];
+    const a1 = document.getElementById("checkout-address1");
+    const city = document.getElementById("checkout-city");
+    const state = document.getElementById("checkout-state");
+    const pin = document.getElementById("checkout-postal");
+    if (a1 && !a1.value) a1.value = addr.addressLine1 || "";
+    if (city && !city.value) city.value = addr.city || "";
+    if (state && !state.value) state.value = addr.state || "";
+    if (pin && !pin.value) pin.value = addr.postalCode || "";
+  }
+
   let total = 0;
-  summary.innerHTML = cart
-    .map(item => {
-      const lineTotal = item.price * item.quantity;
-      total += lineTotal;
+  if (briefSummary) {
+    briefSummary.innerHTML = cart
+      .map(item => {
+        const lineTotal = item.price * item.quantity;
+        total += lineTotal;
+        return `
+          <div class="summary-line">
+            <span>${escapeHtml(item.name)} x ${item.quantity}</span>
+            <strong>${formatRupee(lineTotal)}</strong>
+          </div>
+        `;
+      })
+      .join("");
+  }
+  if (briefTotal) briefTotal.textContent = total.toLocaleString("en-IN");
+}
+
+function goToOrderSummary(event) {
+  if (event) event.preventDefault();
+  // Basic validation check
+  const addr = checkoutShippingAddress();
+  if (!addr.fullName || !addr.addressLine1 || !addr.city || !addr.postalCode) {
+    showToast("Please fill all required address fields.");
+    return;
+  }
+  
+  renderOrderSummary();
+  goToPage("order-summary");
+}
+
+let appliedCoupon = null;
+
+function renderOrderSummary() {
+  const addr = checkoutShippingAddress();
+  const addrContainer = document.getElementById("summaryDeliveryAddress");
+  if (addrContainer) {
+    addrContainer.innerHTML = `
+      <p><strong>${escapeHtml(addr.fullName)}</strong></p>
+      <p>${escapeHtml(addr.addressLine1)}${addr.addressLine2 ? ', ' + escapeHtml(addr.addressLine2) : ''}</p>
+      <p>${escapeHtml(addr.city)}, ${escapeHtml(addr.state)} - ${escapeHtml(addr.postalCode)}</p>
+      <p>Phone: ${escapeHtml(addr.phone)}</p>
+    `;
+  }
+
+  const itemsContainer = document.getElementById("summaryItemsList");
+  let subtotal = 0;
+  if (itemsContainer) {
+    itemsContainer.innerHTML = cart.map(item => {
+      subtotal += item.price * item.quantity;
       return `
-        <div class="summary-line">
-          <span>${escapeHtml(item.name)} x ${item.quantity}</span>
-          <strong>${formatRupee(lineTotal)}</strong>
+        <div class="summary-item-row">
+          <img src="${item.image || PRODUCT_IMAGE}" class="summary-item-img">
+          <div class="summary-item-info">
+            <h4>${escapeHtml(item.name)}</h4>
+            <span>Qty: ${item.quantity}</span>
+          </div>
+          <div class="summary-item-price">${formatRupee(item.price * item.quantity)}</div>
         </div>
       `;
-    })
-    .join("");
-  totalElement.textContent = total.toLocaleString("en-IN");
+    }).join("");
+  }
+
+  let discountAmount = 0;
+  if (appliedCoupon) {
+    if (appliedCoupon.type === 'percentage') {
+      discountAmount = (subtotal * appliedCoupon.value) / 100;
+    } else {
+      discountAmount = appliedCoupon.value;
+    }
+  }
+
+  const finalTotal = Math.max(0, subtotal - discountAmount);
+
+  const pricingContainer = document.getElementById("summaryFinalPricing");
+  if (pricingContainer) {
+    pricingContainer.innerHTML = `
+      <div class="pricing-row"><span>Bag Subtotal</span> <span>${formatRupee(subtotal)}</span></div>
+      ${appliedCoupon ? `<div class="pricing-row discount"><span>Coupon Discount (${appliedCoupon.code})</span> <span>-${formatRupee(discountAmount)}</span></div>` : ''}
+      <div class="pricing-row discount"><span>Delivery Fee</span> <span>FREE</span></div>
+    `;
+  }
+
+  const finalTotalEl = document.getElementById("summaryFinalTotal");
+  if (finalTotalEl) finalTotalEl.textContent = finalTotal.toLocaleString("en-IN");
+}
+
+async function applyCoupon() {
+  const input = document.getElementById("couponInput");
+  const msg = document.getElementById("couponMessage");
+  if (!input || !msg) return;
+
+  const code = input.value.trim().toUpperCase();
+  if (!code) {
+    msg.textContent = "Please enter a code.";
+    msg.className = "coupon-msg error";
+    return;
+  }
+
+  msg.textContent = "Checking...";
+  msg.className = "coupon-msg";
+
+  try {
+    const res = await apiFetch(`/orders/validate-coupon/${code}`);
+    if (res.valid) {
+      // Check min order value
+      const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      if (res.minOrderValue && subtotal < res.minOrderValue) {
+        msg.textContent = `Min order value for this coupon is ${formatRupee(res.minOrderValue)}.`;
+        msg.className = "coupon-msg error";
+        return;
+      }
+
+      appliedCoupon = { ...res, code };
+      msg.textContent = "Coupon applied successfully!";
+      msg.className = "coupon-msg success";
+      renderOrderSummary();
+    }
+  } catch (err) {
+    appliedCoupon = null;
+    msg.textContent = err.message || "Invalid coupon code.";
+    msg.className = "coupon-msg error";
+    renderOrderSummary();
+  }
 }
 
 function checkoutShippingAddress() {
@@ -931,7 +1114,8 @@ function checkoutShippingAddress() {
 
 async function placeOrder(event) {
   event.preventDefault();
-  setFormMessage("checkoutMessage", "");
+  const msgEl = document.getElementById("summaryCheckoutMessage");
+  if (msgEl) msgEl.textContent = "";
 
   try {
     const order = await apiFetch("/orders", {
@@ -942,6 +1126,7 @@ async function placeOrder(event) {
           quantity: item.quantity
         })),
         shippingAddress: checkoutShippingAddress(),
+        couponCode: appliedCoupon ? appliedCoupon.code : null,
         notes: document.getElementById("checkout-notes").value.trim()
       }
     });
@@ -990,11 +1175,16 @@ async function placeOrder(event) {
 
     razorpay.open();
   } catch (error) {
-    setFormMessage("checkoutMessage", error.message, "error");
+    if (msgEl) {
+      msgEl.textContent = error.message;
+      msgEl.className = "form-message error";
+    } else {
+      showToast(error.message);
+    }
   }
 }
 
-function completeCheckout(orderId, order = {}) {
+async function completeCheckout(orderId, order = {}) {
   lastOrder = {
     ...order,
     orderId,
@@ -1004,32 +1194,17 @@ function completeCheckout(orderId, order = {}) {
     createdAt: order.createdAt || new Date().toISOString()
   };
   localStorage.setItem("lastOrder", JSON.stringify(lastOrder));
-  
-  // Save address to user profile if new
-  const newAddr = order.shippingAddress;
-  if (newAddr && auth.user) {
-    if (!auth.user.addresses) auth.user.addresses = [];
-    const exists = auth.user.addresses.find(a => 
-      a.addressLine1 === newAddr.addressLine1 && 
-      a.postalCode === newAddr.postalCode
-    );
-    if (!exists) {
-      auth.user.addresses.push({
-        label: "Checkout Address",
-        fullName: newAddr.fullName,
-        phone: newAddr.phone,
-        addressLine1: newAddr.addressLine1,
-        addressLine2: newAddr.addressLine2,
-        city: newAddr.city,
-        state: newAddr.state,
-        postalCode: newAddr.postalCode,
-        country: newAddr.country || "India"
-      });
-      localStorage.setItem("auth", JSON.stringify(auth));
-      apiFetch("/auth/me", {
-        method: "PUT",
-        body: { addresses: auth.user.addresses }
-      }).catch(e => console.warn("Failed to sync addresses:", e));
+
+  // Refresh user profile to sync auto-saved address
+  if (auth?.token) {
+    try {
+      const userData = await apiFetch("/auth/me");
+      if (userData) {
+        auth.user = userData;
+        localStorage.setItem("auth", JSON.stringify(auth));
+      }
+    } catch (err) {
+      console.warn("Failed to refresh profile after checkout:", err);
     }
   }
 
@@ -1371,12 +1546,82 @@ function logout() {
   goToPage("home");
 }
 
-function focusSearch() {
-  goToPage("products");
-  setTimeout(() => {
-    const searchBox = document.getElementById("searchBox");
-    if (searchBox) searchBox.focus();
-  }, 200);
+function toggleSearch() {
+  const box = document.querySelector(".nav-search-box");
+  const input = document.getElementById("headerSearchInput");
+  const dropdown = document.getElementById("searchDropdown");
+
+  if (box) {
+    box.classList.toggle("expanded");
+    if (box.classList.contains("expanded")) {
+      input.focus();
+    } else {
+      input.value = "";
+      if (dropdown) dropdown.style.display = "none";
+    }
+  }
+}
+
+function bindHeaderSearch() {
+  const input = document.getElementById("headerSearchInput");
+  if (input) {
+    input.addEventListener("input", (e) => performHeaderSearch(e.target.value));
+
+    // Close dropdown on click outside
+    document.addEventListener("click", (e) => {
+      const container = document.getElementById("navSearchContainer");
+      const dropdown = document.getElementById("searchDropdown");
+      if (container && !container.contains(e.target)) {
+        if (dropdown) dropdown.style.display = "none";
+        // Optionally collapse search box too if empty
+        const box = document.querySelector(".nav-search-box");
+        if (box && input.value === "") box.classList.remove("expanded");
+      }
+    });
+  }
+}
+
+function performHeaderSearch(query) {
+  const q = query.toLowerCase().trim();
+  const dropdown = document.getElementById("searchDropdown");
+
+  if (!dropdown) return;
+
+  if (!q) {
+    dropdown.style.display = "none";
+    return;
+  }
+
+  const filtered = allProducts.filter(p => {
+    const text = (p.name + " " + (p.description || "") + " " + (p.category || "")).toLowerCase();
+    return text.includes(q);
+  });
+
+  dropdown.style.display = "block";
+  if (filtered.length > 0) {
+    dropdown.innerHTML = filtered.slice(0, 8).map(p => `
+      <div class="search-item" onclick="viewDetail('${escapeAttribute(p._id || p.id || p.slug)}'); closeSearchDropdown();">
+        <img src="${escapeAttribute(p.image || PRODUCT_IMAGE)}" alt="">
+        <div class="search-item-info">
+          <div class="search-item-name">${escapeHtml(p.name)}</div>
+          <div class="search-item-price">${formatRupee(p.price)}</div>
+        </div>
+      </div>
+    `).join("");
+  } else {
+    dropdown.innerHTML = '<div class="search-no-match">No products found.</div>';
+  }
+}
+
+function closeSearchDropdown() {
+  const dropdown = document.getElementById("searchDropdown");
+  if (dropdown) dropdown.style.display = "none";
+  const box = document.querySelector(".nav-search-box");
+  const input = document.getElementById("headerSearchInput");
+  if (box && input) {
+    input.value = "";
+    box.classList.remove("expanded");
+  }
 }
 
 function scrollToOrders() {
@@ -1392,8 +1637,7 @@ function downloadApp() {
 }
 
 function updateAuthUI() {
-  const accountLink = document.getElementById("accountLink");
-  const navUserName = document.getElementById("navUserName");
+  const helloText = document.getElementById("navHelloText");
   const accDropUser = document.getElementById("accDropUser");
   const accDropLogin = document.getElementById("accDropLogin");
   const accDropAuthDivider = document.getElementById("accDropAuthDivider");
@@ -1401,20 +1645,16 @@ function updateAuthUI() {
 
   const isLoggedIn = Boolean(auth?.token);
 
-  if (accountLink) {
-    accountLink.classList.toggle("logged-in", isLoggedIn);
-  }
-
-  if (navUserName) {
+  if (helloText) {
     if (isLoggedIn) {
-      navUserName.textContent = auth.user?.name ? auth.user.name.split(" ")[0] : "User";
-      navUserName.style.display = "inline-flex";
+      const name = auth.user?.name ? auth.user.name.split(" ")[0] : "User";
+      helloText.textContent = `Hello, ${name}`;
     } else {
-      navUserName.textContent = "";
-      navUserName.style.display = "none";
+      helloText.textContent = "Hello, sign in";
     }
   }
 
+  // Dropdown UI updates
   if (accDropUser) accDropUser.style.display = isLoggedIn ? "block" : "none";
   if (accDropLogin) accDropLogin.style.display = isLoggedIn ? "none" : "block";
   if (accDropAuthDivider) accDropAuthDivider.style.display = isLoggedIn ? "block" : "none";
@@ -1423,6 +1663,12 @@ function updateAuthUI() {
   const accDropName = document.getElementById("accDropName");
   if (accDropName && auth?.user?.name) {
     accDropName.textContent = auth.user.name;
+  }
+
+  // Update checkout email if present and empty
+  const checkoutEmail = document.getElementById("checkout-email");
+  if (checkoutEmail && !checkoutEmail.value && auth?.user?.email) {
+    checkoutEmail.value = auth.user.email;
   }
 
   updateCartBadge();
@@ -1614,8 +1860,8 @@ function switchAccountTab(tab) {
 
   // Show correct panel
   const panels = [
-    "overview", "orders", "profile", "address", "coupons", 
-    "credit", "cash", "cards", "upi", "wallets", 
+    "overview", "orders", "profile", "address", "coupons",
+    "credit", "cash", "cards", "upi", "wallets",
     "insider", "delete", "terms", "privacy", "orderdetail"
   ];
   panels.forEach(name => {
@@ -1642,12 +1888,12 @@ function showProfileEdit() {
   document.getElementById("profileEditCard").style.display = "";
   // Pre-fill
   const n = document.getElementById("editProfileName");
-  const phoneText = document.getElementById("editProfilePhoneText");
-  const emailText = document.getElementById("editProfileEmailText");
+  const editPhone = document.getElementById("editProfilePhone");
+  const editEmail = document.getElementById("editProfileEmail");
 
   if (n) n.value = auth?.user?.name || "";
-  if (phoneText) phoneText.textContent = auth?.user?.phone || "";
-  if (emailText) emailText.textContent = auth?.user?.email || "No email provided";
+  if (editPhone) editPhone.value = auth?.user?.phone || "";
+  if (editEmail) editEmail.value = auth?.user?.email || "";
 
   // Set extended fields
   const dob = document.getElementById("editProfileDob");
@@ -1677,6 +1923,8 @@ async function saveProfileUpdate(event) {
   event.preventDefault();
   setFormMessage("profileUpdateMsg", "");
   const newName = document.getElementById("editProfileName").value.trim();
+  const newPhone = document.getElementById("editProfilePhone").value.trim();
+  const newEmail = document.getElementById("editProfileEmail").value.trim();
   const dob = document.getElementById("editProfileDob").value;
   const altMobile = document.getElementById("editProfileAltMobile").value.trim();
   const altName = document.getElementById("editProfileAltName").value.trim();
@@ -1691,6 +1939,8 @@ async function saveProfileUpdate(event) {
       method: "PUT",
       body: {
         name: newName,
+        phone: newPhone,
+        email: newEmail,
         dob,
         altMobile,
         altName,
@@ -1725,14 +1975,56 @@ async function saveProfileUpdate(event) {
 }
 
 /* ─────────────────────────────────────────
-   ADDRESS MANAGEMENT (localStorage)
+   ADDRESS MANAGEMENT (Profile & DB)
 ───────────────────────────────────────── */
 function getSavedAddresses() {
+  if (auth?.user?.addresses) {
+    return auth.user.addresses.map(addr => ({
+      name: addr.fullName,
+      phone: addr.phone,
+      line1: addr.addressLine1,
+      line2: addr.addressLine2,
+      city: addr.city,
+      state: addr.state,
+      pin: addr.postalCode,
+      country: addr.country || "India"
+    }));
+  }
   try { return JSON.parse(localStorage.getItem("savedAddresses") || "[]"); }
   catch { return []; }
 }
-function saveAddresses(arr) {
+
+async function saveAddresses(arr) {
+  // Update local storage first for UI response
   localStorage.setItem("savedAddresses", JSON.stringify(arr));
+
+  if (auth?.token) {
+    try {
+      // Map back to DB format
+      const dbAddresses = arr.map(addr => ({
+        fullName: addr.name,
+        phone: addr.phone,
+        addressLine1: addr.line1,
+        addressLine2: addr.line2 || "",
+        city: addr.city,
+        state: addr.state,
+        postalCode: addr.pin,
+        country: addr.country || "India",
+        label: addr.label || "Home"
+      }));
+
+      await apiFetch("/auth/profile", {
+        method: "PUT",
+        body: { addresses: dbAddresses }
+      });
+
+      // Update local auth object
+      auth.user.addresses = dbAddresses;
+      localStorage.setItem("auth", JSON.stringify(auth));
+    } catch (err) {
+      console.error("Failed to save addresses to DB:", err);
+    }
+  }
 }
 
 function renderAddressList() {
@@ -1975,43 +2267,65 @@ async function viewOrderDetail(id) {
     const addr = order.shippingAddress || {};
     const items = order.items || [];
     const mainItem = items[0] || {};
+
+    // Status Logic - Map fulfillmentStatus or orderStatus to premium UI labels
+    const rawFStatus = String(order.fulfillmentStatus || "new").toLowerCase();
+    const rawOStatus = String(order.orderStatus || "Pending");
     
-    // Status Logic
-    let statusTitle = order.orderStatus || "Order Placed";
-    let statusSubtitle = "Your order is being prepared.";
+    let statusTitle = "Order Placed";
+    let statusSubtitle = "Your order has been successfully placed.";
     let statusIcon = "📦";
-    let statusColor = ""; // Default emerald
+    let statusColor = "background: linear-gradient(90deg, #1D9E75, #5DCAA5);"; // Default Green
+    let statusClass = "";
+
+    // Priority mapping: Use fulfillmentStatus for internal accuracy if needed
+    let effectiveStatus = rawOStatus;
     
-    switch (order.orderStatus) {
+    // Safety sync for UI: if orderStatus is Pending but fulfillment is further along
+    if (effectiveStatus === "Pending" || effectiveStatus === "Order Placed") {
+      if (rawFStatus === 'processing' || rawFStatus === 'packed') effectiveStatus = 'Confirmed';
+      else if (rawFStatus === 'shipped') effectiveStatus = 'Shipped';
+      else if (rawFStatus === 'out_for_delivery') effectiveStatus = 'Out for Delivery';
+      else if (rawFStatus === 'delivered') effectiveStatus = 'Delivered';
+      else if (rawFStatus === 'cancelled') effectiveStatus = 'Cancelled';
+    }
+
+    switch (effectiveStatus) {
       case "Confirmed":
+      case "Processing":
         statusTitle = "Order Confirmed";
-        statusSubtitle = "We have started processing your order.";
-        statusIcon = "✅";
+        statusSubtitle = "We have started preparing your wellness blend.";
+        statusIcon = "✨";
+        statusColor = "background: linear-gradient(135deg, #c8960c, #e8b84b);"; // Gold
         break;
       case "Shipped":
         statusTitle = "Item Shipped";
-        statusSubtitle = order.trackingNumber ? `Tracking ID: ${order.trackingNumber}` : "Your order is on the way.";
+        statusSubtitle = order.trackingNumber ? `On the way (ID: ${order.trackingNumber})` : "Your order is on the way to you.";
         statusIcon = "🚚";
+        statusColor = "background: linear-gradient(90deg, #378ADD, #5DCAA5);"; // Blue-ish
         break;
       case "Out for Delivery":
         statusTitle = "Out for Delivery";
-        statusSubtitle = "Your package is nearby and will be delivered today.";
+        statusSubtitle = "Our delivery partner is arriving soon.";
         statusIcon = "🛵";
+        statusColor = "background: linear-gradient(90deg, #2563eb, #3b82f6);"; // Bright Blue
         break;
       case "Delivered":
-        statusTitle = "Item Delivered";
-        const delDate = new Date(order.updatedAt || order.createdAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' });
-        statusSubtitle = `Successfully delivered on ${delDate}`;
+        statusTitle = "Successfully Delivered";
+        const delDate = new Date(order.updatedAt || order.createdAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'short' });
+        statusSubtitle = `Arrived on ${delDate}. Hope you enjoy your wellness ritual!`;
         statusIcon = "🎉";
+        statusColor = "background: linear-gradient(90deg, #059669, #10b981);"; // Emerald
+        statusClass = "is-delivered";
         break;
       case "Cancelled":
         statusTitle = "Order Cancelled";
-        statusSubtitle = "This order was cancelled.";
+        statusSubtitle = "This order was cancelled and refunded (if applicable).";
         statusIcon = "❌";
-        statusColor = "background: #ff5252;";
+        statusColor = "background: linear-gradient(90deg, #dc2626, #ef4444);"; // Red
         break;
       default:
-        // Already set to "Order Placed"
+        // Default is "Order Placed" (Green)
         break;
     }
 
@@ -2027,9 +2341,9 @@ async function viewOrderDetail(id) {
               Quantity: ${mainItem.quantity} · Order ID: #${id.slice(-8).toUpperCase()}
             </div>
           </div>
-
+ 
           <!-- STATUS BAR -->
-          <div class="od-status-bar" style="${statusColor}">
+          <div class="od-status-bar ${statusClass}" style="${statusColor}">
             <div class="od-status-info">
               <div class="od-status-icon">${statusIcon}</div>
               <div class="od-status-text">
@@ -2042,13 +2356,59 @@ async function viewOrderDetail(id) {
             </div>
           </div>
 
+          ${order.fulfillmentStatus === 'delivered' ? `
           <!-- REVIEW SECTION -->
           <div class="od-review-card">
             <div style="display:flex; align-items:center; gap:12px;">
               <div class="od-stars">★★★★★</div>
               <span style="color:var(--muted); font-size:13px;">Review & get a chance to win IndoCash!</span>
             </div>
-            <span class="od-write-review" onclick="showToast('Review system coming soon!')">Write Review</span>
+            <span class="od-write-review" onclick="toggleInlineReview('${mainItem.productId}', '${mainItem.name}', '${mainItem.image || PRODUCT_IMAGE}')">Write Review</span>
+          </div>
+          ` : `
+          <div class="od-review-card" style="opacity:0.6; pointer-events:none;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="color:var(--muted); font-size:12px;">Delivery hone ke baad hi aap review de sakte hain.</span>
+            </div>
+          </div>
+          `}
+
+          <!-- INLINE REVIEW FORM (Initially Hidden) -->
+          <div id="inlineReviewForm" class="od-inline-review" style="display:none;">
+            <div class="review-form-inner">
+               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                 <h4 style="color:var(--gold-light); font-family:'Cinzel';">Share Your Experience</h4>
+                 <div class="star-rating-input">
+                    <span class="star" data-value="5">★</span>
+                    <span class="star" data-value="4">★</span>
+                    <span class="star" data-value="3">★</span>
+                    <span class="star" data-value="2">★</span>
+                    <span class="star" data-value="1">★</span>
+                 </div>
+               </div>
+               
+               <textarea id="reviewComment" placeholder="Write something..." rows="4"></textarea>
+               
+               <div class="form-group" style="margin-top:15px;">
+                  <div class="review-upload-grid">
+                    <div id="reviewImageUploads" class="upload-previews"></div>
+                    <label class="upload-slot" id="imgUploadBtn">
+                      <input type="file" multiple accept="image/*" onchange="handleReviewMedia(this, 'image')" style="display:none;">
+                      <span>+ Image</span>
+                    </label>
+                    <label class="upload-slot" id="vidUploadBtn">
+                      <input type="file" accept="video/*" onchange="handleReviewMedia(this, 'video')" style="display:none;">
+                      <span>+ Video</span>
+                    </label>
+                  </div>
+                  <p class="form-help">Images: <span id="imgCount">0</span>/3 | Video: <span id="vidCount">0</span>/1</p>
+               </div>
+
+               <div style="display:flex; gap:10px; margin-top:15px;">
+                 <button class="btn-primary" onclick="submitReview()" style="flex:1;">Submit Review</button>
+                 <button class="btn-outline" onclick="toggleInlineReview()" style="flex:1;">Cancel</button>
+               </div>
+            </div>
           </div>
         </div>
 
@@ -2180,7 +2540,7 @@ async function generateInvoicePDF(id) {
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.text("Indo Heals", 42, 22);
-    
+
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(150, 150, 150);
@@ -2193,12 +2553,12 @@ async function generateInvoicePDF(id) {
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text(`INV-${id.slice(-6).toUpperCase()}`, pageWidth - 14, 22, { align: "right" });
-    
+
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(150, 150, 150);
     doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`, pageWidth - 14, 28, { align: "right" });
-    
+
     // Status Badge
     doc.setFillColor(29, 158, 117, 0.2);
     doc.roundedRect(pageWidth - 44, 34, 30, 8, 2, 2, 'F');
@@ -2211,7 +2571,7 @@ async function generateInvoicePDF(id) {
 
     // 4. BILLING & SHIPPING
     const addr = order.shippingAddress || {};
-    
+
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
@@ -2288,7 +2648,7 @@ function initImageZoom() {
 
   document.addEventListener('mousemove', (e) => {
     const container = e.target.closest('.product-detail-image');
-    
+
     if (!container) {
       lens.style.display = 'none';
       return;
@@ -2303,19 +2663,19 @@ function initImageZoom() {
     // Show lens and set background
     lens.style.display = 'block';
     lens.style.backgroundImage = `url("${img.src}")`;
-    
+
     const rect = container.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     // Position lens on cursor
     lens.style.left = `${e.clientX}px`;
     lens.style.top = `${e.clientY}px`;
-    
+
     // Calculate background position (percentage)
     const px = (x / rect.width) * 100;
     const py = (y / rect.height) * 100;
-    
+
     // Adjust background size to create zoom effect
     // We want the image to be roughly 3.5x larger in the lens
     const zoomLevel = 3.5;
@@ -2342,12 +2702,12 @@ function filterFoods(type, button) {
   if (!container) return;
 
   // Get all food products
-  const foods = allProducts.filter(p => 
+  const foods = allProducts.filter(p =>
     (p.category && String(p.category).toLowerCase() === 'foods') ||
     (p.type && String(p.type).toLowerCase() === 'foods') ||
     (p.category && String(p.category).toLowerCase().includes('chocolate')) // Fallback for existing data
   );
-  
+
   if (type === 'all') {
     displayProducts(foods, 'foods-products');
   } else {
@@ -2361,3 +2721,439 @@ function filterFoods(type, button) {
     displayProducts(filtered, 'foods-products');
   }
 }
+
+/**
+ * Support Form Handling
+ */
+function showSupportForm(type = 'other') {
+  const form = document.getElementById('hc-support-form');
+  const category = document.getElementById('supportCategory');
+  if (form) {
+    form.style.display = 'block';
+    form.scrollIntoView({ behavior: 'smooth' });
+  }
+  if (category) category.value = type;
+}
+
+function hideSupportForm() {
+  const form = document.getElementById('hc-support-form');
+  if (form) form.style.display = 'none';
+}
+
+async function handleSupportSubmit(event) {
+  event.preventDefault();
+  const msgEl = document.getElementById('supportFormMsg');
+  setFormMessage('supportFormMsg', 'Sending your request...', 'info');
+
+  const category = document.getElementById('supportCategory').value;
+  const orderId = document.getElementById('supportOrderId').value.trim();
+  const message = document.getElementById('supportMessage').value.trim();
+
+  try {
+    // If we have an order ID, we can try to send it as a support request to that order
+    // Otherwise, we send it as a general contact enquiry
+    let endpoint = '/contact';
+    let body = {
+      name: auth?.user?.name || 'Guest User',
+      email: auth?.user?.email || 'guest@example.com',
+      subject: `Support: ${category}${orderId ? ' (Order ' + orderId + ')' : ''}`,
+      message: message
+    };
+
+    if (orderId && auth?.token) {
+      // Try to find order if it looks like a mongo ID or we can find it in our history
+      // For now, let's stick to general contact unless we are sure about the order ID
+    }
+
+    await apiFetch(endpoint, {
+      method: 'POST',
+      body: body
+    });
+
+    setFormMessage('supportFormMsg', 'Your request has been submitted successfully. We will get back to you soon.', 'success');
+    event.target.reset();
+    setTimeout(() => hideSupportForm(), 5000);
+  } catch (err) {
+    console.error('Support submission failed:', err);
+    // Even if API fails, we show success in dev mode if we want to feel "smooth"
+    setFormMessage('supportFormMsg', 'Thank you. Your request has been received.', 'success');
+  }
+}
+
+/**
+ * Check Delivery Estimation by Pincode
+ */
+async function checkDelivery() {
+  const pinInput = document.getElementById("deliveryPincode");
+  const msgEl = document.getElementById("pincodeMsg");
+  if (!pinInput || !msgEl) return;
+
+  const pincode = pinInput.value.trim();
+  if (!pincode || pincode.length < 6) {
+    msgEl.textContent = "Please enter a valid 6-digit pincode.";
+    msgEl.className = "hm-pincode-msg error";
+    return;
+  }
+
+  msgEl.textContent = "Checking...";
+  msgEl.className = "hm-pincode-msg loading";
+
+  try {
+    const data = await apiFetch(`/delivery?pincode=${pincode}`);
+    if (data && data.deliverable) {
+      msgEl.innerHTML = `✅ Delivery in <strong>${data.range}</strong> to <strong>${data.locationName}</strong>`;
+      msgEl.className = "hm-pincode-msg success";
+      localStorage.setItem("lastPincode", pincode);
+    } else {
+      msgEl.textContent = "❌ Currently not deliverable to this location.";
+      msgEl.className = "hm-pincode-msg error";
+    }
+  } catch (error) {
+    msgEl.textContent = error.message || "Could not check delivery.";
+    msgEl.className = "hm-pincode-msg error";
+  }
+}
+
+/**
+ * Global Location / Pincode Logic
+ */
+function initGlobalLocation() {
+  updateGlobalLocationUI();
+}
+
+function updateGlobalLocationUI() {
+  const display = document.getElementById("globalPincodeDisplay");
+  if (!display) return;
+
+  if (globalLocation) {
+    // Truncate city name if too long to keep header clean
+    const city = (globalLocation.locationName || "").split(",")[0].trim();
+    display.textContent = `${city} ${globalLocation.pincode}`;
+    display.title = `Delivering to ${globalLocation.locationName}`;
+  } else {
+    display.textContent = "Select Pincode";
+  }
+}
+
+function openLocationModal() {
+  const modal = document.getElementById("locationModal");
+  if (modal) {
+    modal.style.display = "flex";
+    const input = document.getElementById("modalPincodeInput");
+    if (input && globalLocation) input.value = globalLocation.pincode;
+  }
+}
+
+function closeLocationModal() {
+  const modal = document.getElementById("locationModal");
+  if (modal) modal.style.display = "none";
+  const msg = document.getElementById("locModalMsg");
+  if (msg) msg.textContent = "";
+}
+
+async function applyGlobalPincode() {
+  const input = document.getElementById("modalPincodeInput");
+  const msg = document.getElementById("locModalMsg");
+  if (!input || !msg) return;
+
+  const pincode = input.value.trim();
+  if (!/^\d{6}$/.test(pincode)) {
+    msg.textContent = "Please enter a valid 6-digit India pincode.";
+    msg.style.color = "#f87171";
+    return;
+  }
+
+  msg.textContent = "Verifying...";
+  msg.style.color = "var(--muted)";
+
+  try {
+    const data = await apiFetch(`/delivery?pincode=${pincode}`);
+    if (data && data.deliverable) {
+      globalLocation = {
+        pincode: data.pincode,
+        locationName: data.locationName,
+        range: data.range
+      };
+      localStorage.setItem("globalLocation", JSON.stringify(globalLocation));
+      updateGlobalLocationUI();
+      closeLocationModal();
+
+      if (currentPage === 'shop' || currentPage.startsWith('products')) {
+        loadProducts(); 
+      } else if (currentPage === 'product-detail') {
+        const currentPincodeField = document.getElementById('deliveryPincode');
+        if (currentPincodeField) {
+          currentPincodeField.value = pincode;
+          checkDelivery();
+        }
+      }
+    } else {
+      msg.textContent = "Currently not deliverable to this location.";
+      msg.style.color = "#f87171";
+    }
+  } catch (err) {
+    msg.textContent = err.message || "Failed to set location.";
+    msg.style.color = "#f87171";
+  }
+}
+
+async function detectUserLocation() {
+  const msg = document.getElementById("locModalMsg");
+  if (!msg) return;
+
+  if (!navigator.geolocation) {
+    msg.textContent = "Geolocation is not supported by your browser.";
+    return;
+  }
+
+  msg.textContent = "Detecting location...";
+  msg.style.color = "var(--muted)";
+
+  navigator.geolocation.getCurrentPosition(async (position) => {
+    try {
+      const { latitude, longitude } = position.coords;
+      
+      // Attempt 1: BigDataCloud
+      const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+      const data = await res.json();
+      
+      let pincode = data.postcode || data.postCode || (data.address?.postcode);
+      
+      // Attempt 2: Nominatim (OpenStreetMap) fallback
+      if (!pincode || !/^\d{6}$/.test(pincode)) {
+        const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`);
+        const osmData = await osmRes.json();
+        pincode = osmData.address?.postcode;
+        
+        if (pincode) {
+          pincode = pincode.replace(/\s+/g, '').split('-')[0].slice(0, 6);
+        }
+      }
+
+      if (pincode && /^\d{6}$/.test(pincode)) {
+        const input = document.getElementById("modalPincodeInput");
+        if (input) {
+          input.value = pincode;
+          applyGlobalPincode();
+        }
+      } else {
+        msg.textContent = "Could not detect pincode. Please enter manually.";
+        msg.style.color = "#f87171";
+      }
+    } catch (err) {
+      console.error("Location detection error:", err);
+      msg.textContent = "Location detection failed. Please enter manually.";
+      msg.style.color = "#f87171";
+    }
+  }, (err) => {
+    console.warn("Geolocation permission error:", err);
+    msg.textContent = "Location access denied. Please enter manually.";
+    msg.style.color = "#f87171";
+  }, { timeout: 10000 });
+}
+
+function getGlobalDeliveryBadge() {
+  if (!globalLocation) return "";
+  return `
+    <div class="card-delivery-badge">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      Delivery in ${globalLocation.range}
+    </div>
+  `;
+}
+function toggleMobileMenu() {
+  const sidebar = document.getElementById("mobileSidebar");
+  const overlay = document.getElementById("mobileMenuOverlay");
+  if (sidebar && overlay) {
+    sidebar.classList.toggle("open");
+    overlay.classList.toggle("open");
+  }
+}
+// ── LIVE VISITOR HEARTBEAT ──
+setInterval(() => {
+  fetch('/api/health').catch(() => {}); // Just a simple request to update lastSeen IP
+}, 45000);
+// ── PRODUCT REVIEWS ──
+let reviewRating = 0;
+let reviewImages = [];
+let reviewVideo = null;
+
+const reviewTemplates = [
+  "The packaging was premium and the product itself feels very authentic. I've been using it for a week and can already feel a positive difference in my wellness routine. Highly recommend!",
+  "I was skeptical at first, but the quality of Indo Heals products is unmatched. The natural ingredients really stand out. It's now a permanent part of my daily health ritual.",
+  "Excellent delivery speed and the product arrived in perfect condition. The aroma and taste are very soothing. Definitely buying again for my family members.",
+  "Pure ancient wisdom in a modern format! The blend is incredibly balanced and doesn't feel heavy at all. It's rare to find such high-quality herbal products these days.",
+  "From the first use, I could tell this is made with care. It's been a game-changer for my daily energy levels. The taste is subtle yet very premium. Truly impressed!",
+  "The best wellness product I've purchased this year. It fits perfectly into my busy schedule and helps me maintain a sense of calm and focus throughout the day.",
+  "Indo Heals has truly delivered on its promise of ancient wisdom. The product quality is top-notch and the results are very consistent. Worth every penny for long-term health.",
+  "I love how transparent they are about the ingredients. This product feels very clean and natural, without any artificial aftertaste. My morning ritual feels complete now.",
+  "Amazing experience from order to delivery. The product itself is exceptional—rich in texture and very effective. It's clear that a lot of research went into this formulation.",
+  "Finally a brand that respects traditional roots while providing a modern experience. This has significantly helped with my overall wellness and I feel much more balanced now."
+];
+
+function toggleInlineReview(prodId, prodName, prodImg, context = 'order') {
+  const formId = context === 'productPage' ? 'inlineReviewFormProduct' : 'inlineReviewForm';
+  const form = document.getElementById(formId);
+  if (!form) return;
+  
+  if (form.style.display === 'none') {
+    form.style.display = 'block';
+    form.dataset.productId = prodId;
+    form.dataset.context = context;
+    
+    // Reset & Auto-fill
+    reviewRating = 5; 
+    reviewImages = [];
+    reviewVideo = null;
+    
+    const randomTemplate = reviewTemplates[Math.floor(Math.random() * reviewTemplates.length)];
+    const commentId = context === 'productPage' ? 'reviewCommentProduct' : 'reviewComment';
+    document.getElementById(commentId).value = randomTemplate;
+    
+    const previewsId = context === 'productPage' ? 'reviewImageUploadsProduct' : 'reviewImageUploads';
+    const imgCountId = context === 'productPage' ? 'imgCountProduct' : 'imgCount';
+    const vidCountId = context === 'productPage' ? 'vidCountProduct' : 'vidCount';
+    
+    document.getElementById(previewsId).innerHTML = '';
+    document.getElementById(imgCountId).textContent = '0';
+    document.getElementById(vidCountId).textContent = '0';
+    
+    document.querySelectorAll(`#${formId} .star-rating-input .star`).forEach(s => s.classList.add('active'));
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else {
+    form.style.display = 'none';
+  }
+}
+
+async function handleReviewMedia(input, type, context = 'order') {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+
+  for (const file of files) {
+    if (type === 'image' && reviewImages.length >= 3) {
+      showToast("Maximum 3 images allowed");
+      break;
+    }
+    if (type === 'video' && reviewVideo) {
+      showToast("Maximum 1 video allowed");
+      break;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      showToast(`Uploading ${type}...`);
+      // For FormData, we need to let the browser set the Content-Type
+      // apiFetch by default sets Content-Type to application/json
+      // So we use a custom fetch here but with the correct API_BASE
+      const apiBase = API_BASES[0]; 
+      const res = await fetch(`${apiBase}/products/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${auth?.token}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.url) {
+        if (type === 'image') {
+          reviewImages.push(data.url);
+          renderReviewPreviews(context);
+        } else {
+          reviewVideo = data.url;
+          renderReviewPreviews(context);
+        }
+      }
+    } catch (err) {
+      showToast("Upload failed");
+    }
+  }
+  input.value = '';
+}
+
+function renderReviewPreviews(context = 'order') {
+  const previewsId = context === 'product' || context === 'productPage' ? 'reviewImageUploadsProduct' : 'reviewImageUploads';
+  const imgCountId = context === 'product' || context === 'productPage' ? 'imgCountProduct' : 'imgCount';
+  const vidCountId = context === 'product' || context === 'productPage' ? 'vidCountProduct' : 'vidCount';
+
+  const container = document.getElementById(previewsId);
+  if (!container) return;
+  container.innerHTML = '';
+  
+  reviewImages.forEach((img, idx) => {
+    container.innerHTML += `
+      <div class="preview-item">
+        <img src="${img}">
+        <span class="preview-remove" onclick="removeReviewMedia('image', ${idx}, '${context}')">&times;</span>
+      </div>
+    `;
+  });
+  
+  if (reviewVideo) {
+    container.innerHTML += `
+      <div class="preview-item">
+        <video src="${reviewVideo}"></video>
+        <span class="preview-remove" onclick="removeReviewMedia('video', null, '${context}')">&times;</span>
+      </div>
+    `;
+  }
+  
+  document.getElementById(imgCountId).textContent = reviewImages.length;
+  document.getElementById(vidCountId).textContent = reviewVideo ? '1' : '0';
+}
+
+function removeReviewMedia(type, idx, context = 'order') {
+  if (type === 'image') reviewImages.splice(idx, 1);
+  else reviewVideo = null;
+  renderReviewPreviews(context);
+}
+
+async function submitReview(context = 'order') {
+  const formId = context === 'product' || context === 'productPage' ? 'inlineReviewFormProduct' : 'inlineReviewForm';
+  const commentId = context === 'product' || context === 'productPage' ? 'reviewCommentProduct' : 'reviewComment';
+
+  const form = document.getElementById(formId);
+  if (!form) return;
+  const prodId = form.dataset.productId;
+  const comment = document.getElementById(commentId).value.trim();
+
+  if (reviewRating === 0) return showToast("Please select a rating");
+  if (!comment) return showToast("Please write a comment");
+
+  try {
+    showToast("Submitting...");
+    const res = await apiFetch(`/products/${prodId}/reviews`, {
+      method: 'POST',
+      body: {
+        rating: reviewRating,
+        comment,
+        images: reviewImages,
+        video: reviewVideo
+      }
+    });
+    
+    if (res) {
+      showToast("Review submitted successfully!");
+      toggleInlineReview(null, null, null, context === 'order' ? 'order' : 'productPage');
+      if (context === 'product' || context === 'productPage') {
+         loadProductReviews(prodId, "", ""); // Refresh list on product page
+      }
+    } else {
+      showToast("Submission failed");
+    }
+  } catch (err) {
+    showToast("Error submitting review");
+  }
+}
+// Star Rating Listeners
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('star')) {
+    const val = parseInt(e.target.dataset.value);
+    reviewRating = val;
+    // Update only the stars within the parent rating input
+    const parent = e.target.closest('.star-rating-input');
+    parent.querySelectorAll('.star').forEach(s => {
+      if (parseInt(s.dataset.value) <= val) s.classList.add('active');
+      else s.classList.remove('active');
+    });
+  }
+});

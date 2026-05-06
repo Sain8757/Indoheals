@@ -75,7 +75,12 @@ const userSchema = new mongoose.Schema(
           default: "India"
         }
       }
-    ]
+    ],
+    abandonedCartStatus: {
+      type: String,
+      enum: ["not_called", "called"],
+      default: "not_called"
+    }
   },
   {
     timestamps: true,

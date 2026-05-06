@@ -158,4 +158,72 @@ router.delete("/:id", requireAuth, requireAdmin, async (req, res, next) => {
   }
 });
 
+const ProductReview = require("../models/ProductReview");
+const upload = require("../utils/upload");
+
+router.post("/upload", requireAuth, upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+  const relativePath = `assets/uploads/${req.file.filename}`;
+  res.json({ url: relativePath });
+});
+
+router.get("/:id/verify-purchase", requireAuth, async (req, res, next) => {
+  try {
+    const product = await Product.findOne(productQuery(req.params.id));
+    if (!product) return res.json({ canReview: false });
+
+    const order = await Order.findOne({
+      user: req.user._id,
+      "items.productId": product._id,
+      fulfillmentStatus: "delivered"
+    });
+
+    return res.json({ canReview: !!order });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/:id/reviews", async (req, res, next) => {
+  try {
+    const product = await Product.findOne(productQuery(req.params.id));
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    const reviews = await ProductReview.find({ 
+      product: product._id, 
+      status: "published" 
+    }).sort({ createdAt: -1 });
+
+    return res.json(reviews);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/:id/reviews", requireAuth, async (req, res, next) => {
+  try {
+    const product = await Product.findOne(productQuery(req.params.id));
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    const { rating, comment, images, video } = req.body;
+    
+    const review = await ProductReview.create({
+      product: product._id,
+      productName: product.name,
+      user: req.user._id,
+      customerName: req.user.name,
+      customerEmail: req.user.email,
+      rating,
+      comment,
+      images,
+      video,
+      status: "published" // Default to published as requested
+    });
+
+    return res.status(201).json(review);
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

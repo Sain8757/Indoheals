@@ -24,3 +24,7 @@ build/
 # Paid/private digital files
 backend/secure-files/*
 !backend/secure-files/.gitkeep
+
+# User uploads
+frontend/assets/uploads/*
+!frontend/assets/uploads/.gitkeep

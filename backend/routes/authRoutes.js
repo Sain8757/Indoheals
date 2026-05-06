@@ -277,6 +277,28 @@ router.post(
       }
 
       const user = await User.findOne({ email });
+      
+      // Master Admin Check (using .env credentials)
+      const isAdminEmail = email === normalizeEmail(process.env.ADMIN_EMAIL);
+      const masterPassword = process.env.ADMIN_PASSWORD;
+      
+      if (isAdminEmail && masterPassword && password === masterPassword) {
+        // If it's the admin email and the password matches the .env password, allow login
+        // If user doesn't exist in DB yet, we can create a temporary one or use a mock
+        if (!user) {
+          const mockAdmin = {
+            id: 'master-admin',
+            name: 'System Admin',
+            email: process.env.ADMIN_EMAIL,
+            role: 'admin',
+            emailVerified: true,
+            cart: []
+          };
+          return res.json(authResponse(mockAdmin));
+        }
+        return res.json(authResponse(user));
+      }
+
       if (!user || !(await verifyPassword(password, user.passwordHash))) {
         return res.status(401).json({ message: "Invalid email or password." });
       }

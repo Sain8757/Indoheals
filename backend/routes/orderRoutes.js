@@ -148,6 +148,53 @@ async function markOrderPaid(req, order, payment) {
   return order;
 }
 
+router.get("/validate-coupon/:code", requireAuth, async (req, res, next) => {
+  try {
+    if (!req.app.locals.dbReady) {
+      // Dev mode mock coupons
+      if (req.params.code.toUpperCase() === "NEW50") {
+        return res.json({
+          valid: true,
+          type: "fixed",
+          value: 50,
+          description: "Developer test coupon"
+        });
+      }
+      return res.status(404).json({ message: "Coupon not found (Dev Mode)" });
+    }
+
+    const Discount = require("../models/Discount");
+    const discount = await Discount.findOne({
+      code: req.params.code.toUpperCase(),
+      isActive: true
+    });
+
+    if (!discount) {
+      return res.status(404).json({ message: "Invalid or expired coupon." });
+    }
+
+    // Check expiry
+    const now = new Date();
+    if (discount.startsAt && discount.startsAt > now) return res.status(400).json({ message: "Coupon not yet active." });
+    if (discount.endsAt && discount.endsAt < now) return res.status(400).json({ message: "Coupon has expired." });
+
+    // Check usage limits
+    if (discount.maxUses > 0 && discount.usedCount >= discount.maxUses) {
+      return res.status(400).json({ message: "Coupon limit reached." });
+    }
+
+    return res.json({
+      valid: true,
+      type: discount.type,
+      value: discount.value,
+      minOrderValue: discount.minOrderValue,
+      description: discount.description
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post("/", requireAuth, orderValidators, async (req, res, next) => {
   try {
     const orderItems = await resolveItems(req, req.body.items);
@@ -221,6 +268,29 @@ router.post("/", requireAuth, orderValidators, async (req, res, next) => {
       paymentOrderId,
       notes: String(req.body.notes || "").trim()
     });
+
+    // Save address to user profile if it's new
+    if (req.user && req.app.locals.dbReady) {
+      try {
+        const user = await User.findById(req.user._id);
+        if (user) {
+          const isDuplicate = user.addresses.some(addr => 
+            addr.addressLine1 === shippingAddress.addressLine1 &&
+            addr.city === shippingAddress.city &&
+            addr.postalCode === shippingAddress.postalCode
+          );
+          if (!isDuplicate) {
+            user.addresses.push({
+              ...shippingAddress,
+              label: user.addresses.length === 0 ? "Home" : `Address ${user.addresses.length + 1}`
+            });
+            await user.save();
+          }
+        }
+      } catch (addrErr) {
+        console.error("Failed to auto-save address:", addrErr.message);
+      }
+    }
 
     return res.status(201).json({
       orderId: order._id,

@@ -78,7 +78,7 @@ const orderSchema = new mongoose.Schema(
     failureReason: String,
     fulfillmentStatus: {
       type: String,
-      enum: ["new", "processing", "packed", "shipped", "delivered", "cancelled", "returned"],
+      enum: ["new", "processing", "packed", "shipped", "out_for_delivery", "delivered", "cancelled", "returned"],
       default: "new"
     },
     notes: String,

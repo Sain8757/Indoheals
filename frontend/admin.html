@@ -1328,8 +1328,7 @@
           <div class="live-dot"></div> Live: <strong id="visitor-count">34</strong> visitors
         </div>
         <button class="btn" onclick="openEmailModal()">📧 Bulk Email</button>
-        <button class="btn btn-primary" onclick="showPage('products', null); showToast('Products page khul gaya!')">+
-          Product Add</button>
+        <button class="btn btn-primary" onclick="openProductModal(null)">+ Add New Product</button>
         <button class="btn" onclick="logoutAdmin()">Logout</button>
       </div>
     </div>
@@ -1524,7 +1523,7 @@
           <div class="card-header">
             <div class="card-title">Products</div>
             <button class="btn btn-primary" style="font-size:11px;padding:6px 14px;"
-              onclick="showToast('Add product form khulega yahan!')">+ Naya Product</button>
+              onclick="openProductModal(null)">+ Naya Product</button>
           </div>
           <table class="orders-table">
             <thead>
@@ -1687,11 +1686,33 @@
       </div>
       <div class="page" id="page-reviews">
         <div class="card">
-          <div class="card-header">
-            <div class="card-title">Customer Reviews <span class="nav-badge" style="font-size:10px;padding:3px 8px;">3
-                Pending</span></div>
+          <div class="card-header" style="flex-direction:column; align-items:flex-start; gap:15px;">
+            <div class="card-title">Customer Feedback & Reviews</div>
+            <div class="filter-row" style="display:flex; gap:10px; width:100%;">
+              <button class="btn-outline active" onclick="filterAdminReviews(null, this)" style="padding:5px 12px; font-size:11px;">All Reviews</button>
+              <button class="btn-outline" onclick="filterAdminReviews(5, this)" style="padding:5px 12px; font-size:11px;">5 ★</button>
+              <button class="btn-outline" onclick="filterAdminReviews(4, this)" style="padding:5px 12px; font-size:11px;">4 ★</button>
+              <button class="btn-outline" onclick="filterAdminReviews(3, this)" style="padding:5px 12px; font-size:11px;">3 ★</button>
+              <button class="btn-outline" onclick="filterAdminReviews(2, this)" style="padding:5px 12px; font-size:11px;">2 ★</button>
+              <button class="btn-outline" onclick="filterAdminReviews(1, this)" style="padding:5px 12px; font-size:11px;">1 ★</button>
+            </div>
           </div>
-          <div style="padding:40px;text-align:center;color:var(--text3);">Reviews approve/reject/reply karo.</div>
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Customer</th>
+                <th>Rating</th>
+                <th>Comment</th>
+                <th>Media</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="reviews-body">
+              <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3);">Loading reviews...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
       <div class="page" id="page-settings">
@@ -1908,15 +1929,33 @@ Valid: Aaj tak sirf!</textarea>
       </div>
       <div class="form-group">
         <label class="form-label">Image URL / Path</label>
-        <input type="text" class="form-input" id="edit-prod-image" placeholder="assets/breathe-classic-ai.png">
+        <div style="display:flex;gap:5px;align-items:center;">
+          <input type="text" class="form-input" id="edit-prod-image" placeholder="assets/breathe-classic-ai.png">
+          <label class="btn upload-btn" style="padding:8px;font-size:10px;cursor:pointer;flex-shrink:0;">
+            <span class="upload-text">📁 Upload</span>
+            <input type="file" style="display:none;" onchange="handleProductFileUpload(this, 'edit-prod-image')" accept="image/*">
+          </label>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Gallery Images (one per line)</label>
-        <textarea class="form-textarea" id="edit-prod-gallery" rows="4" placeholder="assets/image-1.png&#10;assets/image-2.png"></textarea>
+        <div style="position:relative;">
+          <textarea class="form-textarea" id="edit-prod-gallery" rows="4" placeholder="assets/image-1.png&#10;assets/image-2.png"></textarea>
+          <label class="btn" style="position:absolute;right:10px;bottom:10px;padding:4px 8px;font-size:9px;cursor:pointer;">
+            + Add Image
+            <input type="file" style="display:none;" onchange="handleProductFileUpload(this, 'edit-prod-gallery')" accept="image/*">
+          </label>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Product Video URL</label>
-        <input type="text" class="form-input" id="edit-prod-video" placeholder="YouTube / MP4 video URL">
+        <div style="display:flex;gap:5px;align-items:center;">
+          <input type="text" class="form-input" id="edit-prod-video" placeholder="YouTube / MP4 video URL">
+          <label class="btn upload-btn" style="padding:8px;font-size:10px;cursor:pointer;flex-shrink:0;">
+            <span class="upload-text">📁 Upload</span>
+            <input type="file" style="display:none;" onchange="handleProductFileUpload(this, 'edit-prod-video')" accept="video/*">
+          </label>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">MRP (₹)</label>
@@ -2141,8 +2180,11 @@ Valid: Aaj tak sirf!</textarea>
       document.querySelector('.metrics-grid .metric-card:nth-child(1) .metric-value').textContent = `₹${Math.round(stats.todaySales).toLocaleString()}`;
       document.querySelector('.metrics-grid .metric-card:nth-child(2) .metric-value').textContent = stats.todayOrders;
       document.querySelector('.metrics-grid .metric-card:nth-child(3) .metric-value').textContent = stats.totalUsers;
-      document.querySelector('.metrics-grid .metric-card:nth-child(4) .metric-value').textContent = stats.todayUsers; // Mapped to abandoned in dummy, but total users here
-      document.querySelector('.metrics-grid .metric-card:nth-child(5) .metric-value').textContent = stats.todayUsers;
+      document.querySelector('.metrics-grid .metric-card:nth-child(4) .metric-value').textContent = stats.liveVisitors; 
+      document.querySelector('.metrics-grid .metric-card:nth-child(5) .metric-value').textContent = stats.liveVisitors;
+
+      const headerVisitorCount = document.getElementById('visitor-count');
+      if (headerVisitorCount) headerVisitorCount.textContent = stats.liveVisitors;
 
       // Reports Page
       const totalRev = document.getElementById('report-total-revenue');
@@ -2158,6 +2200,7 @@ Valid: Aaj tak sirf!</textarea>
       }
 
       renderRecentOrders(stats.recentOrders);
+      fetchAbandonedCallList(); // Added this call
       if (stats.salesTrend && stats.salesTrend.length) {
         buildSalesChart(stats.salesTrend);
         buildMonthlyChart(stats.salesTrend);
@@ -2186,6 +2229,7 @@ Valid: Aaj tak sirf!</textarea>
               <option value="">Status...</option>
               <option value="Confirmed" ${currentStatus === 'processing' ? 'selected' : ''}>Confirm</option>
               <option value="Shipped" ${currentStatus === 'shipped' ? 'selected' : ''}>Ship</option>
+              <option value="Out for Delivery" ${currentStatus === 'out_for_delivery' ? 'selected' : ''}>Out for Delivery</option>
               <option value="Delivered" ${currentStatus === 'delivered' ? 'selected' : ''}>Deliver</option>
               <option value="Cancelled" ${currentStatus === 'cancelled' ? 'selected' : ''}>Cancel</option>
             </select>
@@ -2199,6 +2243,7 @@ Valid: Aaj tak sirf!</textarea>
       
       let fulfillmentStatus = status.toLowerCase();
       if (fulfillmentStatus === 'confirmed') fulfillmentStatus = 'processing';
+      if (fulfillmentStatus === 'out for delivery') fulfillmentStatus = 'out_for_delivery';
 
       const data = await apiFetch(`/orders/${id}/status`, {
         method: 'PUT',
@@ -2224,7 +2269,7 @@ Valid: Aaj tak sirf!</textarea>
           <td style="color:${p.stock < 10 ? 'var(--red)' : 'var(--green-light)'};font-weight:500;">${p.stock} baki</td>
           <td>${p.isActive !== false ? '<span class="badge badge-delivered">Active</span>' : '<span class="badge badge-cancelled">Inactive</span>'}</td>
           <td style="display:flex;gap:5px;">
-            <button class="action-btn" onclick="editProductPrompt('${safeText(p._id)}')">✏ Edit</button>
+            <button class="action-btn" onclick="openProductModal('${safeText(p._id)}')">✏ Edit</button>
             <button class="action-btn" onclick="deleteProduct('${safeText(p._id)}')" style="color:var(--red);">Delete</button>
           </td>
         </tr>
@@ -2321,7 +2366,7 @@ Valid: Aaj tak sirf!</textarea>
           <td style="color:${p.stock < 10 ? 'var(--red)' : 'var(--green-light)'};font-weight:500;">${p.stock} baki</td>
           <td><span class="badge badge-delivered">Active</span></td>
           <td style="display:flex;gap:5px;">
-            <button class="action-btn" onclick="editProductPrompt('${safeText(p._id)}')">✏ Edit</button>
+            <button class="action-btn" onclick="openProductModal('${safeText(p._id)}')">✏ Edit</button>
             <button class="action-btn" onclick="deleteProduct('${safeText(p._id)}')" style="color:var(--red);">Delete</button>
           </td>
         </tr>
@@ -2529,6 +2574,7 @@ Valid: Aaj tak sirf!</textarea>
         processing: 'badge-processing',
         confirmed: 'badge-processing',
         shipped: 'badge-shipped',
+        out_for_delivery: 'badge-shipped',
         cancelled: 'badge-cancelled',
         paid: 'badge-delivered'
       };
@@ -2626,7 +2672,31 @@ Valid: Aaj tak sirf!</textarea>
       }
     }
 
-    function editProductPrompt(id) {
+    function openProductModal(id = null) {
+      if (!id) {
+        // Create Mode
+        document.getElementById('edit-prod-id').value = '';
+        document.getElementById('edit-prod-fullname').value = '';
+        document.getElementById('edit-prod-name').textContent = 'Naya Product Banao';
+        document.getElementById('edit-prod-badge').value = '';
+        document.getElementById('edit-prod-image').value = '';
+        document.getElementById('edit-prod-gallery').value = '';
+        document.getElementById('edit-prod-video').value = '';
+        document.getElementById('edit-prod-mrp').value = '';
+        document.getElementById('edit-prod-price').value = '';
+        document.getElementById('edit-prod-category').value = 'foods';
+        document.getElementById('edit-prod-stock').value = '100';
+        document.getElementById('edit-prod-weight').value = '';
+        document.getElementById('edit-prod-cocoa').value = '';
+        document.getElementById('edit-prod-wellness').value = '';
+        document.getElementById('edit-prod-description').value = '';
+        document.getElementById('edit-prod-ingredients').value = '';
+        document.getElementById('edit-prod-benefits').value = '';
+        document.getElementById('product-edit-modal').classList.add('open');
+        return;
+      }
+
+      // Edit Mode
       const product = (window.adminProductData || []).find(item => String(item._id) === String(id));
       if (!product) return;
 
@@ -2650,9 +2720,59 @@ Valid: Aaj tak sirf!</textarea>
       document.getElementById('product-edit-modal').classList.add('open');
     }
 
+    async function handleProductFileUpload(input, targetId) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Visual feedback
+      const btn = input.parentElement;
+      const textSpan = btn.querySelector('.upload-text');
+      const originalText = textSpan.innerText;
+      textSpan.innerText = '⌛...';
+      btn.style.opacity = '0.5';
+      btn.style.pointerEvents = 'none';
+
+      try {
+        const response = await fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${getAuth().token}`
+          },
+          body: formData
+        });
+        const data = await response.json();
+        
+        if (data.url) {
+          const targetEl = document.getElementById(targetId);
+          if (targetId === 'edit-prod-gallery') {
+            const current = targetEl.value.trim();
+            targetEl.value = current ? current + '\n' + data.url : data.url;
+          } else {
+            targetEl.value = data.url;
+          }
+          showToast("File uploaded successfully!");
+        } else {
+          showToast(data.message || "Upload failed");
+        }
+      } catch (err) {
+        console.error("Upload error:", err);
+        showToast("Upload error.");
+      } finally {
+        textSpan.innerText = originalText;
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        input.value = '';
+      }
+    }
     async function saveProductEdit() {
       const id = document.getElementById('edit-prod-id').value;
       const name = document.getElementById('edit-prod-fullname').value;
+      
+      if (!name) { showToast("Product Name zaroori hai!"); return; }
+
       const badge = document.getElementById('edit-prod-badge').value;
       const image = document.getElementById('edit-prod-image').value;
       const galleryImages = document.getElementById('edit-prod-gallery').value
@@ -2677,8 +2797,11 @@ Valid: Aaj tak sirf!</textarea>
         .map(item => item.trim())
         .filter(Boolean);
 
-      const data = await apiFetch(`/products/${id}`, {
-        method: 'PUT',
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `/products/${id}` : '/products';
+
+      const data = await apiFetch(url, {
+        method,
         body: JSON.stringify({
           name,
           badge,
@@ -2698,7 +2821,7 @@ Valid: Aaj tak sirf!</textarea>
         })
       });
       if (data) {
-        showToast('Product updated successfully!');
+        showToast(id ? 'Product updated successfully!' : 'Product created successfully!');
         document.getElementById('product-edit-modal').classList.remove('open');
         fetchProducts();
         fetchCategories();
@@ -2791,7 +2914,9 @@ Valid: Aaj tak sirf!</textarea>
       if (id === 'categories') fetchCategories();
       if (id === 'customers') fetchCustomers();
       if (id === 'coupons') fetchCoupons();
+      if (id === 'carts') fetchAbandonedCarts();
       if (id === 'settings') fetchSettings();
+      if (id === 'reviews') fetchReviews();
     }
 
     function filterOrders(status) {
@@ -2840,6 +2965,88 @@ Valid: Aaj tak sirf!</textarea>
       `).join('');
     }
 
+    async function fetchAbandonedCarts() {
+      const carts = await apiFetch('/abandoned-carts');
+      if (!carts) return;
+      
+      const alertCount = document.querySelector('.alert-count');
+      if (alertCount) alertCount.textContent = `${carts.length} customers`;
+
+      const tbody = document.getElementById('abandoned-carts-body');
+      if (tbody) {
+        tbody.innerHTML = carts.map(c => {
+          const statusLabel = c.status === 'called' ? 'Called' : 'Not Called';
+          const statusClass = c.status === 'called' ? 'badge-delivered' : 'badge-pending';
+          
+          return `
+            <tr>
+              <td>
+                <div style="font-weight:600;">${safeText(c.name)}</div>
+                <div style="color:var(--text3);font-size:10px;">${safeText(c.email)}</div>
+              </td>
+              <td>${safeText(c.phone || 'N/A')}</td>
+              <td style="font-weight:600;">${formatMoney(c.total)}</td>
+              <td>${c.items.length} items</td>
+              <td style="color:var(--text3);font-size:11px;">${formatProfileDate(c.updatedAt)}</td>
+              <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+              <td>
+                <div style="display:flex;gap:5px;">
+                  <a href="tel:${c.phone}" class="action-btn" style="text-decoration:none;background:var(--green-dim);color:var(--green-light);" onclick="updateAbandonedStatus('${c.userId}', 'called')">📞 Call</a>
+                  <a href="mailto:${c.email}" class="action-btn" style="text-decoration:none;background:var(--bg3);color:var(--text);">✉ Email</a>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('') || '<tr><td colspan="7" style="color:var(--text3);">No abandoned carts found.</td></tr>';
+      }
+      return carts;
+    }
+
+    async function fetchAbandonedCallList() {
+      const carts = await fetchAbandonedCarts();
+      if (!carts) return;
+      const list = document.getElementById('cart-list');
+      if (!list) return;
+
+      list.innerHTML = carts.slice(0, 5).map(c => {
+        const statusLabel = c.status === 'called' ? 'Called' : 'Not Called';
+        const statusClass = c.status === 'called' ? 'badge-delivered' : 'badge-pending';
+        
+        return `
+          <div class="cart-item-row" style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--border);gap:15px;">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:var(--text);">${safeText(c.name)}</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+                <span style="font-size:11px;color:var(--text3);">${safeText(c.phone || 'No Phone')}</span>
+                <span class="badge ${statusClass}" style="font-size:8px;padding:1px 4px;">${statusLabel}</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:12px;font-weight:600;color:var(--green-light);">${formatMoney(c.total)}</div>
+              <div style="display:flex;gap:4px;margin-top:4px;">
+                <a href="tel:${c.phone}" class="action-btn" style="text-decoration:none;font-size:10px;padding:4px 8px;background:var(--green-dim);color:var(--green-light);border-radius:4px;" onclick="updateAbandonedStatus('${c.userId}', 'called')">📞 Call</a>
+                <a href="mailto:${c.email}" class="action-btn" style="text-decoration:none;font-size:10px;padding:4px 8px;background:var(--bg3);color:var(--text);border-radius:4px;">✉ Email</a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('') || '<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px;">No abandoned carts to call.</div>';
+    }
+
+    async function updateAbandonedStatus(userId, status) {
+      // Small delay to let the click through if it's a tel: link
+      setTimeout(async () => {
+        await apiFetch(`/abandoned-carts/${userId}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status })
+        });
+        // Silent update to refresh badges without full reload if possible, 
+        // but for now just refresh the relevant lists
+        fetchAbandonedCallList();
+        if (document.getElementById('page-carts').classList.contains('active')) fetchAbandonedCarts();
+      }, 500);
+    }
+
     function promptCreateCoupon() {
       document.getElementById('create-coupon-code').value = '';
       document.getElementById('create-coupon-value').value = '';
@@ -2884,13 +3091,93 @@ Valid: Aaj tak sirf!</textarea>
       if (isAdmin) fetchDashboardStats();
     });
     
-    // Live visitor dummy
+    // Live visitor dummy removed - now real data from stats
     setInterval(() => {
-      const count = Math.floor(Math.random() * 20) + 15;
-      const el = document.getElementById('visitor-count');
-      if (el) el.textContent = count;
-    }, 5000);
+      if (getAuth().token) fetchDashboardStats();
+    }, 10000);
 
+    let currentReviewRating = null;
+
+    async function fetchReviews(rating = null) {
+      currentReviewRating = rating;
+      const url = rating ? `/product-reviews?rating=${rating}` : '/product-reviews';
+      const reviews = await apiFetch(url);
+      if (!reviews) return;
+      const tbody = document.getElementById('reviews-body');
+      
+      if (reviews.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3);">No ${rating ? rating + ' star' : ''} reviews found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = reviews.map(rev => `
+        <tr>
+          <td>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <img src="../${rev.product?.image || 'assets/product-placeholder.png'}" style="width:35px;height:35px;object-fit:cover;border-radius:6px;">
+              <div>
+                <div style="font-weight:500; font-size:12px;">${rev.productName}</div>
+                <div style="font-size:10px;color:var(--text3);">${rev.product ? rev.product.slug : ''}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div style="width:30px;height:30px;border-radius:50%;background:var(--green-dim);color:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;">
+                ${rev.customerName.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style="font-weight:500; font-size:12px;">${rev.customerName}</div>
+                <div style="font-size:10px;color:var(--text3);">${rev.customerEmail}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div style="color:var(--amber); font-size:12px;">${'★'.repeat(rev.rating)}${'☆'.repeat(5 - rev.rating)}</div>
+          </td>
+          <td><div style="max-width:180px; font-size:11px; color:var(--text2); line-height:1.4;">${rev.comment}</div></td>
+          <td>
+            <div style="display:flex; gap:5px;">
+              ${(rev.images || []).map(img => `
+                <div style="position:relative; width:35px; height:35px; border-radius:4px; overflow:hidden; border:1px solid var(--border); cursor:pointer;" onclick="window.open('../${img}')">
+                  <img src="../${img}" style="width:100%; height:100%; object-fit:cover;">
+                </div>
+              `).join('')}
+              ${rev.video ? `
+                <div style="position:relative; width:35px; height:35px; border-radius:4px; overflow:hidden; border:1px solid var(--border); cursor:pointer; background:rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center;" onclick="window.open('../${rev.video}')">
+                  <span style="font-size:10px;">▶</span>
+                </div>
+              ` : ''}
+            </div>
+          </td>
+          <td><span class="badge ${rev.status === 'published' ? 'badge-success' : 'badge-warn'}" style="font-size:10px;">${rev.status}</span></td>
+          <td>
+            <select style="font-size:10px; padding:4px 8px; border-radius:6px; background:var(--bg3); color:var(--text); border:1px solid var(--border); outline:none;" onchange="updateReviewStatus('${rev._id}', this.value)">
+              <option value="published" ${rev.status === 'published' ? 'selected' : ''}>Publish</option>
+              <option value="hidden" ${rev.status === 'hidden' ? 'selected' : ''}>Hide</option>
+              <option value="archived" ${rev.status === 'archived' ? 'selected' : ''}>Archive</option>
+            </select>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterAdminReviews(rating, el) {
+      document.querySelectorAll('#page-reviews .filter-row .btn-outline').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+      fetchReviews(rating);
+    }
+
+    async function updateReviewStatus(id, status) {
+      const res = await apiFetch(`/product-reviews/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status })
+      });
+      if (res) {
+        showToast("Review status updated");
+        fetchReviews();
+      }
+    }
   </script>
 </body>
 

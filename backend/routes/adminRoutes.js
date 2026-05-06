@@ -16,8 +16,16 @@ const { requireAdmin } = require("../middleware/auth");
 const validate = require("../middleware/validate");
 const { productQuery } = require("../utils/products");
 const { sendMail } = require("../utils/email");
+const upload = require("../utils/upload");
 
 router.use(requireAuth, requireAdmin);
+
+// ── FILE UPLOAD ROUTE ──
+router.post("/upload", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+  const relativePath = `assets/uploads/${req.file.filename}`;
+  res.json({ url: relativePath });
+});
 
 const productValidators = [
   body("name").trim().notEmpty().withMessage("Product name is required."),
@@ -189,7 +197,19 @@ router.put("/orders/:id/status", orderStatusValidators, async (req, res, next) =
 
     const updates = {};
     if (req.body.status) updates.status = req.body.status;
-    if (req.body.fulfillmentStatus) updates.fulfillmentStatus = req.body.fulfillmentStatus;
+    if (req.body.fulfillmentStatus) {
+      updates.fulfillmentStatus = req.body.fulfillmentStatus;
+      
+      // Sync with user-facing orderStatus
+      const fStatus = req.body.fulfillmentStatus.toLowerCase();
+      if (fStatus === 'new') updates.orderStatus = 'Pending';
+      else if (fStatus === 'processing' || fStatus === 'packed') updates.orderStatus = 'Confirmed';
+      else if (fStatus === 'shipped') updates.orderStatus = 'Shipped';
+      else if (fStatus === 'out_for_delivery') updates.orderStatus = 'Out for Delivery';
+      else if (fStatus === 'delivered') updates.orderStatus = 'Delivered';
+      else if (fStatus === 'cancelled') updates.orderStatus = 'Cancelled';
+      else if (fStatus === 'returned') updates.orderStatus = 'Cancelled';
+    }
     if (req.body.trackingNumber !== undefined) updates.trackingNumber = req.body.trackingNumber;
     if (req.body.trackingLink !== undefined) updates.trackingLink = req.body.trackingLink;
     
@@ -234,12 +254,62 @@ router.get("/products", async (req, res, next) => {
   }
 });
 
+router.delete("/products/:id", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: "Product not found." });
+
+    // Helper to delete local files
+    const deleteFile = (filePath) => {
+      if (!filePath || !filePath.startsWith("assets/uploads/")) return;
+      const fullPath = path.join(__dirname, "../../frontend", filePath);
+      if (fs.existsSync(fullPath)) {
+        try { fs.unlinkSync(fullPath); } catch (err) { console.error("Error deleting file:", err); }
+      }
+    };
+
+    // Delete associated files
+    deleteFile(product.image);
+    deleteFile(product.videoUrl);
+    if (Array.isArray(product.galleryImages)) {
+      product.galleryImages.forEach(img => deleteFile(img));
+    }
+
+    await Product.findByIdAndDelete(req.params.id);
+    return res.json({ message: "Product and associated assets deleted successfully." });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/product-reviews", async (req, res, next) => {
   try {
     if (requireDatabase(req, res)) return;
 
-    const reviews = await ProductReview.find().populate("product", "name slug image").sort({ createdAt: -1 });
-    return res.json(reviews);
+    const filter = {};
+    if (req.query.rating) filter.rating = parseInt(req.query.rating);
+
+    const reviews = await ProductReview.find(filter)
+      .populate("product", "name slug image")
+      .populate("user", "name email")
+      .sort({ createdAt: -1 });
+
+    const formatted = reviews.map(rev => ({
+      _id: rev._id,
+      rating: rev.rating,
+      comment: rev.comment,
+      images: rev.images,
+      video: rev.video,
+      status: rev.status,
+      createdAt: rev.createdAt,
+      productName: rev.product ? rev.product.name : "Unknown Product",
+      product: rev.product,
+      customerName: rev.user ? rev.user.name : "Anonymous",
+      customerEmail: rev.user ? rev.user.email : "N/A"
+    }));
+
+    return res.json(formatted);
   } catch (error) {
     return next(error);
   }
@@ -493,22 +563,6 @@ router.put("/products/:id", productValidators, async (req, res, next) => {
   }
 });
 
-router.delete("/products/:id", async (req, res, next) => {
-  try {
-    if (requireDatabase(req, res)) return;
-
-    const product = await Product.findOneAndUpdate(
-      productQuery(req.params.id),
-      { isActive: false },
-      { new: true }
-    );
-    if (!product) return res.status(404).json({ message: "Product not found." });
-
-    return res.json({ message: "Product deleted.", product });
-  } catch (error) {
-    return next(error);
-  }
-});
 
 router.put("/products/:id/digital-file", digitalFileValidators, async (req, res, next) => {
   try {
@@ -531,6 +585,41 @@ router.put("/products/:id/digital-file", digitalFileValidators, async (req, res,
     return res.json(product);
   } catch (error) {
     return next(error);
+  }
+});
+
+router.get("/abandoned-carts", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+    const users = await User.find({ "cart.0": { $exists: true } }).select("name email phone cart updatedAt abandonedCartStatus");
+    const carts = users.map(u => ({
+      userId: u._id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone,
+      items: u.cart,
+      total: u.cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+      updatedAt: u.updatedAt,
+      status: u.abandonedCartStatus || "not_called"
+    })).sort((a, b) => b.updatedAt - a.updatedAt);
+    return res.json(carts);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/abandoned-carts/:userId/status", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+    const { status } = req.body;
+    if (!["not_called", "called"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+    const user = await User.findByIdAndUpdate(req.params.userId, { abandonedCartStatus: status }, { new: true });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    return res.json({ message: "Status updated", status: user.abandonedCartStatus });
+  } catch (error) {
+    next(error);
   }
 });
 
@@ -589,7 +678,8 @@ router.get("/stats", async (req, res, next) => {
       todayUsers,
       recentOrders,
       productStats,
-      salesTrend
+      salesTrend,
+      liveVisitors: req.app.locals.activeVisitors ? req.app.locals.activeVisitors.size : 0
     });
   } catch (error) {
     return next(error);

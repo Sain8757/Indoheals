@@ -37,6 +37,22 @@ app.use(
 
 app.use((req, res, next) => {
   console.log("REQ:", req.method, req.url);
+  
+  // Track Live Visitors
+  if (!app.locals.activeVisitors) app.locals.activeVisitors = new Map();
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  if (ip) {
+    app.locals.activeVisitors.set(ip, Date.now());
+  }
+  
+  // Cleanup old visitors (older than 1 min) every few requests
+  if (Math.random() < 0.05) {
+    const now = Date.now();
+    for (const [key, time] of app.locals.activeVisitors.entries()) {
+      if (now - time > 60000) app.locals.activeVisitors.delete(key);
+    }
+  }
+  
   next();
 });
 
@@ -48,6 +64,7 @@ const downloadRoutes = require("./routes/downloadRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const deliveryRoutes = require("./routes/deliveryRoutes");
 
 app.get("/api/health", (req, res) => {
   res.json({
@@ -69,6 +86,7 @@ app.use("/api/downloads", downloadRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/delivery", deliveryRoutes);
 
 const frontendPath = path.join(__dirname, "../frontend");
 app.use(express.static(frontendPath));
@@ -106,6 +124,10 @@ async function connectMongo() {
 }
 
 connectMongo();
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/index.html"));
+});
 
 const PORT = process.env.PORT || 5001;
 const server = app.listen(PORT, () => {

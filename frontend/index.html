@@ -10,102 +10,121 @@
     href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&amp;family=Cinzel:wght@400;600;700&amp;family=Lato:wght@300;400;700&amp;display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <base href="/">
 </head>
 
 <body>
 
   <nav class="nav-main">
     <div class="nav-container">
-      <ul class="nav-links nav-left">
-        <li><a onclick="goToPage('home')">Home</a></li>
-        <li><a onclick="goToPage('products')">Our Product</a></li>
-        <li><a onclick="goToPage('shop')">Shop</a></li>
-        <li><a onclick="goToPage('news')">News & Events</a></li>
-        <li><a onclick="goToPage('contact')">Contact</a></li>
-      </ul>
+      <!-- Mobile Hamburger -->
+      <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="nav-left-group">
+        <ul class="nav-links nav-desktop-only">
+          <li><a onclick="goToPage('home')">Home</a></li>
+          <li><a onclick="goToPage('products')">Our Product</a></li>
+          <li><a onclick="goToPage('shop')">Shop</a></li>
+          <li><a onclick="goToPage('news')">News & Events</a></li>
+          <li><a onclick="goToPage('contact')">Contact</a></li>
+        </ul>
+      </div>
 
       <a onclick="goToPage('home')" class="nav-logo" aria-label="Indo Heals home">
         <span class="logo-badge">
-          <img src="assets/indo-heals-logo.png" alt="">
+          <img src="assets/indo-heals-logo.png" alt="Indo Heals Logo">
         </span>
         <span class="nav-logo-text">Indo Heals</span>
       </a>
 
-      <ul class="nav-links nav-right">
-        <li>
-          <button class="nav-icon-button" type="button" onclick="focusSearch()" aria-label="Search site">
-            <span aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M21.7 20.3 16.9 15.5A8.5 8.5 0 1 0 15.5 16.9l4.8 4.8a1 1 0 0 0 1.4-1.4ZM4 10.5A6.5 6.5 0 1 1 10.5 17 6.5 6.5 0 0 1 4 10.5Z">
-                </path>
-              </svg>
-            </span>
+      <div class="nav-right-group">
+        <div class="nav-location-selector nav-desktop-only" onclick="openLocationModal()">
+          <span class="loc-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          </span>
+          <div class="loc-text">
+            <span class="loc-label">Deliver to</span>
+            <span id="globalPincodeDisplay" class="loc-value">Select Pincode</span>
+          </div>
+        </div>
+
+        <div class="nav-search-container" id="navSearchContainer">
+          <div class="nav-search-box">
+            <button class="nav-icon-button" type="button" onclick="toggleSearch()" aria-label="Search site">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
+            <input type="text" id="headerSearchInput" placeholder="Search products..." autocomplete="off">
+          </div>
+          <div id="searchDropdown" class="search-dropdown" style="display:none;"></div>
+        </div>
+
+        <div class="nav-account-wrapper" id="navAccountWrapper">
+          <div class="nav-action-item nav-desktop-only" onclick="openAccount(event)">
+            <span class="nav-action-label" id="navHelloText">Hello, sign in</span>
+            <div class="nav-action-value">
+              <span>Account</span>
+              <svg viewBox="0 0 24 24" class="nav-action-arrow"><path d="M7 10l5 5 5-5H7z"/></svg>
+            </div>
+          </div>
+          <button class="nav-icon-button nav-mobile-only" onclick="openAccount(event)" aria-label="Account">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </button>
-        </li>
-        <li class="nav-account-wrapper" id="navAccountWrapper">
-          <button id="accountLink" class="nav-icon-button nav-account-button" type="button" onclick="openAccount(event)"
-            aria-label="Open account">
-            <span id="loginText" class="nav-login-text">Login / Signup</span>
-            <span id="navUserName" class="nav-account-name"></span>
-          </button>
-          <!-- Myntra-style account dropdown -->
-          <div id="accountDropdown" class="account-dropdown" role="menu" aria-label="Account menu">
-            <div class="acc-drop-user" id="accDropUser" style="display:none; cursor:pointer;"
-              onclick="openAccountTab('overview'); closeAccountDropdown();">
+          
+          <div id="accountDropdown" class="account-dropdown">
+            <div class="acc-drop-user" id="accDropUser" style="display:none;" onclick="openAccountTab('overview'); closeAccountDropdown();">
               <div class="acc-drop-hello">Hello <span id="accDropName">User</span></div>
-              <div class="acc-drop-phone" id="accDropPhone"></div>
             </div>
             <div class="acc-drop-login-row" id="accDropLogin">
-              <button class="acc-drop-login-btn" onclick="goToPage('login'); closeAccountDropdown();">Login / Sign
-                Up</button>
-              <button class="acc-drop-login-btn admin-btn"
-                onclick="window.location.href='admin.html'; closeAccountDropdown();"
-                style="margin-top: 8px; background: var(--navy-soft); color: var(--gold-light); border: 1px solid var(--gold);">Admin
-                Login</button>
+              <button class="acc-drop-login-btn" onclick="goToPage('login'); closeAccountDropdown();">Login / Sign Up</button>
             </div>
             <hr class="acc-drop-divider">
             <div class="acc-drop-section">
-              <a class="acc-drop-item" onclick="openAccountTab('profile'); closeAccountDropdown();">
-                <svg viewBox="0 0 24 24">
-                  <path
-                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                </svg>
-                Profile
-              </a>
-              <a class="acc-drop-item" onclick="openAccountTab('orders'); closeAccountDropdown();">
-                <svg viewBox="0 0 24 24">
-                  <path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
-                </svg>
-                Orders
-              </a>
+              <a class="acc-drop-item" onclick="openAccountTab('profile'); closeAccountDropdown();">Profile</a>
+              <a class="acc-drop-item" onclick="openAccountTab('orders'); closeAccountDropdown();">Orders</a>
             </div>
-            <hr class="acc-drop-divider" id="accDropAuthDivider" style="display:none;">
             <div class="acc-drop-section" id="accDropAuthSection" style="display:none;">
-              <a class="acc-drop-item acc-drop-logout" onclick="logout(); closeAccountDropdown();">
-                <svg viewBox="0 0 24 24">
-                  <path
-                    d="M17 7l-1.4 1.4L18.2 11H9v2h9.2l-2.6 2.6L17 17l5-5-5-5zM5 5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7v-2H5V5z" />
-                </svg>
-                Logout
-              </a>
+              <hr class="acc-drop-divider">
+              <a class="acc-drop-item acc-drop-logout" onclick="logout(); closeAccountDropdown();">Logout</a>
             </div>
           </div>
-        </li>
-        <li>
-          <button id="cartLink" class="nav-icon-button" type="button" onclick="goToPage('cart')" aria-label="View cart">
-            <span aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M6 6h15l-1.5 9H8.5L6 6Zm0-2a1 1 0 0 0-1 1v1H2v2h2l3.6 7.6a1 1 0 0 0 .9.6h8a1 1 0 0 0 .9-.6L22 8H8V6h-2V5a1 1 0 0 0-1-1Z">
-                </path>
-              </svg>
-            </span>
-            <span id="cartBadge" class="cart-badge" style="display:none;">0</span>
-          </button>
-        </li>
+        </div>
 
-      </ul>
+        <div class="nav-cart-item" onclick="goToPage('cart')">
+          <div class="nav-cart-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+            <span id="cartBadge" class="cart-badge" style="display:none;">0</span>
+          </div>
+          <span class="nav-cart-label nav-desktop-only">Cart</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Sidebar Menu -->
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
+    <div id="mobileSidebar" class="mobile-sidebar">
+      <div class="mobile-sidebar-header">
+        <span class="nav-logo-text">Indo Heals</span>
+        <button class="close-sidebar" onclick="toggleMobileMenu()">&times;</button>
+      </div>
+      <div class="mobile-sidebar-body">
+        <ul class="mobile-nav-links">
+          <li><a onclick="goToPage('home'); toggleMobileMenu()">Home</a></li>
+          <li><a onclick="goToPage('products'); toggleMobileMenu()">Our Product</a></li>
+          <li><a onclick="goToPage('shop'); toggleMobileMenu()">Shop</a></li>
+          <li><a onclick="goToPage('news'); toggleMobileMenu()">News & Events</a></li>
+          <li><a onclick="goToPage('contact'); toggleMobileMenu()">Contact</a></li>
+        </ul>
+        <hr>
+        <div class="mobile-extra-links">
+          <a onclick="openLocationModal(); toggleMobileMenu()">Change Location</a>
+          <a onclick="openAccountTab('orders'); toggleMobileMenu()">My Orders</a>
+          <a onclick="goToPage('contact'); toggleMobileMenu()">Help Center</a>
+        </div>
+      </div>
     </div>
   </nav>
 
@@ -123,17 +142,17 @@
           </div>
         </article>
         <article class="hero-slide" data-slide="wellness"
-          style="--hero-image: url('https://images.unsplash.com/photo-1773479089546-49ff98325518?auto=format&fit=crop&w=2400&q=80'); --hero-position: center;">
+          style="--hero-image: url('https://images.unsplash.com/photo-1758691461932-d0aa0ebf6b31?auto=format&fit=crop&w=1600&q=80'); --hero-position: center;">
           <div class="hero-content">
-            <span class="hero-kicker">Wellness</span>
-            <h1>Daily rituals with premium herbal care</h1>
-            <p class="hero-sub">Botanicals, cacao, and responsible traditional-use positioning for calm, consistent
-              routines.</p>
+            <span class="hero-kicker">Wellness Ritual</span>
+            <h1>Herbal traditions, polished for you</h1>
+            <p class="hero-sub">Deeply rooted in Ayurvedic and Unani heritage, Indo Heals brings you the best of nature
+              in a modern, reliable experience.</p>
             <a onclick="goToPage('products')" class="btn-primary">Know More</a>
           </div>
         </article>
         <article class="hero-slide" data-slide="modernity"
-          style="--hero-image: url('https://images.unsplash.com/photo-1573546333520-92cb9d534461?auto=format&fit=crop&w=2400&q=80'); --hero-position: center;">
+          style="--hero-image: url('https://images.unsplash.com/photo-1573546333520-92cb9d534461?auto=format&fit=crop&w=1600&q=80'); --hero-position: center;">
           <div class="hero-content">
             <span class="hero-kicker">Modernity</span>
             <h1>Clean formats for modern households</h1>
@@ -143,7 +162,7 @@
           </div>
         </article>
         <article class="hero-slide" data-slide="legacy"
-          style="--hero-image: url('https://images.unsplash.com/photo-1758221052535-8119e3a816b7?auto=format&fit=crop&w=2400&q=80'); --hero-position: center;">
+          style="--hero-image: url('https://images.unsplash.com/photo-1758221052535-8119e3a816b7?auto=format&fit=crop&w=1600&q=80'); --hero-position: center;">
           <div class="hero-content">
             <span class="hero-kicker">Legacy</span>
             <h1>Ancient wisdom, renewed with care</h1>
@@ -153,11 +172,11 @@
         </article>
       </div>
       <section class="hero-consult-section" id="heroConsultSection"
-        style="--consult-image: url('https://images.unsplash.com/photo-1758691461932-d0aa0ebf6b31?auto=format&fit=crop&w=2400&q=80');"
+        style="--consult-image: url('https://images.unsplash.com/photo-1758691461932-d0aa0ebf6b31?auto=format&fit=crop&w=1600&q=80');"
         aria-label="Consult with Unani doctors">
         <div class="consult-media">
-          <img src="https://images.unsplash.com/photo-1758691461932-d0aa0ebf6b31?auto=format&fit=crop&w=1200&q=80"
-            alt="Doctor consulting a patient over video call">
+          <img src="https://images.unsplash.com/photo-1758691461932-d0aa0ebf6b31?auto=format&fit=crop&w=800&q=80"
+            alt="Doctor consulting a patient over video call" loading="lazy">
           <div class="consult-media-copy">
             <span>#CureWithUnaniCare</span>
             <h2>Consult with <em>Unani</em> Doctors for any health related concerns over video call.</h2>
@@ -242,7 +261,7 @@
         <a onclick="goToPage('products')" class="btn-primary">Explore Products</a>
       </div>
       <div class="split-media">
-        <img src="assets/health-support-chocolate.png" alt="Herbal chocolate with botanicals">
+        <img src="assets/health-support-chocolate.png" alt="Herbal chocolate with botanicals" loading="lazy">
       </div>
     </section>
 
@@ -343,15 +362,19 @@
   </div>
 
   <div id="products-foods-page" class="page" style="display:none;">
-    <section class="category-hero" style="background-image: linear-gradient(rgba(2, 8, 23, 0.7), rgba(2, 8, 23, 0.9)), url('assets/foods-hero.png');">
+    <section class="category-hero"
+      style="background-image: linear-gradient(rgba(2, 8, 23, 0.7), rgba(2, 8, 23, 0.9)), url('assets/foods-hero.png');">
       <div class="category-hero-content">
         <button class="back-navigation-btn" onclick="goToPage('products')">
-          <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
+          <svg viewBox="0 0 24 24">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+          </svg>
           Back to Categories
         </button>
         <span class="section-label">Functional Herbal Foods</span>
         <h1 class="category-title">Foods Collection</h1>
-        <p class="category-desc">Functional herbal foods for daily wellness rituals. Crafted with ancient wisdom and modern nutritional science.</p>
+        <p class="category-desc">Functional herbal foods for daily wellness rituals. Crafted with ancient wisdom and
+          modern nutritional science.</p>
       </div>
     </section>
 
@@ -362,7 +385,7 @@
         <button class="filter-chip" onclick="filterFoods('herbs', this)">Herbs</button>
         <button class="filter-chip" onclick="filterFoods('blends', this)">Wellness Blends</button>
       </div>
-      
+
       <div id="foods-products" class="products-grid foods-grid-compact"></div>
     </section>
   </div>
@@ -668,7 +691,7 @@
 
       <div id="hc-main-view">
         <div class="hc-grid">
-          <div class="hc-card" onclick="window.location.href='orders.html'">
+          <div class="hc-card" onclick="openAccountTab('orders')">
             <div class="hc-icon">
               <svg viewBox="0 0 24 24">
                 <path
@@ -680,7 +703,7 @@
               <p>Manage your orders and returns easily.</p>
             </div>
           </div>
-          <div class="hc-card" onclick="window.location.href='faq.html'">
+          <div class="hc-card" onclick="goToPage('contact'); showSupportForm('payment');">
             <div class="hc-icon">
               <svg viewBox="0 0 24 24">
                 <path
@@ -692,7 +715,7 @@
               <p>Issues with payments or refund status.</p>
             </div>
           </div>
-          <div class="hc-card" onclick="window.location.href='faq.html'">
+          <div class="hc-card" onclick="goToPage('contact'); showSupportForm('enquiry');">
             <div class="hc-icon">
               <svg viewBox="0 0 24 24">
                 <path
@@ -737,9 +760,45 @@
               <div class="hc-method-icon">📍</div>
               <h4>Visit Us</h4>
               <p>Okhla Village, Jamia Nagar, New Delhi - 110025</p>
-              <a class="hc-link">Get Directions</a>
+              <a class="hc-link" href="https://maps.google.com/?q=Okhla+Village,+Jamia+Nagar,+New+Delhi+-+110025">Get
+                Directions</a>
             </div>
           </div>
+        </div>
+
+        <div id="hc-support-form" class="hc-support-form-section"
+          style="display:none; margin-top: 40px; background: var(--surface-2); padding: 32px; border-radius: 12px; border: 1px solid var(--line);">
+          <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 id="supportFormTitle" style="margin:0;">Submit a Request</h2>
+            <button class="back-btn" onclick="hideSupportForm()"
+              style="background:transparent; border:none; color:var(--gold); cursor:pointer;">Close</button>
+          </div>
+          <form onsubmit="handleSupportSubmit(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Issue Category</label>
+                <select id="supportCategory" required
+                  style="width:100%; padding:12px; background:var(--navy-soft); border:1px solid var(--line); color:white; border-radius:6px;">
+                  <option value="payment">Payment & Refunds</option>
+                  <option value="enquiry">Product Enquiry</option>
+                  <option value="order">Order Issues</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Order ID (Optional)</label>
+                <input type="text" id="supportOrderId" placeholder="e.g. #12345"
+                  style="width:100%; padding:12px; background:var(--navy-soft); border:1px solid var(--line); color:white; border-radius:6px;">
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:16px;">
+              <label>Message</label>
+              <textarea id="supportMessage" required rows="5" placeholder="Describe your issue in detail..."
+                style="width:100%; padding:12px; background:var(--navy-soft); border:1px solid var(--line); color:white; border-radius:6px; resize:vertical;"></textarea>
+            </div>
+            <button type="submit" class="btn-primary" style="margin-top:20px; width:200px;">Send Request</button>
+            <p id="supportFormMsg" class="form-message" style="margin-top:12px;"></p>
+          </form>
         </div>
       </div>
 
@@ -844,12 +903,20 @@
   <div id="checkout-page" class="page" style="display:none;">
     <section class="section checkout-page">
       <div class="checkout-shell">
+        <!-- Step Indicator -->
+        <div class="checkout-steps">
+          <div class="step completed"><span>BAG</span></div>
+          <div class="step-divider"></div>
+          <div class="step active"><span>ADDRESS</span></div>
+          <div class="step-divider"></div>
+          <div class="step"><span>PAYMENT</span></div>
+        </div>
+
         <div class="checkout-head">
-          <span class="section-label">Checkout</span>
-          <h2 class="section-title">Delivery & Payment</h2>
+          <h2 class="section-title">Select Delivery Address</h2>
         </div>
         <div class="checkout-grid">
-          <form class="appointment-form checkout-form" onsubmit="placeOrder(event)">
+          <form class="appointment-form checkout-form" onsubmit="goToOrderSummary(event)">
             <div class="form-row">
               <div class="form-group">
                 <label>Full Name</label>
@@ -862,7 +929,7 @@
             </div>
             <div class="form-group">
               <label>Email</label>
-              <input type="email" id="checkout-email" required readonly placeholder="Enter email">
+              <input type="email" id="checkout-email" required placeholder="Enter email">
             </div>
             <div class="form-group">
               <label>Address Line 1</label>
@@ -896,17 +963,74 @@
               <label>Order Notes</label>
               <textarea id="checkout-notes" rows="3" placeholder="Optional delivery note"></textarea>
             </div>
-            <button type="submit" class="btn-primary">Pay & Confirm Order</button>
+            <button type="submit" class="btn-primary" style="width:100%; margin-top:20px;">Continue to Summary</button>
             <p id="checkoutMessage" class="form-message"></p>
           </form>
 
           <aside class="checkout-summary-panel">
-            <div class="summary-title">Order Summary</div>
-            <div id="checkoutSummary"></div>
+            <div class="summary-title">Price Details</div>
+            <div id="checkoutBriefSummary"></div>
             <div class="summary-total">
-              <strong>Total: ₹<span id="checkoutTotal">0</span></strong>
+              <strong>Total: ₹<span id="checkoutBriefTotal">0</span></strong>
             </div>
-            <p class="checkout-note">Secure payment powered by Razorpay when keys are configured.</p>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="order-summary-page" class="page" style="display:none;">
+    <section class="section checkout-page">
+      <div class="checkout-shell">
+        <!-- Step Indicator -->
+        <div class="checkout-steps">
+          <div class="step completed"><span>BAG</span></div>
+          <div class="step-divider"></div>
+          <div class="step completed"><span>ADDRESS</span></div>
+          <div class="step-divider"></div>
+          <div class="step active"><span>PAYMENT</span></div>
+        </div>
+
+        <div class="checkout-head">
+          <h2 class="section-title">Order Summary</h2>
+        </div>
+
+        <div class="checkout-grid">
+          <div class="summary-details-column">
+            <!-- Delivery Address Card -->
+            <div class="summary-card">
+              <div class="summary-card-header">
+                <h3>Delivering To</h3>
+                <button class="btn-text" onclick="goToPage('checkout')">CHANGE</button>
+              </div>
+              <div id="summaryDeliveryAddress" class="summary-card-body"></div>
+            </div>
+
+            <!-- Items List -->
+            <div class="summary-card">
+              <div class="summary-card-header">
+                <h3>Selected Items</h3>
+              </div>
+              <div id="summaryItemsList" class="summary-card-body"></div>
+            </div>
+          </div>
+
+          <aside class="checkout-summary-panel">
+            <div class="summary-title">Coupons</div>
+            <div class="coupon-apply-wrap">
+              <input type="text" id="couponInput" placeholder="Enter coupon code (e.g. NEW50)" autocomplete="off">
+              <button class="btn-outline" onclick="applyCoupon()">APPLY</button>
+            </div>
+            <div id="couponMessage" class="coupon-msg"></div>
+
+            <div class="summary-title" style="margin-top:24px;">Payment Summary</div>
+            <div class="summary-pricing-rows" id="summaryFinalPricing"></div>
+            <div class="summary-total" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:15px; margin-top:15px;">
+              <strong>Total Amount: ₹<span id="summaryFinalTotal">0</span></strong>
+            </div>
+            <button class="btn-primary" style="width:100%; margin-top:20px; font-size:16px; padding:18px;" onclick="placeOrder(event)">PLACE ORDER</button>
+            <p id="summaryCheckoutMessage" class="form-message"></p>
+            <p class="checkout-note" style="text-align:center; margin-top:15px;">Secure payment powered by Razorpay</p>
           </aside>
         </div>
       </div>
@@ -1176,17 +1300,13 @@
                 <h3 style="font-size: 20px;">Edit Details</h3>
               </div>
               <form class="appointment-form profile-edit-extended" onsubmit="saveProfileUpdate(event)">
-                <div class="profile-field-readonly">
-                  <div class="pfr-info">
-                    <span class="pfr-label">Mobile Number*</span>
-                    <div class="pfr-value"><span id="editProfilePhoneText"></span></div>
-                  </div>
+                <div class="form-group floating-group">
+                  <input type="tel" id="editProfilePhone" class="floating-input" required placeholder=" " pattern="[0-9]{10,15}">
+                  <label class="floating-label">Mobile Number*</label>
                 </div>
-                <div class="profile-field-readonly">
-                  <div class="pfr-info">
-                    <span class="pfr-label">Email</span>
-                    <div class="pfr-value"><span id="editProfileEmailText"></span></div>
-                  </div>
+                <div class="form-group floating-group">
+                  <input type="email" id="editProfileEmail" class="floating-input" required placeholder=" ">
+                  <label class="floating-label">Email Address*</label>
                 </div>
                 <div class="form-group floating-group">
                   <input type="text" id="editProfileName" class="floating-input" required placeholder=" ">
@@ -1256,6 +1376,8 @@
                   </div>
                   <div class="form-row">
                     <div class="form-group"><input type="text" id="addr-pin" placeholder="PIN" required></div>
+                    <div class="form-group"><input type="text" id="addr-country" placeholder="Country" value="India">
+                    </div>
                   </div>
                   <div style="display:flex; gap: 10px;">
                     <button type="submit" class="btn-primary">Save</button>
@@ -1402,9 +1524,9 @@
         <div class="footer-col-title">Company</div>
         <ul>
           <li><a onclick="goToPage('about')">About Us</a></li>
-          <li><a href="faq.html">Order Tracking</a></li>
-          <li><a href="faq.html">Shipping & Return</a></li>
-          <li><a href="faq.html">FAQs</a></li>
+          <li><a onclick="openAccountTab('orders')">Order Tracking</a></li>
+          <li><a onclick="goToPage('contact')">Shipping & Return</a></li>
+          <li><a onclick="goToPage('contact')">FAQs</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -1428,10 +1550,12 @@
     </div>
     <div class="footer-bottom">
       <div class="footer-bottom-links" style="margin-bottom: 12px;">
-        <a href="faq.html"
-          style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 13px; margin-right: 16px;">Terms &
+        <a onclick="openAccountTab('terms')"
+          style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 13px; margin-right: 16px; cursor:pointer;">Terms
+          &
           Conditions</a>
-        <a href="faq.html" style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 13px;">Privacy
+        <a onclick="openAccountTab('privacy')"
+          style="color: rgba(255,255,255,0.6); text-decoration: none; font-size: 13px; cursor:pointer;">Privacy
           Policy</a>
       </div>
       <p>© 2026 <span>Indo Heals Private Limited</span>. All rights reserved.</p>
@@ -1443,8 +1567,9 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <!-- ===== WHATSAPP DIRECT CONNECT ===== -->
-  <a class="whatsapp-connect chat-pulse" href="https://wa.me/919955289295?text=Namaste%20Indo%20Heals%2C%20I%20need%20support."
-    target="_blank" rel="noopener" aria-label="Connect with Indo Heals on WhatsApp">
+  <a class="whatsapp-connect chat-pulse"
+    href="https://wa.me/919955289295?text=Namaste%20Indo%20Heals%2C%20I%20need%20support." target="_blank"
+    rel="noopener" aria-label="Connect with Indo Heals on WhatsApp">
     <span class="whatsapp-icon" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="currentColor">
         <path
@@ -1528,7 +1653,36 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
   <script src="script.js?v=20260503-signup-otp"></script>
-  <script src="chat.js"></script>
+
+  <!-- Location / Pincode Modal -->
+  <div id="locationModal" class="hm-modal" style="display:none;">
+    <div class="hm-modal-content location-modal-content">
+      <div class="hm-modal-header">
+        <h3>Select Delivery Location</h3>
+        <button class="close-modal" onclick="closeLocationModal()">&times;</button>
+      </div>
+      <div class="hm-modal-body">
+        <p class="loc-modal-sub">Enter a pincode to see product availability and delivery times.</p>
+        
+        <div class="loc-modal-input-wrap">
+          <input type="text" id="modalPincodeInput" maxlength="6" placeholder="Enter 6-digit Pincode">
+          <button class="btn-primary" onclick="applyGlobalPincode()">APPLY</button>
+        </div>
+
+        <div class="loc-modal-divider"><span>OR</span></div>
+
+        <button class="btn-outline loc-detect-btn" onclick="detectUserLocation()">
+          <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+          Use my current location
+        </button>
+
+        <div id="locModalMsg" class="loc-modal-msg"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="script.js"></script>
 </body>
 
 </html>
