@@ -85,15 +85,20 @@ router.post("/ask", async (req, res) => {
       try {
         const { GoogleGenerativeAI } = require("@google/generative-ai");
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
         // Build conversation history for context
         const chatHistory = (history || [])
-          .slice(-6) // keep last 3 exchanges
+          .slice(-6) 
           .map(h => ({
             role: h.role === "user" ? "user" : "model",
             parts: [{ text: h.content }]
           }));
+
+        // Gemini startChat history MUST end with a 'model' response 
+        if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === "user") {
+          chatHistory.pop();
+        }
 
         const chat = model.startChat({
           history: [
