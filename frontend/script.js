@@ -2282,24 +2282,50 @@ async function generateInvoicePDF(id) {
  * Makes the product image zoom follow the mouse cursor for a premium experience
  */
 function initImageZoom() {
+  const lens = document.createElement('div');
+  lens.className = 'zoom-lens';
+  document.body.appendChild(lens);
+
   document.addEventListener('mousemove', (e) => {
-    const container = e.target.closest('.product-img, .product-detail-image, .range-card, .hm-similar-card');
-    if (!container) return;
+    const container = e.target.closest('.product-detail-image');
+    
+    if (!container) {
+      lens.style.display = 'none';
+      return;
+    }
 
     const img = container.querySelector('img');
-    if (!img || !img.complete) return;
+    if (!img || !img.complete) {
+      lens.style.display = 'none';
+      return;
+    }
 
-    const rect = container.getBoundingClientRect();
+    // Show lens and set background
+    lens.style.display = 'block';
+    lens.style.backgroundImage = `url("${img.src}")`;
     
-    // For range-card, the image might not fill the whole card.
-    // Let's use the img rect if it's a range-card for better accuracy.
-    const targetRect = container.classList.contains('range-card') ? img.getBoundingClientRect() : rect;
-
-    const x = ((e.clientX - targetRect.left) / targetRect.width) * 100;
-    const y = ((e.clientY - targetRect.top) / targetRect.height) * 100;
-
-    // We only update the origin while moving, 
-    // the scale is handled by CSS hover for performance
-    img.style.transformOrigin = `${x}% ${y}%`;
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Position lens on cursor
+    lens.style.left = `${e.clientX}px`;
+    lens.style.top = `${e.clientY}px`;
+    
+    // Calculate background position (percentage)
+    const px = (x / rect.width) * 100;
+    const py = (y / rect.height) * 100;
+    
+    // Adjust background size to create zoom effect
+    // We want the image to be roughly 3.5x larger in the lens
+    const zoomLevel = 3.5;
+    lens.style.backgroundSize = `${rect.width * zoomLevel}px ${rect.height * zoomLevel}px`;
+    lens.style.backgroundPosition = `${px}% ${py}%`;
   });
+
+  document.addEventListener('mouseleave', (e) => {
+    if (!e.target.closest('.product-detail-image')) {
+      lens.style.display = 'none';
+    }
+  }, true);
 }
