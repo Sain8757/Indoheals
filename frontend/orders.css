@@ -5,11 +5,14 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --navy:      #07184a;
-  --navy-deep: #020817;
-  --gold:      #d4af37;
-  --gold-l:    #f4dc86;
-  --gold-d:    #9a711b;
+  --royal:      #1a237e;
+  --royal-dark: #0d1457;
+  --navy:       var(--royal);
+  --navy-deep:  var(--royal-dark);
+  --gold:       #c8960c;
+  --gold-light: #e8b84b;
+  --gold-l:     var(--gold-light);
+  --gold-d:     #9a711b;
   --white:     #ffffff;
   --surface:   #f5f5f5;
   --surface2:  #ffffff;

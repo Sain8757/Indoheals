@@ -188,30 +188,7 @@ async function sendOrderDeliveredEmail(order) {
   });
 }
 
-async function sendAppointmentConfirmationEmail(appointment) {
-  const text = `Your appointment request is received.\nReference: ${appointment.reference}\nPreferred slot: ${appointment.date} ${appointment.time}`;
-  await sendMail({
-    to: appointment.email,
-    subject: "Indo Heals appointment request received",
-    text,
-    html: `<p>Your appointment request is received.</p><p>Reference: <strong>${escapeHtml(
-      appointment.reference
-    )}</strong></p><p>Preferred slot: ${escapeHtml(appointment.date)} ${escapeHtml(appointment.time)}</p>`
-  });
 
-  const to = adminEmail();
-  if (!to) return { skipped: true };
-  return sendMail({
-    to,
-    subject: `New appointment request: ${appointment.reference}`,
-    text: `${appointment.name} (${appointment.email}, ${appointment.phone}) requested ${appointment.interest} on ${appointment.date} ${appointment.time}.`,
-    html: `<p><strong>${escapeHtml(appointment.name)}</strong> requested ${escapeHtml(
-      appointment.interest
-    )}.</p><p>${escapeHtml(appointment.email)} · ${escapeHtml(appointment.phone)}</p><p>${escapeHtml(
-      appointment.date
-    )} ${escapeHtml(appointment.time)}</p>`
-  });
-}
 
 async function sendBusinessLeadNotification(lead) {
   const text = `Thank you. Your business enquiry reference is ${lead.reference}.`;
@@ -249,7 +226,7 @@ async function sendNewsletterConfirmation(email) {
 
 module.exports = {
   sendMail,
-  sendAppointmentConfirmationEmail,
+
   sendBusinessLeadNotification,
   sendNewsletterConfirmation,
   sendOrderConfirmationEmail,

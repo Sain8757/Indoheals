@@ -1133,7 +1133,14 @@ function productEditorPanel(product = null) {
         <label>Stock<input id="productStock" type="number" min="0" step="1" value="${Number(product?.stock || 0)}"></label>
       </div>
       <div class="form-grid">
-        <label>Category<input id="productCategory" value="${escapeAttribute(product?.category || "")}"></label>
+        <label>Category
+          <select id="productCategory" class="form-select" style="width:100%; margin-top:5px; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-soft); color: var(--text-color);">
+            <option value="foods" ${product?.category === 'foods' ? 'selected' : ''}>Foods (Wellness Chocolates)</option>
+            <option value="allopathy" ${product?.category === 'allopathy' ? 'selected' : ''}>Allopathy</option>
+            <option value="unani" ${product?.category === 'unani' ? 'selected' : ''}>Unani</option>
+            <option value="ayurveda" ${product?.category === 'ayurveda' ? 'selected' : ''}>Ayurveda</option>
+          </select>
+        </label>
         <label>Badge<input id="productBadge" value="${escapeAttribute(product?.badge || "")}"></label>
       </div>
       <label>Image path<input id="productImage" placeholder="assets/breathe-classic-ai.png" value="${escapeAttribute(product?.image || "")}"></label>
@@ -1536,6 +1543,23 @@ function orderDetailPanel(order) {
           <div class="detail-actions">
             <label>Payment ${statusSelect(ORDER_PAYMENT_OPTIONS, order.status || "pending", `updateOrderStatus('${escapeAttribute(order._id)}', 'status', this.value)`)}</label>
             <label>Fulfillment ${statusSelect(ORDER_FULFILLMENT_OPTIONS, order.fulfillmentStatus || "new", `updateOrderStatus('${escapeAttribute(order._id)}', 'fulfillmentStatus', this.value)`)}</label>
+          </div>
+        </section>
+        <section class="detail-section">
+          <h3>Logistics</h3>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+            <label>Tracking ID
+              <input type="text" class="form-input" style="width:100%; margin-top:5px;" 
+                value="${escapeAttribute(order.trackingNumber || "")}" 
+                onblur="updateOrderStatus('${escapeAttribute(order._id)}', 'trackingNumber', this.value)" 
+                placeholder="e.g. IH789012">
+            </label>
+            <label>Tracking Link
+              <input type="url" class="form-input" style="width:100%; margin-top:5px;" 
+                value="${escapeAttribute(order.trackingLink || "")}" 
+                onblur="updateOrderStatus('${escapeAttribute(order._id)}', 'trackingLink', this.value)" 
+                placeholder="https://courier.com/track">
+            </label>
           </div>
         </section>
         <section class="detail-section">

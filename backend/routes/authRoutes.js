@@ -25,6 +25,17 @@ function normalizeEmail(email = "") {
   return String(email).trim().toLowerCase();
 }
 
+function resolveLoginEmail(login = "") {
+  const value = String(login).trim();
+  const adminUsername = String(process.env.ADMIN_USERNAME || "").trim().toLowerCase();
+
+  if (adminUsername && value.toLowerCase() === adminUsername) {
+    return normalizeEmail(process.env.ADMIN_EMAIL);
+  }
+
+  return normalizeEmail(value);
+}
+
 function createSignupOtp() {
   return String(crypto.randomInt(100000, 1000000));
 }
@@ -59,6 +70,22 @@ function authResponse(user) {
     user: publicUser(user),
     token: createToken(user)
   };
+}
+
+function normalizeAddresses(addresses = []) {
+  if (!Array.isArray(addresses)) return [];
+
+  return addresses.slice(0, 20).map(address => ({
+    label: String(address.label || "Home").trim(),
+    fullName: String(address.fullName || "").trim(),
+    phone: String(address.phone || "").trim(),
+    addressLine1: String(address.addressLine1 || "").trim(),
+    addressLine2: String(address.addressLine2 || "").trim(),
+    city: String(address.city || "").trim(),
+    state: String(address.state || "").trim(),
+    postalCode: String(address.postalCode || "").trim(),
+    country: String(address.country || "India").trim()
+  }));
 }
 
 router.post(
@@ -232,13 +259,13 @@ router.post(
 router.post(
   "/login",
   [
-    body("email").isEmail().withMessage("Valid email is required.").normalizeEmail(),
+    body("email").trim().notEmpty().withMessage("Username or email is required."),
     body("password").notEmpty().withMessage("Password is required."),
     validate
   ],
   async (req, res, next) => {
     try {
-      const email = normalizeEmail(req.body.email);
+      const email = resolveLoginEmail(req.body.email);
       const password = String(req.body.password || "");
 
       if (!req.app.locals.dbReady) {
@@ -342,6 +369,7 @@ router.put(
     body("phone").optional({ checkFalsy: true }).trim().isLength({ min: 7 }).withMessage("Phone number is too short."),
     body("currentPassword").optional().isString(),
     body("newPassword").optional().isLength({ min: 8 }).withMessage("New password must be at least 8 characters."),
+    body("addresses").optional().isArray().withMessage("Addresses must be a list."),
     validate
   ],
   async (req, res, next) => {
@@ -356,6 +384,14 @@ router.put(
       if (req.body.name) user.name = String(req.body.name).trim();
       if (req.body.email) user.email = normalizeEmail(req.body.email);
       if (req.body.phone !== undefined) user.phone = String(req.body.phone || "").trim();
+      
+      // New Fields
+      if (req.body.gender !== undefined) user.gender = String(req.body.gender || "").trim();
+      if (req.body.dob !== undefined) user.dob = String(req.body.dob || "").trim();
+      if (req.body.altMobile !== undefined) user.altMobile = String(req.body.altMobile || "").trim();
+      if (req.body.altName !== undefined) user.altName = String(req.body.altName || "").trim();
+      if (req.body.altEmail !== undefined) user.altEmail = String(req.body.altEmail || "").trim();
+      if (req.body.addresses !== undefined) user.addresses = normalizeAddresses(req.body.addresses);
 
       if (req.body.newPassword) {
         if (!req.body.currentPassword || !(await verifyPassword(req.body.currentPassword, user.passwordHash))) {

@@ -54,6 +54,65 @@
       display: flex;
     }
 
+    body.admin-locked {
+      display: block;
+    }
+
+    body.admin-locked .sidebar,
+    body.admin-locked .main {
+      display: none;
+    }
+
+    .admin-login-screen {
+      display: none;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top, rgba(29, 158, 117, 0.18), transparent 36%),
+        var(--bg);
+    }
+
+    body.admin-locked .admin-login-screen {
+      display: flex;
+    }
+
+    .admin-login-card {
+      width: min(420px, 100%);
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+    }
+
+    .admin-login-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .admin-login-card h1 {
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+
+    .admin-login-card p {
+      color: var(--text2);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .admin-login-message {
+      min-height: 18px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--red);
+    }
+
     /* ── SCROLLBAR ── */
     ::-webkit-scrollbar {
       width: 4px;
@@ -818,6 +877,98 @@
       overflow-y: auto;
     }
 
+    .profile-modal {
+      width: 860px;
+    }
+
+    .profile-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .profile-stat {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    .profile-stat span,
+    .profile-field-label {
+      display: block;
+      color: var(--text3);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .profile-stat strong,
+    .profile-field-value {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      word-break: break-word;
+    }
+
+    .profile-section {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      margin-top: 16px;
+    }
+
+    .profile-section-title {
+      color: var(--green-light);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .profile-field {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 11px;
+      min-height: 62px;
+    }
+
+    .address-list,
+    .profile-order-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .address-card,
+    .profile-order-card {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      color: var(--text2);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .address-card strong,
+    .profile-order-card strong {
+      color: var(--text);
+    }
+
+    .empty-profile-note {
+      color: var(--text3);
+      font-size: 12px;
+      padding: 10px 0;
+    }
+
     .modal-title {
       font-size: 16px;
       font-weight: 600;
@@ -1060,7 +1211,31 @@
   </style>
 </head>
 
-<body>
+<body class="admin-locked">
+
+  <section class="admin-login-screen" aria-label="Admin login">
+    <form class="admin-login-card" id="admin-login-form">
+      <div class="admin-login-brand">
+        <div class="sb-logo-icon">IH</div>
+        <div>
+          <div class="sb-logo-text">Indo Heals</div>
+          <div class="sb-logo-sub">Admin Panel</div>
+        </div>
+      </div>
+      <h1>Admin Login</h1>
+      <p>Dashboard access ke liye admin email aur password enter karein.</p>
+      <div class="form-group">
+        <label class="form-label" for="admin-login-email">Username / Email</label>
+        <input type="text" class="form-input" id="admin-login-email" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="admin-login-password">Password</label>
+        <input type="password" class="form-input" id="admin-login-password" autocomplete="current-password" required>
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center;">Login</button>
+      <div class="admin-login-message" id="admin-login-message"></div>
+    </form>
+  </section>
 
   <!-- SIDEBAR -->
   <div class="sidebar">
@@ -1146,7 +1321,7 @@
     <div class="topbar">
       <div class="topbar-left">
         <div class="topbar-title" id="page-title">Dashboard</div>
-        <div class="topbar-sub" id="page-sub">Aaj ki complete report — Tuesday, 5 May 2026</div>
+        <div class="topbar-sub" id="page-sub"> Toady complete report — Tuesday, 5 May 2026</div>
       </div>
       <div class="topbar-right">
         <div class="live-pill">
@@ -1155,6 +1330,7 @@
         <button class="btn" onclick="openEmailModal()">📧 Bulk Email</button>
         <button class="btn btn-primary" onclick="showPage('products', null); showToast('Products page khul gaya!')">+
           Product Add</button>
+        <button class="btn" onclick="logoutAdmin()">Logout</button>
       </div>
     </div>
 
@@ -1173,14 +1349,14 @@
           </div>
           <button class="alert-action"
             onclick="showPage('carts', null); showToast('Abandoned cart list dekh rahe hain')">
-            Cart List Dekho →
+            View Cart List  →
           </button>
         </div>
 
         <!-- Metrics -->
         <div class="metrics-grid">
           <div class="metric-card">
-            <div class="metric-label">Aaj ki Bikri</div>
+            <div class="metric-label"> Today Order</div>
             <div class="metric-value">₹52,480</div>
             <div class="metric-change change-up">↑ 14% kal se</div>
           </div>
@@ -1225,7 +1401,7 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">🛒 Abandoned Cart — Call List</div>
-              <div class="card-action" onclick="showPage('carts', null)">Sab Dekho →</div>
+              <div class="card-action" onclick="showPage('carts', null)">View All →</div>
             </div>
             <div id="cart-list">
               <!-- rendered by JS -->
@@ -1249,7 +1425,7 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">Recent Orders</div>
-              <div class="card-action" onclick="showPage('orders', null)">Sab Dekho →</div>
+              <div class="card-action" onclick="showPage('orders', null)">View All →</div>
             </div>
             <table class="orders-table">
               <thead>
@@ -1267,12 +1443,12 @@
 
           <div class="card">
             <div class="card-header">
-              <div class="card-title">Site Traffic Sources (Aaj)</div>
+              <div class="card-title">Site Traffic Sources (Today)</div>
             </div>
             <div id="traffic-list"></div>
             <div
               style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px;display:flex;justify-content:space-between;font-size:12px;">
-              <span style="color:var(--text3)">Total Visitors Aaj</span>
+              <span style="color:var(--text3)">Total Visitors Today</span>
               <span style="font-weight:600;color:var(--text)">2,670</span>
             </div>
           </div>
@@ -1355,7 +1531,7 @@
               <tr>
                 <th>Product</th>
                 <th>Category</th>
-                <th>Price</th>
+                <th>MRP / Selling</th>
                 <th>Stock</th>
                 <th>Status</th>
                 <th>Action</th>
@@ -1455,9 +1631,18 @@
           <div class="card-header">
             <div class="card-title">Categories</div>
           </div>
-          <div style="padding:40px;text-align:center;color:var(--text3);">
-            Categories aapke Products ke andar hi manage hote hain. Naya product add karte waqt aap nayi category daal sakte hain.
-          </div>
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Slug</th>
+                <th>Active Products</th>
+                <th>Total Stock</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="categories-body"></tbody>
+          </table>
         </div>
       </div>
       <div class="page" id="page-coupons">
@@ -1547,9 +1732,9 @@
       <div class="form-group">
         <label class="form-label">Recipients</label>
         <select class="form-select">
-          <option>Sab Customers (3,821)</option>
-          <option>Sirf Active Customers (2,100+)</option>
-          <option>Jinhone 30 din se order nahi kiya</option>
+          <option>All Customers </option>
+          <option>Active Customers </option>
+          <option>Customers Who Ordered within 30 Days</option>
           <option>Premium Customers (₹5000+ spent)</option>
         </select>
       </div>
@@ -1636,7 +1821,7 @@ Valid: Aaj tak sirf!</textarea>
             <th>Product</th>
             <th>Qty</th>
             <th>Rate</th>
-            <th>GST (18%)</th>
+            <th>GST (5%)</th>
             <th>Total</th>
           </tr>
         </thead>
@@ -1648,8 +1833,8 @@ Valid: Aaj tak sirf!</textarea>
         <div class="invoice-total-val">₹2,034</div>
       </div>
       <div class="invoice-total-row">
-        <div class="invoice-total-label">GST (18%)</div>
-        <div class="invoice-total-val">₹366</div>
+        <div class="invoice-total-label">GST (5%)</div>
+        <div class="invoice-total-val">₹101.7</div>
       </div>
       <div class="invoice-total-row">
         <div class="invoice-total-label">Shipping</div>
@@ -1671,19 +1856,38 @@ Valid: Aaj tak sirf!</textarea>
         </button>
       </div>
     </div>
+  </div>
+
   <!-- ═══════════════════ CUSTOMER PROFILE MODAL ═══════════════════ -->
   <div class="modal-overlay" id="profile-modal">
-    <div class="modal">
-      <div class="modal-title">Customer Profile</div>
-      <div class="modal-sub">Customer details and order history summary.</div>
-      <div style="padding: 10px 0;">
-        <div style="margin-bottom:8px;"><strong style="color:var(--text2);">Name:</strong> <span id="prof-name"></span></div>
-        <div style="margin-bottom:8px;"><strong style="color:var(--text2);">Email:</strong> <span id="prof-email"></span></div>
-        <div style="margin-bottom:8px;"><strong style="color:var(--text2);">Role:</strong> <span id="prof-role"></span></div>
-        <div style="margin-bottom:8px;"><strong style="color:var(--text2);">Joined:</strong> <span id="prof-joined"></span></div>
+    <div class="modal profile-modal">
+      <div class="modal-title" id="prof-title">Customer Profile</div>
+      <div class="modal-sub" id="prof-subtitle">Customer account, saved profile details, addresses, and order summary.</div>
+      <div class="profile-summary">
+        <div class="profile-stat"><span>Orders</span><strong id="prof-orders">0</strong></div>
+        <div class="profile-stat"><span>Total Spent</span><strong id="prof-spent">₹0</strong></div>
+        <div class="profile-stat"><span>Addresses</span><strong id="prof-address-count">0</strong></div>
+        <div class="profile-stat"><span>Joined</span><strong id="prof-joined">-</strong></div>
+      </div>
+      <div class="profile-section">
+        <div class="profile-section-title">Account Details</div>
+        <div class="profile-grid" id="prof-account-grid"></div>
+      </div>
+      <div class="profile-section">
+        <div class="profile-section-title">Profile Details</div>
+        <div class="profile-grid" id="prof-detail-grid"></div>
+      </div>
+      <div class="profile-section">
+        <div class="profile-section-title">Saved Addresses</div>
+        <div class="address-list" id="prof-addresses"></div>
+      </div>
+      <div class="profile-section">
+        <div class="profile-section-title">Recent Orders</div>
+        <div class="profile-order-list" id="prof-orders-list"></div>
       </div>
       <div class="modal-footer" style="margin-top:15px;">
         <button class="btn" onclick="document.getElementById('profile-modal').classList.remove('open')">Close</button>
+        <button class="btn btn-primary" onclick="downloadCustomerProfilePdf()">Download PDF</button>
       </div>
     </div>
   </div>
@@ -1694,14 +1898,70 @@ Valid: Aaj tak sirf!</textarea>
       <div class="modal-title">Edit Product</div>
       <div class="modal-sub" id="edit-prod-name"></div>
       <input type="hidden" id="edit-prod-id">
-      <input type="hidden" id="edit-prod-fullname">
       <div class="form-group">
-        <label class="form-label">Price (₹)</label>
+        <label class="form-label">Product Name</label>
+        <input type="text" class="form-input" id="edit-prod-fullname">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Badge</label>
+        <input type="text" class="form-input" id="edit-prod-badge">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Image URL / Path</label>
+        <input type="text" class="form-input" id="edit-prod-image" placeholder="assets/breathe-classic-ai.png">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Gallery Images (one per line)</label>
+        <textarea class="form-textarea" id="edit-prod-gallery" rows="4" placeholder="assets/image-1.png&#10;assets/image-2.png"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Product Video URL</label>
+        <input type="text" class="form-input" id="edit-prod-video" placeholder="YouTube / MP4 video URL">
+      </div>
+      <div class="form-group">
+        <label class="form-label">MRP (₹)</label>
+        <input type="number" class="form-input" id="edit-prod-mrp" placeholder="399">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Selling Price (₹)</label>
         <input type="number" class="form-input" id="edit-prod-price">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="edit-prod-category">
+          <option value="foods">Foods</option>
+          <option value="allopathy">Allopathy</option>
+          <option value="unani">Unani</option>
+          <option value="ayurveda">Aayurweda</option>
+        </select>
       </div>
       <div class="form-group">
         <label class="form-label">Stock Count</label>
         <input type="number" class="form-input" id="edit-prod-stock">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Net Weight</label>
+        <input type="text" class="form-input" id="edit-prod-weight" placeholder="40 g">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cocoa / Spec</label>
+        <input type="text" class="form-input" id="edit-prod-cocoa" placeholder="55% dark cocoa">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Wellness Note</label>
+        <textarea class="form-textarea" id="edit-prod-wellness" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" id="edit-prod-description" rows="5"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ingredients (one per line)</label>
+        <textarea class="form-textarea" id="edit-prod-ingredients" rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Benefits (one per line)</label>
+        <textarea class="form-textarea" id="edit-prod-benefits" rows="4"></textarea>
       </div>
       <div class="modal-footer" style="margin-top:15px;">
         <button class="btn" onclick="document.getElementById('product-edit-modal').classList.remove('open')">Cancel</button>
@@ -1750,12 +2010,14 @@ Valid: Aaj tak sirf!</textarea>
   <script>
     // ── CONFIG ──
     const API_BASE = window.location.origin + '/api/admin';
-    const AUTH_KEY = 'auth';
+    const AUTH_KEY = 'adminAuth';
+    const USER_AUTH_KEY = 'auth';
+    let adminAuth = null;
 
     // ── AUTH CHECK ──
     function getAuth() {
       try {
-        return JSON.parse(localStorage.getItem(AUTH_KEY)) || {};
+        return adminAuth || JSON.parse(localStorage.getItem(AUTH_KEY)) || {};
       } catch { return {}; }
     }
 
@@ -1768,25 +2030,86 @@ Valid: Aaj tak sirf!</textarea>
     }
 
     async function checkAdminAuth() {
-      const auth = getAuth();
+      const auth = getAuth() || JSON.parse(localStorage.getItem(USER_AUTH_KEY) || "null") || {};
       if (!auth.token) {
-        window.location.href = '/#login';
-        return;
+        lockAdmin();
+        return false;
       }
       try {
-        const res = await fetch(`${window.location.origin}/api/user/profile`, {
-          headers: getAuthHeaders()
+        const res = await fetch(`${window.location.origin}/api/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${auth.token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!res.ok) throw new Error('Please login again.');
+        const data = await res.json();
+        const user = data.user || {};
+        if (user.role !== 'admin') {
+          throw new Error('Admin access required.');
+        }
+        adminAuth = { user, token: auth.token };
+        localStorage.setItem(AUTH_KEY, JSON.stringify(adminAuth));
+        unlockAdmin(user);
+        return true;
+      } catch (err) {
+        localStorage.removeItem(AUTH_KEY);
+        lockAdmin(err.message);
+        return false;
+      }
+    }
+
+    function lockAdmin(message = '') {
+      document.body.classList.add('admin-locked');
+      setLoginMessage(message);
+      setTimeout(() => document.getElementById('admin-login-email')?.focus(), 0);
+    }
+
+    function unlockAdmin(user) {
+      document.body.classList.remove('admin-locked');
+      const name = user.name || user.email || 'Admin';
+      const nameEl = document.querySelector('.sb-user-name');
+      const avEl = document.querySelector('.sb-user-av');
+      if (nameEl) nameEl.textContent = name;
+      if (avEl) avEl.textContent = name.trim().slice(0, 2).toUpperCase() || 'AD';
+      setLoginMessage('');
+    }
+
+    function setLoginMessage(message = '') {
+      const el = document.getElementById('admin-login-message');
+      if (el) el.textContent = message;
+    }
+
+    async function loginAdmin(event) {
+      event.preventDefault();
+      setLoginMessage('');
+      const email = document.getElementById('admin-login-email').value.trim();
+      const password = document.getElementById('admin-login-password').value;
+
+      try {
+        const res = await fetch(`${window.location.origin}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
         });
         const data = await res.json();
-        if (data.role !== 'admin') {
-          alert('Admin access required!');
-          window.location.href = '/';
-          return;
-        }
-        document.querySelector('.sb-user-name').textContent = data.name || 'Admin';
+        if (!res.ok) throw new Error(data.message || 'Login failed.');
+        if (data.user?.role !== 'admin') throw new Error('Admin access required.');
+
+        adminAuth = data;
+        localStorage.setItem(AUTH_KEY, JSON.stringify(data));
+        event.target.reset();
+        unlockAdmin(data.user);
+        fetchDashboardStats();
       } catch (err) {
-        window.location.href = '/#login';
+        setLoginMessage(err.message);
       }
+    }
+
+    function logoutAdmin() {
+      adminAuth = null;
+      localStorage.removeItem(AUTH_KEY);
+      lockAdmin('Logged out.');
     }
 
     // ── DATA FETCHING ──
@@ -1797,7 +2120,8 @@ Valid: Aaj tak sirf!</textarea>
           headers: { ...getAuthHeaders(), ...options.headers }
         });
         if (res.status === 401 || res.status === 403) {
-          window.location.href = '/#login';
+          logoutAdmin();
+          setLoginMessage('Admin session expired. Please login again.');
           return null;
         }
         const data = await res.json();
@@ -1890,50 +2214,310 @@ Valid: Aaj tak sirf!</textarea>
       const products = await apiFetch('/products');
       if (!products) return;
       
+      window.adminProductData = products;
       const tbody = document.getElementById('products-body');
-      tbody.innerHTML = products.map(p => `
+      tbody.innerHTML = products.filter(p => p.isActive !== false).map(p => `
         <tr>
-          <td style="font-weight:500;">${p.name}</td>
-          <td style="color:var(--text3);">${p.category}</td>
-          <td>₹${p.price}</td>
+          <td style="font-weight:500;">${safeText(p.name)}</td>
+          <td style="color:var(--text3);">${safeText(categoryLabel(p.category))}</td>
+          <td>${adminPriceCell(p)}</td>
           <td style="color:${p.stock < 10 ? 'var(--red)' : 'var(--green-light)'};font-weight:500;">${p.stock} baki</td>
           <td>${p.isActive !== false ? '<span class="badge badge-delivered">Active</span>' : '<span class="badge badge-cancelled">Inactive</span>'}</td>
           <td style="display:flex;gap:5px;">
-            <button class="action-btn" onclick="editProductPrompt('${p._id}', '${p.name.replace(/'/g, "\\'")}', ${p.price}, ${p.stock})">✏ Edit</button>
+            <button class="action-btn" onclick="editProductPrompt('${safeText(p._id)}')">✏ Edit</button>
+            <button class="action-btn" onclick="deleteProduct('${safeText(p._id)}')" style="color:var(--red);">Delete</button>
           </td>
         </tr>
+      `).join('') || '<tr><td colspan="6" style="color:var(--text3);">No active products found.</td></tr>';
+    }
+
+    function adminDiscountPercent(product) {
+      const mrp = Number(product.mrp || product.price || 0);
+      const price = Number(product.price || 0);
+      if (!mrp || !price || mrp <= price) return 0;
+      return Math.round(((mrp - price) / mrp) * 100);
+    }
+
+    function adminPriceCell(product) {
+      const mrp = Number(product.mrp || product.price || 0);
+      const price = Number(product.price || 0);
+      const discount = adminDiscountPercent(product);
+      const sold = Number(product.soldCount || 0);
+      return `
+        <div style="display:grid;gap:3px;">
+          <span style="color:var(--text3);font-size:11px;">MRP <s>${formatMoney(mrp)}</s></span>
+          <strong>${formatMoney(price)} ${discount ? `<span class="badge badge-pending">${discount}% OFF</span>` : ''}</strong>
+          <small style="color:var(--text3);">Inclusive of taxes${sold ? ` • ${sold} sold` : ''}</small>
+        </div>
+      `;
+    }
+
+    function safeText(value, fallback = '-') {
+      const text = value === undefined || value === null || value === '' ? fallback : String(value);
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    const PRODUCT_CATEGORIES = [
+      { value: 'foods', label: 'Foods' },
+      { value: 'allopathy', label: 'Allopathy' },
+      { value: 'unani', label: 'Unani' },
+      { value: 'ayurveda', label: 'Aayurweda' }
+    ];
+
+    function normalizeCategory(value = '') {
+      const category = String(value || '').trim().toLowerCase();
+      if (category.includes('chocolate') || category === 'food') return 'foods';
+      if (category.includes('allopath')) return 'allopathy';
+      if (category.includes('unani')) return 'unani';
+      if (category.includes('ayur')) return 'ayurveda';
+      return category || 'foods';
+    }
+
+    function categoryLabel(value = '') {
+      const normalized = normalizeCategory(value);
+      return PRODUCT_CATEGORIES.find(category => category.value === normalized)?.label || value || 'Foods';
+    }
+
+    async function fetchCategories() {
+      const products = await apiFetch('/products');
+      if (!products) return;
+
+      const activeProducts = products.filter(product => product.isActive !== false);
+      const tbody = document.getElementById('categories-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = PRODUCT_CATEGORIES.map(category => {
+        const categoryProducts = activeProducts.filter(product => normalizeCategory(product.category) === category.value);
+        const stock = categoryProducts.reduce((sum, product) => sum + Number(product.stock || 0), 0);
+        return `
+          <tr>
+            <td style="font-weight:600;">${safeText(category.label)}</td>
+            <td style="color:var(--text3);font-size:11px;">${safeText(category.value)}</td>
+            <td style="font-weight:600;">${categoryProducts.length}</td>
+            <td>${stock}</td>
+            <td><button class="action-btn" onclick="showCategoryProducts('${safeText(category.value)}')">View Products</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function showCategoryProducts(category) {
+      showPage('products', null);
+      await fetchProducts();
+      const tbody = document.getElementById('products-body');
+      const products = (window.adminProductData || []).filter(product => {
+        return product.isActive !== false && normalizeCategory(product.category) === category;
+      });
+      tbody.innerHTML = products.map(p => `
+        <tr>
+          <td style="font-weight:500;">${safeText(p.name)}</td>
+          <td style="color:var(--text3);">${safeText(categoryLabel(p.category))}</td>
+          <td>${adminPriceCell(p)}</td>
+          <td style="color:${p.stock < 10 ? 'var(--red)' : 'var(--green-light)'};font-weight:500;">${p.stock} baki</td>
+          <td><span class="badge badge-delivered">Active</span></td>
+          <td style="display:flex;gap:5px;">
+            <button class="action-btn" onclick="editProductPrompt('${safeText(p._id)}')">✏ Edit</button>
+            <button class="action-btn" onclick="deleteProduct('${safeText(p._id)}')" style="color:var(--red);">Delete</button>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="6" style="color:var(--text3);">No active products in this category.</td></tr>';
+    }
+
+    function formatMoney(value) {
+      return `₹${Math.round(Number(value || 0)).toLocaleString('en-IN')}`;
+    }
+
+    function formatProfileDate(value) {
+      if (!value) return '-';
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+
+    function customerOrderStats(user, orders = []) {
+      const userId = String(user._id || '');
+      const email = String(user.email || '').toLowerCase();
+      const userOrders = orders.filter(order => {
+        const orderUserId = String(order.user?._id || order.user || '');
+        const orderEmail = String(order.customerEmail || '').toLowerCase();
+        return (userId && orderUserId === userId) || (email && orderEmail === email);
+      });
+      const totalSpent = userOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+      return { orders: userOrders, orderCount: userOrders.length, totalSpent };
+    }
+
+    function profileField(label, value) {
+      return `
+        <div class="profile-field">
+          <span class="profile-field-label">${safeText(label)}</span>
+          <div class="profile-field-value">${safeText(value)}</div>
+        </div>
+      `;
+    }
+
+    function renderProfileAddresses(addresses = []) {
+      if (!addresses.length) return '<div class="empty-profile-note">No saved address yet.</div>';
+
+      return addresses.map((address, index) => {
+        const parts = [
+          address.addressLine1,
+          address.addressLine2,
+          address.city,
+          address.state,
+          address.postalCode,
+          address.country
+        ].filter(Boolean);
+
+        return `
+          <div class="address-card">
+            <strong>${safeText(address.label || `Address ${index + 1}`)}</strong>
+            <div>${safeText(address.fullName || '')}${address.phone ? ` · ${safeText(address.phone)}` : ''}</div>
+            <div>${safeText(parts.join(', ') || 'Address details not added')}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderProfileOrders(orders = []) {
+      if (!orders.length) return '<div class="empty-profile-note">No orders found for this customer.</div>';
+
+      return orders.slice(0, 8).map(order => `
+        <div class="profile-order-card">
+          <strong>#${safeText(String(order._id || '').slice(-6).toUpperCase())}</strong>
+          <span style="color:var(--text3);"> · ${safeText(formatProfileDate(order.createdAt))}</span>
+          <div>${safeText(order.items?.length || 0)} item(s) · ${safeText(order.fulfillmentStatus || order.orderStatus || order.status || 'pending')} · ${safeText(formatMoney(order.total))}</div>
+        </div>
       `).join('');
+    }
+
+    function fillProfileModal(user, stats, addresses) {
+      document.getElementById('prof-title').textContent = user.name || 'Customer Profile';
+      document.getElementById('prof-subtitle').textContent = user.email || 'Customer account details';
+      document.getElementById('prof-orders').textContent = stats.orderCount;
+      document.getElementById('prof-spent').textContent = formatMoney(stats.totalSpent);
+      document.getElementById('prof-address-count').textContent = addresses.length;
+      document.getElementById('prof-joined').textContent = formatProfileDate(user.createdAt);
+
+      document.getElementById('prof-account-grid').innerHTML = [
+        profileField('Full Name', user.name),
+        profileField('Email ID', user.email),
+        profileField('Mobile Number', user.phone),
+        profileField('Role', user.role || 'user'),
+        profileField('Email Verified', user.emailVerified ? 'Yes' : 'No'),
+        profileField('Last Updated', formatProfileDate(user.updatedAt))
+      ].join('');
+
+      document.getElementById('prof-detail-grid').innerHTML = [
+        profileField('Gender', user.gender),
+        profileField('Date of Birth', user.dob),
+        profileField('Alternate Mobile', user.altMobile),
+        profileField('Hint Name', user.altName),
+        profileField('Alternate Email', user.altEmail),
+        profileField('Cart Items Saved', Array.isArray(user.cart) ? user.cart.length : 0)
+      ].join('');
+
+      document.getElementById('prof-addresses').innerHTML = renderProfileAddresses(addresses);
+      document.getElementById('prof-orders-list').innerHTML = renderProfileOrders(stats.orders);
     }
 
     async function fetchCustomers() {
-      const users = await apiFetch('/users');
+      const [users, orders] = await Promise.all([
+        apiFetch('/users'),
+        apiFetch('/orders')
+      ]);
       if (!users) return;
-      
-      window.customerData = users; // Store for modal
-      
+
+      const customerUsers = users.filter(user => user.role !== 'admin');
+      window.customerData = customerUsers;
+      window.customerOrders = orders || [];
+
       const tbody = document.getElementById('customers-body');
-      tbody.innerHTML = users.map(u => `
-        <tr>
-          <td><div style="display:flex;align-items:center;gap:8px;">${u.name}</div></td>
-          <td style="color:var(--text3);font-size:11px;">${u.email}</td>
-          <td style="color:var(--text3);font-size:11px;">${u.phone || 'N/A'}</td>
-          <td>-</td>
-          <td style="font-weight:500;">-</td>
-          <td style="display:flex;gap:5px;">
-            <button class="action-btn" onclick="openProfileModal('${u._id}')">Profile</button>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = customerUsers.map(u => {
+        const stats = customerOrderStats(u, window.customerOrders);
+        return `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;font-weight:600;">${safeText(u.name)}</div>
+              <div style="color:var(--text3);font-size:10px;margin-top:3px;">Joined ${safeText(formatProfileDate(u.createdAt))}</div>
+            </td>
+            <td style="color:var(--text3);font-size:11px;">${safeText(u.email)}</td>
+            <td style="color:var(--text3);font-size:11px;">${safeText(u.phone || 'N/A')}</td>
+            <td style="font-weight:600;">${stats.orderCount}</td>
+            <td style="font-weight:500;">${safeText(formatMoney(stats.totalSpent))}</td>
+            <td style="display:flex;gap:5px;">
+              <button class="action-btn" onclick="openProfileModal('${safeText(u._id)}')">Profile</button>
+            </td>
+          </tr>
+        `;
+      }).join('') || '<tr><td colspan="6" style="color:var(--text3);">No customer accounts found yet.</td></tr>';
     }
 
     function openProfileModal(id) {
-      const u = window.customerData.find(x => x._id === id);
-      if (!u) return;
-      document.getElementById('prof-name').textContent = u.name;
-      document.getElementById('prof-email').textContent = u.email;
-      document.getElementById('prof-role').textContent = u.role || 'user';
-      document.getElementById('prof-joined').textContent = new Date(u.createdAt).toLocaleDateString();
+      const user = (window.customerData || []).find(item => String(item._id) === String(id));
+      if (!user) return;
+      const stats = customerOrderStats(user, window.customerOrders || []);
+      const addresses = Array.isArray(user.addresses) ? user.addresses : [];
+      fillProfileModal(user, stats, addresses);
       document.getElementById('profile-modal').classList.add('open');
+    }
+
+    function downloadCustomerProfilePdf() {
+      const modal = document.querySelector('#profile-modal .modal');
+      if (!modal) return;
+
+      const printable = modal.cloneNode(true);
+      printable.querySelector('.modal-footer')?.remove();
+
+      const title = document.getElementById('prof-title')?.textContent || 'Customer Profile';
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showToast('Popup blocked hai. Browser popup allow karein.');
+        return;
+      }
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${safeText(title)} - Customer Profile</title>
+          <style>
+            body { margin: 0; padding: 28px; font-family: Arial, sans-serif; color: #111827; }
+            .pdf-head { border-bottom: 2px solid #1a237e; padding-bottom: 14px; margin-bottom: 18px; }
+            .pdf-brand { color: #1a237e; font-size: 22px; font-weight: 800; }
+            .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+            .modal-sub { color: #64748b; font-size: 12px; margin-bottom: 18px; }
+            .profile-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+            .profile-stat, .profile-field, .address-card, .profile-order-card { border: 1px solid #d8dee9; border-radius: 8px; padding: 11px; break-inside: avoid; }
+            .profile-stat span, .profile-field-label { display: block; color: #64748b; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
+            .profile-stat strong, .profile-field-value { color: #111827; font-size: 13px; font-weight: 700; word-break: break-word; }
+            .profile-section { border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 14px; }
+            .profile-section-title { color: #c8960c; font-size: 13px; font-weight: 800; margin-bottom: 10px; }
+            .profile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+            .address-list, .profile-order-list { display: grid; gap: 10px; }
+            .address-card, .profile-order-card { color: #334155; font-size: 12px; line-height: 1.55; }
+            .empty-profile-note { color: #64748b; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="pdf-head">
+            <div class="pdf-brand">Indo Heals</div>
+            <div>Customer Details with Address</div>
+            <div style="color:#64748b;font-size:12px;margin-top:4px;">Generated: ${safeText(new Date().toLocaleString('en-IN'))}</div>
+          </div>
+          ${printable.innerHTML}
+          <script>window.onload = () => setTimeout(() => window.print(), 250);<\/script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
     }
 
     // ── UI HELPERS ──
@@ -2042,29 +2626,93 @@ Valid: Aaj tak sirf!</textarea>
       }
     }
 
-    function editProductPrompt(id, name, currentPrice, currentStock) {
+    function editProductPrompt(id) {
+      const product = (window.adminProductData || []).find(item => String(item._id) === String(id));
+      if (!product) return;
+
       document.getElementById('edit-prod-id').value = id;
-      document.getElementById('edit-prod-fullname').value = name;
-      document.getElementById('edit-prod-name').textContent = name;
-      document.getElementById('edit-prod-price').value = currentPrice;
-      document.getElementById('edit-prod-stock').value = currentStock;
+      document.getElementById('edit-prod-fullname').value = product.name;
+      document.getElementById('edit-prod-name').textContent = product.name;
+      document.getElementById('edit-prod-badge').value = product.badge || '';
+      document.getElementById('edit-prod-image').value = product.image || '';
+      document.getElementById('edit-prod-gallery').value = Array.isArray(product.galleryImages) ? product.galleryImages.join('\n') : '';
+      document.getElementById('edit-prod-video').value = product.videoUrl || '';
+      document.getElementById('edit-prod-mrp').value = product.mrp || product.price || '';
+      document.getElementById('edit-prod-price').value = product.price;
+      document.getElementById('edit-prod-category').value = normalizeCategory(product.category);
+      document.getElementById('edit-prod-stock').value = product.stock;
+      document.getElementById('edit-prod-weight').value = product.weight || '';
+      document.getElementById('edit-prod-cocoa').value = product.cocoa || '';
+      document.getElementById('edit-prod-wellness').value = product.wellnessNote || '';
+      document.getElementById('edit-prod-description').value = product.description || '';
+      document.getElementById('edit-prod-ingredients').value = Array.isArray(product.ingredients) ? product.ingredients.join('\n') : '';
+      document.getElementById('edit-prod-benefits').value = Array.isArray(product.benefits) ? product.benefits.join('\n') : '';
       document.getElementById('product-edit-modal').classList.add('open');
     }
 
     async function saveProductEdit() {
       const id = document.getElementById('edit-prod-id').value;
       const name = document.getElementById('edit-prod-fullname').value;
+      const badge = document.getElementById('edit-prod-badge').value;
+      const image = document.getElementById('edit-prod-image').value;
+      const galleryImages = document.getElementById('edit-prod-gallery').value
+        .split('\n')
+        .map(item => item.trim())
+        .filter(Boolean);
+      const videoUrl = document.getElementById('edit-prod-video').value;
+      const mrp = Number(document.getElementById('edit-prod-mrp').value || 0);
       const price = Number(document.getElementById('edit-prod-price').value);
+      const category = document.getElementById('edit-prod-category').value;
       const stock = Number(document.getElementById('edit-prod-stock').value);
+      const weight = document.getElementById('edit-prod-weight').value;
+      const cocoa = document.getElementById('edit-prod-cocoa').value;
+      const wellnessNote = document.getElementById('edit-prod-wellness').value;
+      const description = document.getElementById('edit-prod-description').value;
+      const ingredients = document.getElementById('edit-prod-ingredients').value
+        .split('\n')
+        .map(item => item.trim())
+        .filter(Boolean);
+      const benefits = document.getElementById('edit-prod-benefits').value
+        .split('\n')
+        .map(item => item.trim())
+        .filter(Boolean);
 
       const data = await apiFetch(`/products/${id}`, {
         method: 'PUT',
-        body: JSON.stringify({ name, price, stock })
+        body: JSON.stringify({
+          name,
+          badge,
+          image,
+          galleryImages,
+          videoUrl,
+          mrp,
+          price,
+          category,
+          stock,
+          weight,
+          cocoa,
+          wellnessNote,
+          description,
+          ingredients,
+          benefits
+        })
       });
       if (data) {
         showToast('Product updated successfully!');
         document.getElementById('product-edit-modal').classList.remove('open');
         fetchProducts();
+        fetchCategories();
+      }
+    }
+
+    async function deleteProduct(id) {
+      if (!confirm('Is product ko delete karna hai? Ye frontend se hide ho jayega.')) return;
+
+      const data = await apiFetch(`/products/${id}`, { method: 'DELETE' });
+      if (data) {
+        showToast('Product deleted. Frontend se hide ho gaya.');
+        fetchProducts();
+        fetchCategories();
       }
     }
 
@@ -2140,6 +2788,7 @@ Valid: Aaj tak sirf!</textarea>
       if (id === 'dashboard') fetchDashboardStats();
       if (id === 'orders') fetchFullOrders();
       if (id === 'products') fetchProducts();
+      if (id === 'categories') fetchCategories();
       if (id === 'customers') fetchCustomers();
       if (id === 'coupons') fetchCoupons();
       if (id === 'settings') fetchSettings();
@@ -2230,8 +2879,10 @@ Valid: Aaj tak sirf!</textarea>
     }
 
     // ── INITIALIZE ──
-    // checkAdminAuth(); // Temporarily disabled for testing
-    fetchDashboardStats();
+    document.getElementById('admin-login-form')?.addEventListener('submit', loginAdmin);
+    checkAdminAuth().then(isAdmin => {
+      if (isAdmin) fetchDashboardStats();
+    });
     
     // Live visitor dummy
     setInterval(() => {

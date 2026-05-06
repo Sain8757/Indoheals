@@ -22,6 +22,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    gender: String,
+    dob: String,
+    altMobile: String,
+    altName: String,
+    altEmail: String,
     role: {
       type: String,
       enum: ["user", "admin"],

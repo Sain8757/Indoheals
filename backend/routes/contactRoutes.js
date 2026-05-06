@@ -1,17 +1,16 @@
 const express = require("express");
 const { body } = require("express-validator");
 const router = express.Router();
-const Appointment = require("../models/Appointment");
+
 const BusinessLead = require("../models/BusinessLead");
 const NewsletterSubscription = require("../models/NewsletterSubscription");
 const validate = require("../middleware/validate");
 const {
-  sendAppointmentConfirmationEmail,
   sendBusinessLeadNotification,
   sendNewsletterConfirmation
 } = require("../utils/email");
 
-const memoryAppointments = [];
+
 const memoryBusinessLeads = [];
 const memoryNewsletter = new Map();
 
@@ -23,51 +22,7 @@ function normalizeEmail(email = "") {
   return String(email).trim().toLowerCase();
 }
 
-router.post(
-  "/appointments",
-  [
-    body("name").trim().notEmpty().withMessage("Name is required."),
-    body("phone").trim().isLength({ min: 7 }).withMessage("Phone number is required."),
-    body("email").isEmail().withMessage("Valid email is required.").normalizeEmail(),
-    body("interest").trim().notEmpty().withMessage("Please select an interest."),
-    body("date").isISO8601().withMessage("Preferred date is required."),
-    body("time").trim().notEmpty().withMessage("Preferred time is required."),
-    body("message").optional().trim(),
-    validate
-  ],
-  async (req, res, next) => {
-    try {
-      const appointment = {
-        reference: reference("APT"),
-        name: String(req.body.name).trim(),
-        phone: String(req.body.phone).trim(),
-        email: normalizeEmail(req.body.email),
-        interest: String(req.body.interest).trim(),
-        date: String(req.body.date).trim(),
-        time: String(req.body.time).trim(),
-        message: String(req.body.message || "").trim()
-      };
 
-      const saved = req.app.locals.dbReady
-        ? await Appointment.create(appointment)
-        : { ...appointment, _id: appointment.reference, createdAt: new Date(), status: "new" };
-
-      if (!req.app.locals.dbReady) memoryAppointments.push(saved);
-
-      sendAppointmentConfirmationEmail(saved).catch(error => {
-        console.warn("Appointment email failed:", error.message);
-      });
-
-      return res.status(201).json({
-        message: "Appointment request received.",
-        reference: saved.reference,
-        appointment: saved
-      });
-    } catch (error) {
-      return next(error);
-    }
-  }
-);
 
 router.post(
   "/business",

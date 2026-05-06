@@ -11,6 +11,16 @@ function fallbackProducts() {
 
 async function ensureDefaultProducts() {
   for (const product of defaultProducts) {
+    if (product.mrp) {
+      await Product.updateOne(
+        {
+          slug: product.slug,
+          $or: [{ mrp: { $exists: false } }, { mrp: null }, { mrp: 0 }]
+        },
+        { $set: { mrp: product.mrp } }
+      );
+    }
+
     await Product.updateOne(
       { slug: product.slug },
       { $setOnInsert: product },

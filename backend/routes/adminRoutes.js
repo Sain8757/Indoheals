@@ -4,7 +4,7 @@ const router = express.Router();
 const User = require("../models/User");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
-const Appointment = require("../models/Appointment");
+
 const BusinessLead = require("../models/BusinessLead");
 const NewsletterSubscription = require("../models/NewsletterSubscription");
 const Discount = require("../models/Discount");
@@ -17,13 +17,25 @@ const validate = require("../middleware/validate");
 const { productQuery } = require("../utils/products");
 const { sendMail } = require("../utils/email");
 
-// router.use(requireAuth, requireAdmin); // Temporarily disabled for testing
+router.use(requireAuth, requireAdmin);
 
 const productValidators = [
   body("name").trim().notEmpty().withMessage("Product name is required."),
   body("slug").optional({ checkFalsy: true }).trim().isSlug().withMessage("Slug must be URL safe."),
   body("price").isFloat({ min: 0 }).withMessage("Price must be a positive number."),
+  body("mrp").optional({ checkFalsy: true }).isFloat({ min: 0 }).withMessage("MRP must be a positive number."),
+  body("description").optional({ checkFalsy: true }).trim(),
+  body("wellnessNote").optional({ checkFalsy: true }).trim(),
+  body("image").optional({ checkFalsy: true }).trim(),
+  body("galleryImages").optional().isArray().withMessage("Gallery images must be a list."),
+  body("videoUrl").optional({ checkFalsy: true }).trim(),
+  body("category").optional({ checkFalsy: true }).trim(),
+  body("badge").optional({ checkFalsy: true }).trim(),
+  body("weight").optional({ checkFalsy: true }).trim(),
+  body("cocoa").optional({ checkFalsy: true }).trim(),
   body("stock").optional().isInt({ min: 0 }).withMessage("Stock must be a positive integer."),
+  body("ingredients").optional().isArray().withMessage("Ingredients must be a list."),
+  body("benefits").optional().isArray().withMessage("Benefits must be a list."),
   validate
 ];
 
@@ -53,7 +65,7 @@ const orderStatusValidators = [
   validate
 ];
 
-const appointmentStatusValues = ["new", "contacted", "confirmed", "completed", "cancelled"];
+
 const leadStatusValues = ["new", "contacted", "qualified", "closed"];
 const newsletterStatusValues = ["subscribed", "unsubscribed"];
 const productReviewStatusValues = ["new", "published", "hidden", "archived"];
@@ -178,8 +190,11 @@ router.put("/orders/:id/status", orderStatusValidators, async (req, res, next) =
     const updates = {};
     if (req.body.status) updates.status = req.body.status;
     if (req.body.fulfillmentStatus) updates.fulfillmentStatus = req.body.fulfillmentStatus;
+    if (req.body.trackingNumber !== undefined) updates.trackingNumber = req.body.trackingNumber;
+    if (req.body.trackingLink !== undefined) updates.trackingLink = req.body.trackingLink;
+    
     if (!Object.keys(updates).length) {
-      return res.status(400).json({ message: "No order status update provided." });
+      return res.status(400).json({ message: "No order update provided." });
     }
 
     const order = await Order.findByIdAndUpdate(req.params.id, updates, {
@@ -188,16 +203,18 @@ router.put("/orders/:id/status", orderStatusValidators, async (req, res, next) =
     }).populate("user", "name email role");
     if (!order) return res.status(404).json({ message: "Order not found." });
 
-    // Send status update email to customer
-    const customerEmail = order.customerEmail || (order.user && order.user.email);
-    if (customerEmail) {
-      const currentStatus = order.fulfillmentStatus || order.status;
-      await sendMail({
-        to: customerEmail,
-        subject: `Order Status Update - Indo Heals (INV-${order._id.toString().slice(-6).toUpperCase()})`,
-        text: `Dear ${order.customerName || 'Customer'},\n\nYour order status has been updated to: ${currentStatus.toUpperCase()}.\n\nThank you for shopping with Indo Heals!`,
-        html: `<p>Dear ${order.customerName || 'Customer'},</p><p>Your order status has been updated to: <strong>${currentStatus.toUpperCase()}</strong>.</p><p>Thank you for shopping with Indo Heals!</p>`
-      }).catch(err => console.error("Failed to send order status email:", err.message));
+    // Send status update email to customer if status or fulfillment changed
+    if (req.body.status || req.body.fulfillmentStatus) {
+      const customerEmail = order.customerEmail || (order.user && order.user.email);
+      if (customerEmail) {
+        const currentStatus = order.fulfillmentStatus || order.status;
+        await sendMail({
+          to: customerEmail,
+          subject: `Order Update - Indo Heals (INV-${order._id.toString().slice(-6).toUpperCase()})`,
+          text: `Dear ${order.customerName || 'Customer'},\n\nYour order status has been updated to: ${currentStatus.toUpperCase()}.\n\n${order.trackingNumber ? `Tracking ID: ${order.trackingNumber}\n` : ''}Thank you for shopping with Indo Heals!`,
+          html: `<p>Dear ${order.customerName || 'Customer'},</p><p>Your order status has been updated to: <strong>${currentStatus.toUpperCase()}</strong>.</p>${order.trackingNumber ? `<p>Tracking ID: <strong>${order.trackingNumber}</strong></p>` : ''}<p>Thank you for shopping with Indo Heals!</p>`
+        }).catch(err => console.error("Failed to send order status email:", err.message));
+      }
     }
 
     return res.json(order);
@@ -244,16 +261,7 @@ router.put("/product-reviews/:id/status", [body("status").isIn(productReviewStat
   }
 });
 
-router.get("/appointments", async (req, res, next) => {
-  try {
-    if (requireDatabase(req, res)) return;
 
-    const appointments = await Appointment.find().sort({ createdAt: -1 });
-    return res.json(appointments);
-  } catch (error) {
-    return next(error);
-  }
-});
 
 router.get("/business-leads", async (req, res, next) => {
   try {
@@ -277,21 +285,7 @@ router.get("/newsletter", async (req, res, next) => {
   }
 });
 
-router.put("/appointments/:id/status", [body("status").isIn(appointmentStatusValues), validate], async (req, res, next) => {
-  try {
-    if (requireDatabase(req, res)) return;
 
-    const appointment = await Appointment.findByIdAndUpdate(
-      req.params.id,
-      { status: req.body.status },
-      { new: true, runValidators: true }
-    );
-    if (!appointment) return res.status(404).json({ message: "Appointment not found." });
-    return res.json(appointment);
-  } catch (error) {
-    return next(error);
-  }
-});
 
 router.put("/business-leads/:id/status", [body("status").isIn(leadStatusValues), validate], async (req, res, next) => {
   try {

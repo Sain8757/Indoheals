@@ -19,7 +19,14 @@ function createToken(user) {
       sub: String(user._id || user.id),
       name: user.name,
       email: user.email,
-      role: user.role || "user"
+      phone: user.phone || "",
+      gender: user.gender || "",
+      dob: user.dob || "",
+      altMobile: user.altMobile || "",
+      altName: user.altName || "",
+      altEmail: user.altEmail || "",
+      role: user.role || "user",
+      emailVerified: Boolean(user.emailVerified)
     },
     TOKEN_SECRET,
     { expiresIn: TOKEN_TTL }
@@ -52,8 +59,14 @@ function publicUser(user) {
     name: user.name,
     email: user.email,
     phone: user.phone || "",
+    gender: user.gender || "",
+    dob: user.dob || "",
+    altMobile: user.altMobile || "",
+    altName: user.altName || "",
+    altEmail: user.altEmail || "",
     role: user.role || "user",
-    emailVerified: Boolean(user.emailVerified)
+    emailVerified: Boolean(user.emailVerified),
+    addresses: Array.isArray(user.addresses) ? user.addresses : []
   };
 }
 

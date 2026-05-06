@@ -7,7 +7,9 @@ require("dotenv").config({ path: ".env" });
 
 async function main() {
   const email = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
-  const password = process.argv[2] || `Admin@${crypto.randomBytes(6).toString("base64url")}7`;
+  const name = String(process.env.ADMIN_USERNAME || "Admin").trim() || "Admin";
+  const envPassword = process.env.ADMIN_PASSWORD || process.env.ADMIN_PWD;
+  const password = process.argv[2] || envPassword || `Admin@${crypto.randomBytes(6).toString("base64url")}7`;
 
   if (!email) throw new Error("ADMIN_EMAIL is missing in backend/.env");
   if (!process.env.MONGO_URI) throw new Error("MONGO_URI is missing in backend/.env");
@@ -20,7 +22,7 @@ async function main() {
     { email },
     {
       $set: {
-        name: "Admin",
+        name,
         email,
         passwordHash,
         role: "admin",
@@ -32,7 +34,7 @@ async function main() {
         passwordResetExpires: ""
       }
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
   );
 
   console.log("Admin login is ready:");

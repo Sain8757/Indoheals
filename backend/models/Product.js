@@ -18,9 +18,15 @@ const productSchema = new mongoose.Schema(
       required: true,
       min: 0
     },
+    mrp: {
+      type: Number,
+      min: 0
+    },
     description: String,
     wellnessNote: String,
     image: String,
+    galleryImages: [String],
+    videoUrl: String,
     category: String,
     badge: String,
     weight: String,

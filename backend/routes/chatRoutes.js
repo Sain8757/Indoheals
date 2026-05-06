@@ -10,27 +10,17 @@ About Indo Heals:
 - All products are FSSAI-compliant traditional-use wellness products
 - Address: 3rd Floor, Plot No. 139, Opp. Okhla Jama Masjid, Main Market, Okhla Village, Jamia Nagar, New Delhi - 110025
 - Email: Contact@indoheals.com | Phone: +91 9955289295
-- Offer: video call consultations with Unani doctors
-
-Product Details:
-- Breathe Classic: Ashwagandha and tulsi with deep cocoa richness. Premium herbal dark chocolate ritual.
-- Breathe Energy: Moringa and almond for active everyday routines. Bright, energizing herbal formulation.
-- Breathe Immunity: Amla, cinnamon and mulethi in a smooth cacao base. Rich immunity support.
-- Breathe Slim: Ginger and black pepper for warm digestive balance. Metabolic support in premium chocolate format.
-
-Services:
-- Online doctor consultations (video call)
-- Appointment booking for product guidance, business enquiries, and wellness consultations
+- Offer: Wellness products and botanical guidance
 - Wholesale and international partnerships
 
-Keep answers concise, warm, and helpful. If asked about medical advice, recommend consulting with our Unani doctors via appointment booking. Do not make specific medical claims.`;
+Keep answers concise, warm, and helpful. Do not make specific medical claims.`;
 
 // Simple keyword-based fallback when no AI key is configured
 function getRuleBasedResponse(message) {
   const msg = message.toLowerCase();
 
   if (msg.includes("price") || msg.includes("cost") || msg.includes("₹") || msg.includes("rupee")) {
-    return "Our products are priced as follows:\n• **Breathe Classic** – ₹299\n• **Breathe Energy** – ₹349\n• **Breathe Immunity** – ₹349\n• **Breathe Slim** – ₹329\n\nAll are premium herbal dark chocolate wellness blends. Want to book a consultation for personalised guidance?";
+    return "Our products are priced as follows:\n• **Breathe Classic** – ₹299\n• **Breathe Energy** – ₹349\n• **Breathe Immunity** – ₹349\n• **Breathe Slim** – ₹329\n\nAll are premium herbal dark chocolate wellness blends. How can I help you further?";
   }
 
   if (msg.includes("classic") || msg.includes("ashwagandha") || msg.includes("tulsi")) {
@@ -49,8 +39,8 @@ function getRuleBasedResponse(message) {
     return "**Breathe Slim** (₹329) uses Ginger and Black Pepper for warm digestive balance — metabolic support in a premium chocolate format. 🔥";
   }
 
-  if (msg.includes("appointment") || msg.includes("book") || msg.includes("consult") || msg.includes("doctor")) {
-    return "You can **book an appointment** with our Unani doctors for a video call consultation! Just click 'Book an Appointment' in the navigation menu.\n\nWe offer:\n• Personal wellness guidance\n• Product recommendations\n• Business/wholesale enquiries";
+  if (msg.includes("wholesale") || msg.includes("business") || msg.includes("bulk") || msg.includes("partner")) {
+    return "For **wholesale and business partnerships**, please use our Contact page. We welcome international partnerships and bulk orders! Our team will connect with you promptly.";
   }
 
   if (msg.includes("contact") || msg.includes("phone") || msg.includes("email") || msg.includes("address")) {
@@ -70,14 +60,14 @@ function getRuleBasedResponse(message) {
   }
 
   if (msg.includes("hello") || msg.includes("hi") || msg.includes("hey") || msg.includes("namaste")) {
-    return "Namaste! 🙏 Welcome to Indo Heals — where ancient herbal wisdom meets modern wellness. How can I help you today? You can ask me about our products, book an appointment, or get in touch with our team!";
+    return "Namaste! 🙏 Welcome to Indo Heals — where ancient herbal wisdom meets modern wellness. How can I help you today? You can ask me about our products or get in touch with our team!";
   }
 
   if (msg.includes("thank")) {
-    return "You're welcome! 😊 Feel free to ask anything else about Indo Heals. For personalised wellness guidance, consider booking a consultation with our Unani doctors!";
+    return "You're welcome! 😊 Feel free to ask anything else about Indo Heals.";
   }
 
-  return "I'm the Indo Heals wellness assistant! I can help you with:\n• 🛍️ Product information (Breathe Classic, Energy, Immunity, Slim)\n• 📅 Booking appointments with Unani doctors\n• 📞 Contact and support information\n• 🌿 Herbal wellness guidance\n\nWhat would you like to know?";
+  return "I'm the Indo Heals wellness assistant! I can help you with:\n• 🛍️ Product information (Breathe Classic, Energy, Immunity, Slim)\n• 📞 Contact and support information\n• 🌿 Herbal wellness guidance\n\nWhat would you like to know?";
 }
 
 router.post("/ask", async (req, res) => {

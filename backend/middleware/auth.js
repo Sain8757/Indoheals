@@ -14,7 +14,9 @@ async function requireAuth(req, res, next) {
     req.auth = payload;
 
     if (req.app.locals.dbReady) {
-      const user = await User.findById(payload.sub).select("name email phone role cart addresses");
+      const user = await User.findById(payload.sub).select(
+        "name email phone gender dob altMobile altName altEmail role emailVerified cart addresses"
+      );
       if (!user) {
         return res.status(401).json({ message: "Account not found. Please login again." });
       }
@@ -24,7 +26,14 @@ async function requireAuth(req, res, next) {
         id: payload.sub,
         name: payload.name,
         email: payload.email,
-        role: payload.role || "user"
+        phone: payload.phone || "",
+        gender: payload.gender || "",
+        dob: payload.dob || "",
+        altMobile: payload.altMobile || "",
+        altName: payload.altName || "",
+        altEmail: payload.altEmail || "",
+        role: payload.role || "user",
+        emailVerified: Boolean(payload.emailVerified)
       };
     }
 
