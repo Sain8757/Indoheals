@@ -2329,3 +2329,35 @@ function initImageZoom() {
     }
   }, true);
 }
+
+/**
+ * Filter Foods by Sub-category
+ */
+function filterFoods(type, button) {
+  // Update active state of filter chips
+  document.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active'));
+  button.classList.add('active');
+
+  const container = document.getElementById('foods-products');
+  if (!container) return;
+
+  // Get all food products
+  const foods = allProducts.filter(p => 
+    (p.category && String(p.category).toLowerCase() === 'foods') ||
+    (p.type && String(p.type).toLowerCase() === 'foods') ||
+    (p.category && String(p.category).toLowerCase().includes('chocolate')) // Fallback for existing data
+  );
+  
+  if (type === 'all') {
+    displayProducts(foods, 'foods-products');
+  } else {
+    const filtered = foods.filter(p => {
+      const text = (p.name + " " + (p.description || "") + " " + (p.category || "") + " " + (p.badge || "")).toLowerCase();
+      if (type === 'chocolate') return text.includes('chocolate') || text.includes('cacao');
+      if (type === 'herbs') return text.includes('herb') || text.includes('botanical') || text.includes('tulsi') || text.includes('moringa');
+      if (type === 'blends') return text.includes('blend') || text.includes('wellness') || text.includes('ritual');
+      return true;
+    });
+    displayProducts(filtered, 'foods-products');
+  }
+}

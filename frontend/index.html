@@ -343,20 +343,27 @@
   </div>
 
   <div id="products-foods-page" class="page" style="display:none;">
-    <section class="section page-head">
-      <div class="center">
+    <section class="category-hero" style="background-image: linear-gradient(rgba(2, 8, 23, 0.7), rgba(2, 8, 23, 0.9)), url('assets/foods-hero.png');">
+      <div class="category-hero-content">
         <button class="back-navigation-btn" onclick="goToPage('products')">
-          <svg viewBox="0 0 24 24">
-            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-          </svg>
+          <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
           Back to Categories
         </button>
-        <span class="section-label">Indo Heals Collection</span>
-        <h2 class="section-title">Foods</h2>
-        <div class="section-divider"></div>
-        <p class="section-subtitle">Functional herbal foods for daily wellness rituals.</p>
+        <span class="section-label">Functional Herbal Foods</span>
+        <h1 class="category-title">Foods Collection</h1>
+        <p class="category-desc">Functional herbal foods for daily wellness rituals. Crafted with ancient wisdom and modern nutritional science.</p>
       </div>
-      <div id="foods-products" class="products-grid"></div>
+    </section>
+
+    <section class="section foods-collection">
+      <div class="category-filters">
+        <button class="filter-chip active" onclick="filterFoods('all', this)">All Foods</button>
+        <button class="filter-chip" onclick="filterFoods('chocolate', this)">Chocolates</button>
+        <button class="filter-chip" onclick="filterFoods('herbs', this)">Herbs</button>
+        <button class="filter-chip" onclick="filterFoods('blends', this)">Wellness Blends</button>
+      </div>
+      
+      <div id="foods-products" class="products-grid foods-grid-compact"></div>
     </section>
   </div>
 

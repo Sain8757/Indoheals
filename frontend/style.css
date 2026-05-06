@@ -1429,6 +1429,111 @@ img {
   color: var(--white);
 }
 
+/* Foods Category Page Styles */
+.category-hero {
+  min-height: 420px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 20px;
+  margin-top: var(--nav-height);
+  position: relative;
+}
+
+.category-hero-content {
+  max-width: 860px;
+  z-index: 2;
+}
+
+.category-hero-content .back-navigation-btn {
+  margin-bottom: 24px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.category-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  color: var(--gold-light);
+  margin-bottom: 18px;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.category-desc {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.category-filters {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 auto 48px;
+  padding: 0 20px;
+  flex-wrap: wrap;
+  max-width: 1000px;
+}
+
+.filter-chip {
+  padding: 12px 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--white);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  font-size: 14px;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+}
+
+.filter-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--gold-light);
+  transform: translateY(-2px);
+}
+
+.filter-chip.active {
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  color: var(--navy-deep);
+  border-color: var(--gold-light);
+  box-shadow: 0 8px 20px rgba(212, 175, 55, 0.25);
+}
+
+.foods-grid-compact {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+  gap: 24px !important;
+  width: min(1280px, 95%) !important;
+}
+
+.foods-collection .product-card {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.foods-collection .product-img {
+  aspect-ratio: 1 / 1;
+}
+
+.foods-collection .product-body {
+  min-height: auto;
+  padding: 20px;
+}
+
+.foods-collection .product-name {
+  font-size: 19px;
+}
+
+.foods-collection .product-desc {
+  -webkit-line-clamp: 2;
+  font-size: 13px;
+}
+
 .product-detail {
   grid-column: 1 / -1;
   padding: 24px;
