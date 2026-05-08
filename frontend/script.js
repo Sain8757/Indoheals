@@ -11,8 +11,26 @@ const API_BASES = window.INDO_HEALS_API
   : isBackendServedFrontend
     ? [`${window.location.origin}/api`]
     : isLocalHost
-      ? ["http://localhost:5001/api"]
+      ? ["http://localhost:12345/api"]
       : [PRODUCTION_API_BASE];
+
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyB4l4ZyiMRPfJBLKXFNumVzol041ncgMx8",
+  authDomain: "indo-heals-778c0.firebaseapp.com",
+  projectId: "indo-heals-778c0",
+  storageBucket: "indo-heals-778c0.firebasestorage.app",
+  messagingSenderId: "33643514437",
+  appId: "1:33643514437:web:a68da68e75bdabca3f312c",
+  measurementId: "G-G31GY5KXJ4"
+};
+
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const firebaseAuth = firebase.auth();
+let confirmationResult = null;
+
 const PRODUCT_IMAGE = "/assets/breathe-classic-ai.png";
 const FALLBACK_PRODUCTS = [
   {
@@ -103,6 +121,8 @@ let ordersLoaded = false;
 let productSoldCounts = {};
 let pendingSignup = null;
 let currentPage = "home";
+let otpCountdownInterval = null;
+let resendCooldownInterval = null;
 let toastTimer;
 let heroSlideIndex = 0;
 let heroSlideTimer;
@@ -120,7 +140,42 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize router
   initRouter();
   initImageZoom();
+  bindPincodeAutofill();
 });
+
+function bindPincodeAutofill() {
+  const pinInput = document.getElementById("checkout-postal");
+  if (!pinInput) return;
+
+  pinInput.addEventListener("input", async (e) => {
+    const pin = e.target.value.trim();
+    if (pin.length === 6 && /^\d+$/.test(pin)) {
+      try {
+        const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+        const data = await response.json();
+        
+        if (data && data[0] && data[0].Status === "Success") {
+          const postOffice = data[0].PostOffice[0];
+          const cityInput = document.getElementById("checkout-city");
+          const stateInput = document.getElementById("checkout-state");
+          
+          if (cityInput && postOffice.District) {
+            cityInput.value = postOffice.District;
+          }
+          if (stateInput && postOffice.State) {
+            stateInput.value = postOffice.State;
+          }
+          
+          showToast(`Address fetched for ${pin}`);
+        } else {
+          showToast("Invalid PIN code. Please enter manually.");
+        }
+      } catch (err) {
+        console.error("Pincode fetch error:", err);
+      }
+    }
+  });
+}
 
 function initRouter() {
   const path = window.location.pathname.replace(/^\/|\/$/g, "") || "home";
@@ -180,7 +235,7 @@ async function apiFetch(path, options = {}) {
   throw lastError || new Error("Backend request failed");
 }
 
-function goToPage(page, pushState = true) {
+function goToPage(page, pushState = true, category = "") {
   currentPage = page;
 
   document.querySelectorAll(".page").forEach(pageElement => {
@@ -193,23 +248,32 @@ function goToPage(page, pushState = true) {
 
   if (selectedPage) {
     selectedPage.style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   if (pushState) {
     const url = page === "home" ? "/" : `/${page}`;
-    history.pushState({ page }, "", url);
+    history.pushState({ page, category }, "", url);
   }
 
   if (page === "shop") {
-    loadProducts("", "shop-products");
+    loadProducts(category, "shop-products");
   }
 
   if (page === "products/foods") {
-    loadProducts("foods", "foods-products");
+    loadProducts("Functional Dark Chocolate", "foods-products");
   }
 
   if (page === "products") {
-    // Main category page
+    // Main category page - initialize tilt for categories
+    if (window.VanillaTilt) {
+      VanillaTilt.init(document.querySelectorAll(".interactive-categories .box"), {
+        max: 15,
+        speed: 300,
+        easing: "cubic-bezier(.03,.98,.52,.99)",
+        scale: 1.05,
+      });
+    }
   }
 
   if (page === "cart") {
@@ -239,6 +303,7 @@ function goToPage(page, pushState = true) {
 
   if (page === "home") {
     resumeHeroCarousel();
+    loadProducts();
   }
 
   window.scrollTo(0, 0);
@@ -352,7 +417,7 @@ async function loadProducts(category = "", containerId = "products", force = fal
       const products = await apiFetch("/products");
       allProducts = Array.isArray(products) && products.length ? products : FALLBACK_PRODUCTS;
     }
-    
+
     renderSignatureProducts();
 
     let filtered = allProducts;
@@ -365,6 +430,7 @@ async function loadProducts(category = "", containerId = "products", force = fal
     }
 
     displayProducts(filtered, containerId);
+    updateFooterProducts();
   } catch (error) {
     console.error("Error fetching products:", error);
     if (!allProducts.length) {
@@ -377,49 +443,68 @@ async function loadProducts(category = "", containerId = "products", force = fal
       filtered = allProducts.filter(p => (p.category || "").toLowerCase() === targetCat);
     }
     displayProducts(filtered, containerId);
+    updateFooterProducts();
   }
 }
 
-function renderSignatureProducts() {
-  const container = document.getElementById("signature-products");
-  if (!container) return;
+function updateFooterProducts() {
+  const footerProductsList = document.getElementById("footer-products-list");
+  if (!footerProductsList) return;
+  
+  const productsToRender = (allProducts.length ? allProducts : FALLBACK_PRODUCTS).slice(0, 4);
+  footerProductsList.innerHTML = productsToRender.map(p => `
+    <li><a onclick="goToPage('product-detail', false, { productSlug: '${p.slug}' })">${escapeHtml(p.name)}</a></li>
+  `).join("");
+}
 
-  const products = (allProducts.length ? allProducts : FALLBACK_PRODUCTS).slice(0, 4);
-  container.innerHTML = products.map((product, index) => {
+function renderSignatureProducts() {
+  console.log("Rendering Signature Products...");
+  const container = document.getElementById("signature-products");
+  if (!container) {
+    console.warn("Container #signature-products not found!");
+    return;
+  }
+
+  const productsToRender = (allProducts.length ? allProducts : FALLBACK_PRODUCTS).slice(0, 4);
+  console.log("Products to render:", productsToRender);
+  
+  const colorClasses = ["green", "blue", "red", "orange"];
+
+  if (productsToRender.length === 0) {
+    container.innerHTML = "<p>No signature products available.</p>";
+    return;
+  }
+
+  container.innerHTML = productsToRender.map((product, index) => {
     const productId = escapeAttribute(product._id || product.id || product.slug);
     const image = escapeAttribute(product.image || PRODUCT_IMAGE);
-    const badge = escapeHtml(product.badge || product.category || "Signature Blend");
-    const note = escapeHtml(product.wellnessNote || product.description || "");
-    const description = escapeHtml(product.description || product.weight || "");
-    const mrp = productMrp(product);
-    const discount = productDiscountPercent(product);
+    const colorClass = colorClasses[index % colorClasses.length];
 
     return `
-      <article class="range-card reveal" role="button" tabindex="0"
-        onclick="viewDetail('${productId}')" onkeydown="handleProductCardKey(event, '${productId}')"
-        aria-label="View ${escapeAttribute(product.name)} specifications">
-        <img src="${image}" alt="${escapeAttribute(product.name)} product packaging">
-        <div class="range-card-body">
-          <span class="compact-badge">${badge}</span>
-          <h3 class="compact-name">${escapeHtml(product.name)}</h3>
-          <div class="product-specs">
-            ${product.cocoa ? `<span>${escapeHtml(product.cocoa)}</span>` : ""}
-            ${product.weight ? `<span>${escapeHtml(product.weight)}</span>` : ""}
-          </div>
-          <div class="range-card-footer">
-            <div class="card-offer-price">
-              ${discount ? `<small>MRP <s>${formatRupee(mrp)}</s></small>` : ""}
-              <strong>${formatRupee(product.price)}</strong>
-              ${discount ? `<b>${discount}% OFF</b>` : ""}
-            </div>
-            <div class="range-card-actions">
-              <button onclick="event.stopPropagation(); addToCart('${productId}')" class="product-btn">Add</button>
-            </div>
-          </div>
-        </div>
-      </article>
+      <div class="box ${colorClass} reveal" onclick="viewDetail('${productId}')" 
+           style="cursor: pointer;" aria-label="View ${escapeAttribute(product.name)}">
+        <h2 class="name">${escapeHtml(product.name)}</h2>
+        <a href="javascript:void(0)" class="buy" onclick="event.stopPropagation(); viewDetail('${productId}')">See Details</a>
+        <div class="circle"></div>
+        <img class="product" src="${image}" alt="${escapeAttribute(product.name)}" />
+      </div>
     `;
   }).join("");
+
+  console.log("HTML set for signature products.");
+
+  // Initialize VanillaTilt for the newly rendered boxes
+  if (window.VanillaTilt) {
+    console.log("Initializing VanillaTilt...");
+    VanillaTilt.init(document.querySelectorAll("#signature-products .box"), {
+      max: 15,
+      speed: 300,
+      easing: "cubic-bezier(.03,.98,.52,.99)",
+      scale: 1.05,
+    });
+  } else {
+    console.warn("VanillaTilt not found!");
+  }
 }
 
 function displayProducts(products, containerId = "products") {
@@ -939,6 +1024,92 @@ async function checkout() {
   goToPage("checkout");
 }
 
+window.toggleAddressForm = function(show, isAddNew = false) {
+  const container = document.getElementById("checkout-form-container");
+  const cardsContainer = document.getElementById("saved-addresses-container");
+  const backBtn = document.getElementById("back-to-addresses");
+  
+  if (container) {
+    container.style.display = show ? "block" : "none";
+  }
+  
+  if (show) {
+    if (isAddNew) {
+      // Hide cards and show back button (only if they have addresses to go back to)
+      if (cardsContainer) cardsContainer.style.display = "none";
+      if (backBtn) {
+        // Find if they have any displayable addresses right now
+        const hasVisibleCards = cardsContainer && cardsContainer.children.length > 1; // >1 because the "add new" card is a child
+        backBtn.style.display = hasVisibleCards ? "block" : "none";
+      }
+      
+      // Clear fields and selection
+      document.querySelectorAll('.checkout-address-card').forEach(card => card.classList.remove('selected'));
+      const a1 = document.getElementById("checkout-address1");
+      const a2 = document.getElementById("checkout-address2");
+      if (a1) a1.value = "";
+      if (a2) a2.value = "";
+    } else {
+      // Just editing an existing card, don't hide the cards container
+      if (backBtn) backBtn.style.display = "none";
+    }
+  } else {
+    // If hiding form, ensure cards are visible if they exist
+    if (backBtn) backBtn.style.display = "none";
+    if (cardsContainer && cardsContainer.children.length > 0) {
+      cardsContainer.style.display = "flex";
+    }
+  }
+};
+
+window.cancelAddressForm = function() {
+  const cardsContainer = document.getElementById("saved-addresses-container");
+  if (cardsContainer && cardsContainer.children.length > 0) {
+    // We have saved addresses, so re-show them and auto-select the first visible one
+    cardsContainer.style.display = "flex";
+    
+    // Find the first card's onclick to trigger it
+    const firstCard = cardsContainer.querySelector('.checkout-address-card:not(.add-new-card)');
+    if (firstCard) {
+      firstCard.click();
+    } else {
+      window.toggleAddressForm(false);
+    }
+  }
+};
+
+window.editAddress = function(index) {
+  window.selectSavedAddress(index, true);
+};
+
+window.selectSavedAddress = function(index, forceShowForm = false) {
+  if (!auth.user?.addresses || !auth.user.addresses[index]) return;
+  const addr = auth.user.addresses[index];
+  
+  const a1 = document.getElementById("checkout-address1");
+  const a2 = document.getElementById("checkout-address2");
+  const city = document.getElementById("checkout-city");
+  const state = document.getElementById("checkout-state");
+  const pin = document.getElementById("checkout-postal");
+  
+  if (a1) a1.value = addr.addressLine1 || "";
+  if (a2) a2.value = addr.addressLine2 || "";
+  if (city) city.value = addr.city || "";
+  if (state) state.value = addr.state || "";
+  if (pin) pin.value = addr.postalCode || "";
+
+  // Update UI selection
+  document.querySelectorAll('.checkout-address-card').forEach((card, i) => {
+    if (i === index && !forceShowForm) {
+      card.classList.add('selected');
+    } else {
+      card.classList.remove('selected');
+    }
+  });
+
+  window.toggleAddressForm(forceShowForm);
+};
+
 function renderCheckout() {
   if (!auth?.token) {
     goToPage("login");
@@ -952,7 +1123,7 @@ function renderCheckout() {
 
   const briefSummary = document.getElementById("checkoutBriefSummary");
   const briefTotal = document.getElementById("checkoutBriefTotal");
-  
+
   const nameInput = document.getElementById("checkout-name");
   const phoneInput = document.getElementById("checkout-phone");
   const emailInput = document.getElementById("checkout-email");
@@ -960,17 +1131,78 @@ function renderCheckout() {
   if (phoneInput && !phoneInput.value) phoneInput.value = auth.user?.phone || "";
   if (emailInput) emailInput.value = auth.user?.email || "";
 
-  // Set default address if available
+  // Render Saved Addresses Cards
+  const addressesContainer = document.getElementById("saved-addresses-container");
+  const targetPincode = globalLocation?.pincode || "";
+  
+  let displayAddresses = [];
   if (auth.user?.addresses && auth.user.addresses.length > 0) {
-    const addr = auth.user.addresses[0];
+    // Map to keep track of the original index in auth.user.addresses
+    const allAddresses = auth.user.addresses.map((addr, idx) => ({ ...addr, originalIndex: idx }));
+    
+    if (targetPincode) {
+      // Only show addresses that match the target pincode
+      displayAddresses = allAddresses.filter(a => a.postalCode === targetPincode);
+    } else {
+      // If no global pincode is set, show all
+      displayAddresses = allAddresses;
+    }
+  }
+
+  if (addressesContainer && displayAddresses.length > 0) {
+    addressesContainer.style.display = "flex";
+    
+    let html = displayAddresses.map((addr, index) => `
+      <div class="checkout-address-card ${index === 0 ? 'selected' : ''}" onclick="selectSavedAddress(${addr.originalIndex})">
+        <button type="button" class="checkout-address-card-edit" onclick="event.stopPropagation(); editAddress(${addr.originalIndex})">
+          <i class="fa-solid fa-pen"></i> Edit
+        </button>
+        <div class="checkout-address-card-label">
+          ${escapeHtml(addr.label || 'Saved Address')}
+          ${addr.postalCode === targetPincode ? '<span class="badge" style="background:#10b981;">Delivering Here</span>' : (index === 0 ? '<span class="badge">Default</span>' : '')}
+        </div>
+        <p>${escapeHtml(addr.addressLine1)}</p>
+        ${addr.addressLine2 ? `<p>${escapeHtml(addr.addressLine2)}</p>` : ''}
+        <p>${escapeHtml(addr.city)}, ${escapeHtml(addr.state)} - ${escapeHtml(addr.postalCode)}</p>
+      </div>
+    `).join("");
+
+    // Add the "Add New Address" card
+    html += `
+      <div class="checkout-address-card add-new-card" onclick="toggleAddressForm(true, true)">
+        <i class="fa-solid fa-plus" style="font-size:32px; color:var(--gold); margin-bottom:12px;"></i>
+        <p style="color:var(--gold); font-family:'Cinzel', serif; font-size:16px;">Add New Address</p>
+      </div>
+    `;
+
+    addressesContainer.innerHTML = html;
+    
+    // Auto-select the first visible address (which hides the form)
+    window.selectSavedAddress(displayAddresses[0].originalIndex);
+    
+  } else {
+    // No matching addresses to show (new pincode)
+    if (addressesContainer) {
+      addressesContainer.style.display = "none";
+    }
+    
+    // Clear the form fields so the user can enter the new address
     const a1 = document.getElementById("checkout-address1");
-    const city = document.getElementById("checkout-city");
-    const state = document.getElementById("checkout-state");
-    const pin = document.getElementById("checkout-postal");
-    if (a1 && !a1.value) a1.value = addr.addressLine1 || "";
-    if (city && !city.value) city.value = addr.city || "";
-    if (state && !state.value) state.value = addr.state || "";
-    if (pin && !pin.value) pin.value = addr.postalCode || "";
+    const a2 = document.getElementById("checkout-address2");
+    if (a1) a1.value = "";
+    if (a2) a2.value = "";
+    
+    // Ensure form is visible
+    window.toggleAddressForm(true);
+
+    if (targetPincode) {
+      const pinField = document.getElementById("checkout-postal");
+      if (pinField) {
+        pinField.value = targetPincode;
+        // Trigger auto-fill API for the new pincode
+        pinField.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
   }
 
   let total = 0;
@@ -999,9 +1231,28 @@ function goToOrderSummary(event) {
     showToast("Please fill all required address fields.");
     return;
   }
-  
+
   renderOrderSummary();
   goToPage("order-summary");
+
+  // Add listeners for payment method changes to update UI notes
+  setTimeout(() => {
+    const radios = document.querySelectorAll('input[name="paymentMethod"]');
+    const note = document.querySelector(".checkout-note");
+    if (radios.length && note) {
+      radios.forEach(r => {
+        r.addEventListener("change", (e) => {
+          if (e.target.value === "Razorpay") {
+            note.textContent = "Secure payment powered by Razorpay";
+          } else if (e.target.value === "COD") {
+            note.textContent = "Cash on Delivery - Pay when you receive your order";
+          } else {
+            note.textContent = "Manual Payment - Transfer to our UPI ID/QR";
+          }
+        });
+      });
+    }
+  }, 100);
 }
 
 let appliedCoupon = null;
@@ -1126,17 +1377,20 @@ async function placeOrder(event) {
           quantity: item.quantity
         })),
         shippingAddress: checkoutShippingAddress(),
+        paymentMethod: document.querySelector('input[name="paymentMethod"]:checked')?.value || "Razorpay",
         couponCode: appliedCoupon ? appliedCoupon.code : null,
         notes: document.getElementById("checkout-notes").value.trim()
       }
     });
 
-    if (order.devMode || !order.keyId) {
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || "Razorpay";
+
+    if (order.devMode || !order.keyId || paymentMethod === "COD" || paymentMethod === "Manual") {
       await apiFetch(`/orders/${order.orderId}/confirm-payment`, {
         method: "POST",
         body: {
           razorpay_order_id: order.paymentOrderId,
-          razorpay_payment_id: `dev-payment-${Date.now()}`,
+          razorpay_payment_id: paymentMethod === "COD" ? `cod-payment-${Date.now()}` : (paymentMethod === "Manual" ? `manual-payment-${Date.now()}` : `dev-payment-${Date.now()}`),
           razorpay_signature: ""
         }
       });
@@ -1233,6 +1487,7 @@ function renderOrderConfirmation() {
   container.innerHTML = `
     <div class="confirmation-meta">
       <div><span>Order ID</span><strong>${escapeHtml(orderId)}</strong></div>
+      <div><span>Payment</span><strong>${escapeHtml(lastOrder.paymentMethod || "Online")}</strong></div>
       <div><span>Status</span><strong>${escapeHtml(lastOrder.status || "paid")}</strong></div>
       <div><span>Total</span><strong>${formatRupee(lastOrder.total)}</strong></div>
     </div>
@@ -1276,6 +1531,48 @@ function saveCart() {
   localStorage.setItem("cart", JSON.stringify(cart));
 }
 
+async function handleGoogleAuth() {
+  setFormMessage("loginMessage", "");
+  setFormMessage("signupMessage", "");
+
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const result = await firebase.auth().signInWithPopup(provider);
+    const idToken = await result.user.getIdToken();
+
+    // Send Google token to our backend for verification and user session creation
+    const data = await apiFetch("/auth/firebase-auth", {
+      method: "POST",
+      body: { 
+        idToken: idToken,
+        name: result.user.displayName 
+      }
+    });
+
+    saveAuth(data);
+    showToast("Successfully logged in with Google! 🎉");
+    goToPage("home");
+  } catch (error) {
+    console.error("Google Auth error:", error);
+    let errorMsg = "Google login failed. Please try again.";
+    
+    // Handle specific Firebase errors
+    if (error.code === 'auth/popup-closed-by-user') {
+      errorMsg = "Login was cancelled.";
+    } else if (error.code === 'auth/operation-not-allowed') {
+      errorMsg = "Google login is not enabled in Firebase Console.";
+    }
+
+    // Determine which form triggered the login to show the error
+    if (document.getElementById("login-page").style.display !== "none") {
+      setFormMessage("loginMessage", errorMsg, "error");
+    } else {
+      setFormMessage("signupMessage", errorMsg, "error");
+    }
+  }
+}
+
+
 async function handleLogin(event) {
   event.preventDefault();
   setFormMessage("loginMessage", "");
@@ -1297,27 +1594,137 @@ async function handleLogin(event) {
   }
 }
 
+// ─── OTP Timer Helpers ──────────────────────────────────────────────────────
+
+/** Start the 5-minute OTP expiry countdown */
+function startOtpCountdown(durationSeconds = 300) {
+  clearInterval(otpCountdownInterval);
+  const el = document.getElementById("otpCountdown");
+  if (!el) return;
+
+  let remaining = durationSeconds;
+
+  function tick() {
+    const mins = Math.floor(remaining / 60);
+    const secs = remaining % 60;
+    el.textContent = `${mins}:${String(secs).padStart(2, "0")}`;
+
+    // Turn red when under 60 seconds
+    el.classList.toggle("expiring", remaining <= 60);
+
+    if (remaining <= 0) {
+      clearInterval(otpCountdownInterval);
+      el.textContent = "Expired";
+      el.classList.add("expiring");
+      setFormMessage("signupOtpMessage", "OTP has expired. Please click Resend OTP.", "error");
+    }
+    remaining--;
+  }
+
+  tick();
+  otpCountdownInterval = setInterval(tick, 1000);
+}
+
+/** Start the 30-second resend button cooldown */
+function startResendCooldown(seconds = 30) {
+  clearInterval(resendCooldownInterval);
+
+  const resendBtn = document.getElementById("resendOtpBtn");
+  const cooldownMsg = document.getElementById("resendCooldownMsg");
+  const countdown = document.getElementById("resendCountdown");
+
+  if (resendBtn) resendBtn.style.display = "none";
+  if (cooldownMsg) cooldownMsg.style.display = "inline-flex";
+
+  let remaining = seconds;
+  function tick() {
+    if (countdown) countdown.textContent = remaining;
+    if (remaining <= 0) {
+      clearInterval(resendCooldownInterval);
+      if (resendBtn) resendBtn.style.display = "";
+      if (cooldownMsg) cooldownMsg.style.display = "none";
+    }
+    remaining--;
+  }
+  tick();
+  resendCooldownInterval = setInterval(tick, 1000);
+}
+
+/** Reset/clear the Firebase reCAPTCHA verifier so it can be reused */
+function resetRecaptcha() {
+  try {
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+  } catch (_) {}
+
+  // Clear the container DOM
+  const container = document.getElementById("recaptcha-container");
+  if (container) container.innerHTML = "";
+}
+
+/** Get a fresh (or reused) reCAPTCHA verifier */
+function getRecaptchaVerifier() {
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(
+      "recaptcha-container",
+      { size: "invisible" }
+    );
+  }
+  return window.recaptchaVerifier;
+}
+
+/** Translate Firebase error codes to user-friendly messages */
+function firebaseErrorMessage(error) {
+  const code = error?.code || "";
+  const messages = {
+    "auth/invalid-phone-number":    "Invalid phone number. Please use format: +91 9876543210",
+    "auth/too-many-requests":       "Too many attempts. Please wait a few minutes before trying again.",
+    "auth/invalid-verification-code": "Incorrect OTP. Please check and try again.",
+    "auth/code-expired":            "OTP has expired. Please click Resend OTP.",
+    "auth/session-expired":         "Session expired. Please click Resend OTP.",
+    "auth/quota-exceeded":          "SMS quota exceeded. Please try again later or contact support.",
+    "auth/network-request-failed":  "Network error. Please check your internet connection.",
+    "auth/captcha-check-failed":    "reCAPTCHA check failed. Please refresh the page and try again.",
+    "auth/missing-phone-number":    "Please enter a phone number."
+  };
+  return messages[code] || error?.message || "An unexpected error occurred. Please try again.";
+}
+
+// ─── Main Auth Functions ────────────────────────────────────────────────────
+
 async function handleSignup(event) {
   event.preventDefault();
   setFormMessage("signupMessage", "");
   setFormMessage("signupOtpMessage", "");
 
-  pendingSignup = {
-    name: document.getElementById("name").value.trim(),
-    email: document.getElementById("signup-email").value.trim(),
-    phone: document.getElementById("signup-phone").value.trim(),
-    password: document.getElementById("signup-password").value
-  };
+  const name     = document.getElementById("name").value.trim();
+  const email    = document.getElementById("signup-email").value.trim();
+  const phone    = document.getElementById("signup-phone").value.trim();
+  const password = document.getElementById("signup-password").value;
+
+  // Basic phone format validation
+  if (!phone.startsWith("+")) {
+    setFormMessage("signupMessage", "Phone number must start with country code, e.g. +91 9876543210", "error");
+    return;
+  }
+
+  pendingSignup = { name, email, phone, password };
+
+  const submitBtn = event.target.querySelector("button[type='submit']");
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Sending OTP..."; }
 
   try {
-    const data = await apiFetch("/auth/signup", {
-      method: "POST",
-      body: pendingSignup
-    });
-
-    showSignupOtpStep(data.email || pendingSignup.email, data.message, data.devOtp);
+    const appVerifier = getRecaptchaVerifier();
+    confirmationResult = await firebaseAuth.signInWithPhoneNumber(phone, appVerifier);
+    showSignupOtpStep(phone, "OTP sent to your mobile. It will expire in 5 minutes.");
   } catch (error) {
-    setFormMessage("signupMessage", error.message, "error");
+    console.error("Firebase SMS error:", error);
+    resetRecaptcha(); // Must reset on failure
+    setFormMessage("signupMessage", firebaseErrorMessage(error), "error");
+  } finally {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Send OTP"; }
   }
 }
 
@@ -1325,76 +1732,127 @@ async function handleSignupOtp(event) {
   event.preventDefault();
   setFormMessage("signupOtpMessage", "");
 
-  const email = pendingSignup?.email || document.getElementById("signup-email").value.trim();
-  const otp = document.getElementById("signup-otp").value.trim();
+  const code = document.getElementById("signup-otp").value.trim();
+
+  if (!code || code.length !== 6) {
+    setFormMessage("signupOtpMessage", "Please enter the 6-digit OTP.", "error");
+    return;
+  }
+
+  if (!confirmationResult) {
+    setFormMessage("signupOtpMessage", "Session expired. Please click Resend OTP.", "error");
+    return;
+  }
+
+  const submitBtn = event.target.querySelector("button[type='submit']");
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Verifying..."; }
 
   try {
-    const data = await apiFetch("/auth/verify-signup-otp", {
+    const result  = await confirmationResult.confirm(code);
+    const idToken = await result.user.getIdToken();
+
+    // Stop timers
+    clearInterval(otpCountdownInterval);
+    clearInterval(resendCooldownInterval);
+
+    // Sync with our backend
+    const data = await apiFetch("/auth/firebase-auth", {
       method: "POST",
-      body: { email, otp }
+      body: { idToken, name: pendingSignup?.name }
     });
 
     saveAuth(data);
-    pendingSignup = null;
+    pendingSignup    = null;
+    confirmationResult = null;
+    resetRecaptcha();
+
     document.getElementById("signupForm")?.reset();
     document.getElementById("signupOtpForm")?.reset();
     editSignupDetails({ keepMessage: true });
 
     const confirmationText = document.getElementById("signupConfirmationText");
     if (confirmationText) {
-      confirmationText.textContent = `${data.user?.name || "Your"} account is ready. A confirmation email has been sent to your mail.`;
+      confirmationText.textContent = `${data.user?.name || "Your"} Indo Heals account is ready.`;
     }
-    setFormMessage("signupOtpMessage", data.message || "Account created.", "success");
+
+    showToast("Account created successfully! Welcome to Indo Heals 🎉");
     goToPage("signup-confirmation");
   } catch (error) {
-    setFormMessage("signupOtpMessage", error.message, "error");
+    console.error("OTP Verification error:", error);
+    setFormMessage("signupOtpMessage", firebaseErrorMessage(error), "error");
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Verify & Create Account"; }
   }
 }
 
 async function resendSignupOtp() {
   setFormMessage("signupOtpMessage", "");
-  if (!pendingSignup) {
-    setFormMessage("signupOtpMessage", "Please enter your signup details again.", "error");
+
+  if (!pendingSignup?.phone) {
+    setFormMessage("signupOtpMessage", "Please enter your details again.", "error");
     editSignupDetails();
     return;
   }
 
+  // Must reset reCAPTCHA before resending — otherwise Firebase crashes
+  resetRecaptcha();
+
   try {
-    const data = await apiFetch("/auth/signup", {
-      method: "POST",
-      body: pendingSignup
-    });
-    showSignupOtpStep(data.email || pendingSignup.email, "New OTP sent to your email.", data.devOtp);
+    const appVerifier = getRecaptchaVerifier();
+    confirmationResult = await firebaseAuth.signInWithPhoneNumber(pendingSignup.phone, appVerifier);
+
+    // Restart timers
+    startOtpCountdown(300);
+    startResendCooldown(30);
+
+    setFormMessage("signupOtpMessage", "New OTP sent to your mobile. Check your SMS.", "success");
   } catch (error) {
-    setFormMessage("signupOtpMessage", error.message, "error");
+    console.error("Resend OTP error:", error);
+    resetRecaptcha();
+    setFormMessage("signupOtpMessage", firebaseErrorMessage(error), "error");
   }
 }
 
-function showSignupOtpStep(email, message, devOtp) {
-  const signupForm = document.getElementById("signupForm");
-  const otpForm = document.getElementById("signupOtpForm");
-  const otpEmail = document.getElementById("signupOtpEmail");
-  const otpInput = document.getElementById("signup-otp");
+function showSignupOtpStep(phone, message) {
+  const signupForm    = document.getElementById("signupForm");
+  const otpForm       = document.getElementById("signupOtpForm");
+  const otpPhoneDisplay = document.getElementById("signupOtpPhone");
+  const otpInput      = document.getElementById("signup-otp");
 
   if (signupForm) signupForm.hidden = true;
-  if (otpForm) otpForm.hidden = false;
-  if (otpEmail) otpEmail.textContent = email;
+  if (otpForm)    otpForm.hidden    = false;
+  if (otpPhoneDisplay) otpPhoneDisplay.textContent = phone;
+
   if (otpInput) {
     otpInput.value = "";
-    otpInput.focus();
+    setTimeout(() => otpInput.focus(), 100);
   }
 
-  const extra = devOtp ? ` Development OTP: ${devOtp}` : "";
-  setFormMessage("signupOtpMessage", `${message || "OTP sent to your email."}${extra}`, "success");
+  // Start countdowns
+  startOtpCountdown(300);  // 5 minutes
+  startResendCooldown(30); // 30 seconds
+
+  setFormMessage("signupOtpMessage", message || "OTP sent to your mobile.", "success");
 }
 
 function editSignupDetails(options = {}) {
   const signupForm = document.getElementById("signupForm");
-  const otpForm = document.getElementById("signupOtpForm");
+  const otpForm    = document.getElementById("signupOtpForm");
+
   if (signupForm) signupForm.hidden = false;
-  if (otpForm) otpForm.hidden = true;
+  if (otpForm)    otpForm.hidden    = true;
+
+  // Stop timers when going back
+  clearInterval(otpCountdownInterval);
+  clearInterval(resendCooldownInterval);
+
+  // Reset resend button state
+  const resendBtn    = document.getElementById("resendOtpBtn");
+  const cooldownMsg  = document.getElementById("resendCooldownMsg");
+  if (resendBtn)   resendBtn.style.display   = "";
+  if (cooldownMsg) cooldownMsg.style.display = "none";
+
   if (!options.keepMessage) {
-    setFormMessage("signupMessage", "");
+    setFormMessage("signupMessage",    "");
     setFormMessage("signupOtpMessage", "");
   }
 }
@@ -2271,7 +2729,7 @@ async function viewOrderDetail(id) {
     // Status Logic - Map fulfillmentStatus or orderStatus to premium UI labels
     const rawFStatus = String(order.fulfillmentStatus || "new").toLowerCase();
     const rawOStatus = String(order.orderStatus || "Pending");
-    
+
     let statusTitle = "Order Placed";
     let statusSubtitle = "Your order has been successfully placed.";
     let statusIcon = "📦";
@@ -2280,7 +2738,7 @@ async function viewOrderDetail(id) {
 
     // Priority mapping: Use fulfillmentStatus for internal accuracy if needed
     let effectiveStatus = rawOStatus;
-    
+
     // Safety sync for UI: if orderStatus is Pending but fulfillment is further along
     if (effectiveStatus === "Pending" || effectiveStatus === "Order Placed") {
       if (rawFStatus === 'processing' || rawFStatus === 'packed') effectiveStatus = 'Confirmed';
@@ -2354,6 +2812,18 @@ async function viewOrderDetail(id) {
             <div style="font-size:24px; opacity:0.3;">
               ${order.orderStatus === 'Shipped' ? '🚚' : order.orderStatus === 'Delivered' ? '🎁' : '🚛'}
             </div>
+          </div>
+
+          <!-- ORDER ACTIONS -->
+          <div class="od-actions">
+            <button class="od-btn od-btn-support" onclick="getSupportForOrder('${id}')">
+              <span>💬</span> Get Support
+            </button>
+            ${(effectiveStatus === 'Pending' || effectiveStatus === 'Confirmed' || effectiveStatus === 'Order Placed') ? `
+            <button class="od-btn od-btn-cancel" onclick="cancelOrder('${id}')">
+              <span>✕</span> Cancel Order
+            </button>
+            ` : ''}
           </div>
 
           ${order.fulfillmentStatus === 'delivered' ? `
@@ -2684,9 +3154,10 @@ function initImageZoom() {
   });
 
   document.addEventListener('mouseleave', (e) => {
-    if (!e.target.closest('.product-detail-image')) {
+    if (e.target && typeof e.target.closest === 'function' && !e.target.closest('.product-detail-image')) {
       lens.style.display = 'none';
     }
+
   }, true);
 }
 
@@ -2879,7 +3350,7 @@ async function applyGlobalPincode() {
       closeLocationModal();
 
       if (currentPage === 'shop' || currentPage.startsWith('products')) {
-        loadProducts(); 
+        loadProducts();
       } else if (currentPage === 'product-detail') {
         const currentPincodeField = document.getElementById('deliveryPincode');
         if (currentPincodeField) {
@@ -2912,19 +3383,19 @@ async function detectUserLocation() {
   navigator.geolocation.getCurrentPosition(async (position) => {
     try {
       const { latitude, longitude } = position.coords;
-      
+
       // Attempt 1: BigDataCloud
       const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
       const data = await res.json();
-      
+
       let pincode = data.postcode || data.postCode || (data.address?.postcode);
-      
+
       // Attempt 2: Nominatim (OpenStreetMap) fallback
       if (!pincode || !/^\d{6}$/.test(pincode)) {
         const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`);
         const osmData = await osmRes.json();
         pincode = osmData.address?.postcode;
-        
+
         if (pincode) {
           pincode = pincode.replace(/\s+/g, '').split('-')[0].slice(0, 6);
         }
@@ -2971,7 +3442,7 @@ function toggleMobileMenu() {
 }
 // ── LIVE VISITOR HEARTBEAT ──
 setInterval(() => {
-  fetch('/api/health').catch(() => {}); // Just a simple request to update lastSeen IP
+  fetch('/api/health').catch(() => { }); // Just a simple request to update lastSeen IP
 }, 45000);
 // ── PRODUCT REVIEWS ──
 let reviewRating = 0;
@@ -2995,29 +3466,29 @@ function toggleInlineReview(prodId, prodName, prodImg, context = 'order') {
   const formId = context === 'productPage' ? 'inlineReviewFormProduct' : 'inlineReviewForm';
   const form = document.getElementById(formId);
   if (!form) return;
-  
+
   if (form.style.display === 'none') {
     form.style.display = 'block';
     form.dataset.productId = prodId;
     form.dataset.context = context;
-    
+
     // Reset & Auto-fill
-    reviewRating = 5; 
+    reviewRating = 5;
     reviewImages = [];
     reviewVideo = null;
-    
+
     const randomTemplate = reviewTemplates[Math.floor(Math.random() * reviewTemplates.length)];
     const commentId = context === 'productPage' ? 'reviewCommentProduct' : 'reviewComment';
     document.getElementById(commentId).value = randomTemplate;
-    
+
     const previewsId = context === 'productPage' ? 'reviewImageUploadsProduct' : 'reviewImageUploads';
     const imgCountId = context === 'productPage' ? 'imgCountProduct' : 'imgCount';
     const vidCountId = context === 'productPage' ? 'vidCountProduct' : 'vidCount';
-    
+
     document.getElementById(previewsId).innerHTML = '';
     document.getElementById(imgCountId).textContent = '0';
     document.getElementById(vidCountId).textContent = '0';
-    
+
     document.querySelectorAll(`#${formId} .star-rating-input .star`).forEach(s => s.classList.add('active'));
     form.scrollIntoView({ behavior: 'smooth', block: 'center' });
   } else {
@@ -3047,7 +3518,7 @@ async function handleReviewMedia(input, type, context = 'order') {
       // For FormData, we need to let the browser set the Content-Type
       // apiFetch by default sets Content-Type to application/json
       // So we use a custom fetch here but with the correct API_BASE
-      const apiBase = API_BASES[0]; 
+      const apiBase = API_BASES[0];
       const res = await fetch(`${apiBase}/products/upload`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${auth?.token}` },
@@ -3078,7 +3549,7 @@ function renderReviewPreviews(context = 'order') {
   const container = document.getElementById(previewsId);
   if (!container) return;
   container.innerHTML = '';
-  
+
   reviewImages.forEach((img, idx) => {
     container.innerHTML += `
       <div class="preview-item">
@@ -3087,7 +3558,7 @@ function renderReviewPreviews(context = 'order') {
       </div>
     `;
   });
-  
+
   if (reviewVideo) {
     container.innerHTML += `
       <div class="preview-item">
@@ -3096,7 +3567,7 @@ function renderReviewPreviews(context = 'order') {
       </div>
     `;
   }
-  
+
   document.getElementById(imgCountId).textContent = reviewImages.length;
   document.getElementById(vidCountId).textContent = reviewVideo ? '1' : '0';
 }
@@ -3130,12 +3601,12 @@ async function submitReview(context = 'order') {
         video: reviewVideo
       }
     });
-    
+
     if (res) {
       showToast("Review submitted successfully!");
       toggleInlineReview(null, null, null, context === 'order' ? 'order' : 'productPage');
       if (context === 'product' || context === 'productPage') {
-         loadProductReviews(prodId, "", ""); // Refresh list on product page
+        loadProductReviews(prodId, "", ""); // Refresh list on product page
       }
     } else {
       showToast("Submission failed");
@@ -3145,6 +3616,74 @@ async function submitReview(context = 'order') {
   }
 }
 // Star Rating Listeners
+async function cancelOrder(id) {
+  const modal = document.getElementById("confirmModal");
+  const msg = document.getElementById("confirmMessage");
+  const btnYes = document.getElementById("confirmBtnYes");
+  const btnNo = document.getElementById("confirmBtnNo");
+
+  if (!modal || !msg || !btnYes || !btnNo) {
+    if (!confirm("Are you sure you want to cancel this order?")) return;
+    performCancel(id);
+    return;
+  }
+
+  msg.textContent = "Are you sure you want to cancel this order? This wellness ritual can only be resumed by placing a new order.";
+  modal.style.display = "flex";
+
+  const handleYes = async () => {
+    modal.style.display = "none";
+    cleanup();
+    await performCancel(id);
+  };
+
+  const handleNo = () => {
+    modal.style.display = "none";
+    cleanup();
+  };
+
+  const cleanup = () => {
+    btnYes.removeEventListener("click", handleYes);
+    btnNo.removeEventListener("click", handleNo);
+  };
+
+  btnYes.addEventListener("click", handleYes);
+  btnNo.addEventListener("click", handleNo);
+}
+
+async function performCancel(id) {
+  try {
+    showToast("Cancelling order...");
+    const res = await apiFetch(`/orders/${id}/cancel`, { method: "POST" });
+    if (res) {
+      showToast("Order cancelled successfully");
+      viewOrderDetail(id); // Refresh view
+      ordersLoaded = false; // Trigger list refresh
+    }
+  } catch (error) {
+    showToast(error.message || "Failed to cancel order");
+  }
+}
+
+function getSupportForOrder(id) {
+  if (typeof toggleChat === "function") {
+    const chatPanel = document.getElementById("chatPanel");
+    if (chatPanel && chatPanel.style.display === "none") {
+      toggleChat();
+    }
+    const input = document.getElementById("chatInput");
+    if (input) {
+      input.value = `I need help with my order #${id.slice(-8).toUpperCase()}`;
+      input.focus();
+      // Optional: auto-send if you want
+      // sendMessage();
+    }
+  } else {
+    showToast("Opening support chat...");
+    goToPage("contact");
+  }
+}
+
 document.addEventListener('click', e => {
   if (e.target.classList.contains('star')) {
     const val = parseInt(e.target.dataset.value);

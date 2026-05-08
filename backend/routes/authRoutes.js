@@ -15,6 +15,7 @@ const {
   verifyPassword
 } = require("../utils/auth");
 const { sendPasswordResetEmail, sendSignupOtpEmail, sendWelcomeEmail } = require("../utils/email");
+const { verifyFirebaseToken } = require("../utils/firebase");
 
 const memoryUsers = new Map();
 const memorySignupVerifications = new Map();
@@ -255,6 +256,103 @@ router.post(
     }
   }
 );
+
+router.post(
+  "/firebase-auth",
+  [body("idToken").notEmpty().withMessage("ID Token is required."), validate],
+  async (req, res, next) => {
+    try {
+      const { idToken, name } = req.body;
+
+      // Verify Firebase token — throws specific errors for expired/revoked/invalid
+      let decodedToken;
+      try {
+        decodedToken = await verifyFirebaseToken(idToken);
+      } catch (firebaseError) {
+        return res.status(firebaseError.status || 401).json({
+          message: firebaseError.message || "Firebase token verification failed."
+        });
+      }
+
+      if (!decodedToken) {
+        return res.status(401).json({
+          message: "Invalid or expired Firebase token. Please request a new OTP."
+        });
+      }
+
+      const email = normalizeEmail(decodedToken.email || "");
+      const rawPhone = String(decodedToken.phone_number || "").trim();
+      const firebaseId = decodedToken.uid;
+
+      // Normalize phone: remove spaces, dashes — keep + prefix
+      const phone = rawPhone.replace(/[\s\-().]/g, "");
+
+      if (!phone && !email) {
+        return res.status(400).json({
+          message: "Phone number or email is required from Firebase token."
+        });
+      }
+
+      if (!req.app.locals.dbReady) {
+        // Dev mode fallback
+        const key = email || phone;
+        let user = memoryUsers.get(key);
+        if (!user) {
+          user = {
+            id: `dev-fb-${Date.now()}`,
+            name: name || decodedToken.name || "Firebase User",
+            email,
+            phone,
+            firebaseId,
+            role: "user",
+            emailVerified: !!email,
+            phoneVerified: !!phone,
+            cart: []
+          };
+          memoryUsers.set(key, user);
+        }
+        return res.json(authResponse(user));
+      }
+
+      // Find user by firebaseId, phone, or email
+      let user = await User.findOne({
+        $or: [
+          { firebaseId },
+          ...(phone ? [{ phone }] : []),
+          ...(email ? [{ email }] : [])
+        ]
+      });
+
+      if (!user) {
+        // Create new user
+        user = await User.create({
+          name: name || decodedToken.name || "Indo Heals User",
+          email: email || undefined,
+          phone: phone || undefined,
+          firebaseId,
+          role: "user",
+          emailVerified: !!email,
+          passwordHash: "FIREBASE_AUTH" // Placeholder — not used for login
+        });
+
+        sendWelcomeEmail(user).catch(err =>
+          console.warn("Firebase welcome email failed:", err.message)
+        );
+      } else {
+        // Update missing fields
+        let changed = false;
+        if (!user.firebaseId) { user.firebaseId = firebaseId; changed = true; }
+        if (phone && !user.phone) { user.phone = phone; changed = true; }
+        if (changed) await user.save();
+      }
+
+      return res.json(authResponse(user));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 
 router.post(
   "/login",

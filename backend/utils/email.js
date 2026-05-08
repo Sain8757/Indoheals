@@ -27,7 +27,10 @@ async function sendMail({ to, subject, text, html }) {
     return { skipped: true };
   }
 
-  return transporter.sendMail({ from, to, subject, text, html });
+  console.log(`Sending email to ${to}: ${subject}`);
+  const result = await transporter.sendMail({ from, to, subject, text, html });
+  console.log(`Email sent successfully to ${to}`);
+  return result;
 }
 
 function escapeHtml(value = "") {
@@ -108,7 +111,7 @@ async function sendOrderConfirmationEmail(order, downloadLinks = []) {
 
   return sendMail({
     to: order.customerEmail,
-    subject: "Your Indo Heals order payment is received",
+    subject: order.paymentMethod === "COD" ? `Order Placed: Your Indo Heals order #${order._id}` : "Your Indo Heals order payment is received",
     text: `Thank you for your order ${order._id}.\n\nPayment status: ${order.paymentStatus}\nTotal: ${formatRupee(
       order.total
     )}\n\nItems:\n${itemLines}\n\nShipping:\n${addressText}${linksText}`,
@@ -188,6 +191,27 @@ async function sendOrderDeliveredEmail(order) {
   });
 }
 
+async function sendOrderCancelledEmail(order) {
+  return sendMail({
+    to: order.customerEmail,
+    subject: "Your order has been cancelled",
+    text: `Your order ${order._id} has been cancelled. If you have any questions, please contact our support.`,
+    html: `<p>Your order <strong>${escapeHtml(order._id)}</strong> has been cancelled.</p><p>If you have any questions, please contact our support.</p>`
+  });
+}
+
+async function sendAdminOrderNotification(order) {
+  const to = adminEmail();
+  if (!to) return { skipped: true };
+
+  return sendMail({
+    to,
+    subject: `New Order Received: #${order._id}`,
+    text: `New order from ${order.customerName} (${order.customerEmail}). Total: ${formatRupee(order.total)}. Payment: ${order.paymentMethod}`,
+    html: `<p>New order from <strong>${escapeHtml(order.customerName)}</strong> (${escapeHtml(order.customerEmail)}).</p><p>Total: <strong>${escapeHtml(formatRupee(order.total))}</strong></p><p>Payment: ${escapeHtml(order.paymentMethod)}</p><p><a href="${process.env.FRONTEND_URL}/admin.html">View in Admin Panel</a></p>`
+  });
+}
+
 
 
 async function sendBusinessLeadNotification(lead) {
@@ -233,6 +257,8 @@ module.exports = {
   sendOrderConfirmedEmail,
   sendOrderShippedEmail,
   sendOrderDeliveredEmail,
+  sendOrderCancelledEmail,
+  sendAdminOrderNotification,
   sendPasswordResetEmail,
   sendSignupOtpEmail,
   sendWelcomeEmail

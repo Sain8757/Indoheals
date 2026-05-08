@@ -9,18 +9,25 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: true,
       unique: true,
       lowercase: true,
-      trim: true
+      trim: true,
+      sparse: true
     },
     passwordHash: {
       type: String,
-      required: true
+      required: function() { return !this.firebaseId; }
     },
     phone: {
       type: String,
-      trim: true
+      trim: true,
+      unique: true,
+      sparse: true
+    },
+    firebaseId: {
+      type: String,
+      unique: true,
+      sparse: true
     },
     gender: String,
     dob: String,

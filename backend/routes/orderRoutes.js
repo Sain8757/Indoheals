@@ -13,7 +13,9 @@ const {
   sendOrderConfirmationEmail,
   sendOrderConfirmedEmail,
   sendOrderShippedEmail,
-  sendOrderDeliveredEmail
+  sendOrderDeliveredEmail,
+  sendOrderCancelledEmail,
+  sendAdminOrderNotification
 } = require("../utils/email");
 const { findFallbackProduct } = require("../utils/products");
 const {
@@ -133,17 +135,32 @@ async function createDownloadLinks(req, order) {
 }
 
 async function markOrderPaid(req, order, payment) {
-  if (!order || order.status === "paid") return order;
+  if (!order) return order;
 
-  order.status = "paid";
-  order.paymentStatus = "Paid";
+  const isCOD = order.paymentMethod === "COD";
+  const isManual = order.paymentMethod === "Manual";
+
+  if (isCOD) {
+    order.status = "pending";
+    order.paymentStatus = "COD";
+  } else if (isManual) {
+    order.status = "pending";
+    order.paymentStatus = "Pending";
+  } else {
+    order.status = "paid";
+    order.paymentStatus = "Paid";
+    order.paidAt = new Date();
+  }
+
   order.paymentId = payment.paymentId || order.paymentId;
   order.paymentSignature = payment.signature || order.paymentSignature;
-  order.paidAt = new Date();
 
   const links = await createDownloadLinks(req, order);
   await sendOrderConfirmationEmail(order, links).catch(error => {
     console.warn("Order confirmation email failed:", error.message);
+  });
+  await sendAdminOrderNotification(order).catch(error => {
+    console.warn("Admin order notification failed:", error.message);
   });
   return order;
 }
@@ -260,8 +277,8 @@ router.post("/", requireAuth, orderValidators, async (req, res, next) => {
       shippingAddress,
       items: orderItems,
       total,
-      status: paymentMethod === "COD" ? "paid" : "pending",
-      paymentStatus,
+      status: "pending",
+      paymentStatus: paymentMethod === "COD" ? "COD" : "Pending",
       paymentMethod,
       orderStatus: "Pending",
       paymentProvider: razorpayConfigured() ? "razorpay" : "manual",
@@ -333,8 +350,11 @@ router.post("/:id/confirm-payment", requireAuth, async (req, res, next) => {
     const order = await Order.findOne({ _id: req.params.id, user: req.user._id });
     if (!order) return res.status(404).json({ message: "Order not found." });
 
+    const isCOD = order.paymentMethod === "COD";
+    const isManual = order.paymentMethod === "Manual";
     const devPayment = !razorpayConfigured() && order.paymentOrderId.startsWith("manual-");
-    const verified = devPayment || verifyRazorpayPayment({
+    
+    const verified = isCOD || isManual || devPayment || verifyRazorpayPayment({
       orderId: razorpay_order_id,
       paymentId: razorpay_payment_id,
       signature: razorpay_signature
@@ -435,6 +455,31 @@ router.get("/:id", requireAuth, async (req, res, next) => {
   }
 });
 
+router.post("/:id/cancel", requireAuth, async (req, res, next) => {
+  try {
+    const order = await Order.findOne({ _id: req.params.id, user: req.user._id });
+    if (!order) return res.status(404).json({ message: "Order not found." });
+
+    const cancellableStatuses = ["Pending", "Confirmed"];
+    if (!cancellableStatuses.includes(order.orderStatus)) {
+      return res.status(400).json({ message: `Order cannot be cancelled in '${order.orderStatus}' status.` });
+    }
+
+    order.orderStatus = "Cancelled";
+    order.fulfillmentStatus = "cancelled";
+    order.status = "failed"; // For payment tracking
+    await order.save();
+
+    await sendOrderCancelledEmail(order).catch(error => {
+      console.warn("Order cancelled email failed:", error.message);
+    });
+
+    return res.json({ message: "Order cancelled successfully.", order });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.put(
   "/:id/status",
   requireAuth,
@@ -462,6 +507,11 @@ router.put(
       if (order.orderStatus === "Delivered") {
         await sendOrderDeliveredEmail(order).catch(error => {
           console.warn("Order delivered email failed:", error.message);
+        });
+      }
+      if (order.orderStatus === "Cancelled") {
+        await sendOrderCancelledEmail(order).catch(error => {
+          console.warn("Order cancelled email failed:", error.message);
         });
       }
 

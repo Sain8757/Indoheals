@@ -5,12 +5,18 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
 require("dotenv").config();
+const { initFirebase } = require("./utils/firebase");
+
+initFirebase();
 
 const app = express();
 app.locals.dbReady = false;
 
 app.set("trust proxy", 1);
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({ 
+  contentSecurityPolicy: false,
+  crossOriginOpenerPolicy: false 
+}));
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : true,
@@ -130,8 +136,11 @@ app.get(/^.*$/, (req, res) => {
 });
 
 const PORT = process.env.PORT || 5001;
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(PORT, "127.0.0.1", () => {
+  console.log(`Server running on http://127.0.0.1:${PORT}`);
 });
 
 module.exports = { app, server };
+
+// Keep-alive to prevent premature exit in some environments
+setInterval(() => {}, 1000000);
