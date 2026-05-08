@@ -135,12 +135,23 @@ app.get(/^.*$/, (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('CRITICAL: Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const PORT = process.env.PORT || 5001;
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+console.log(`Checking PORT: ${PORT}`);
+const server = app.listen(PORT, () => {
+  const addr = server.address();
+  const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
+  console.log(`✅ SERVER ONLINE: Listening on ${bind}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 module.exports = { app, server };
 
-// Keep-alive to prevent premature exit in some environments
+// Keep-alive to prevent premature exit
 setInterval(() => {}, 1000000);
