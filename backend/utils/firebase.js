@@ -5,8 +5,25 @@ function initFirebase() {
   if (admin.apps.length) return;
 
   const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   const projectId = process.env.FIREBASE_PROJECT_ID;
 
+  // Option 1: Initialize with JSON content from environment variable
+  if (serviceAccountJson) {
+    try {
+      const serviceAccount = JSON.parse(serviceAccountJson);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: serviceAccount.project_id || projectId
+      });
+      console.log("✅ Firebase Admin initialized with JSON string.");
+      return;
+    } catch (error) {
+      console.error("❌ Failed to initialize Firebase Admin with JSON string:", error.message);
+    }
+  }
+
+  // Option 2: Initialize with Service Account File Path
   if (serviceAccountPath) {
     try {
       const serviceAccount = require(path.resolve(serviceAccountPath));
@@ -14,29 +31,25 @@ function initFirebase() {
         credential: admin.credential.cert(serviceAccount),
         projectId: serviceAccount.project_id || projectId
       });
-      console.log("✅ Firebase Admin initialized with service account.");
+      console.log("✅ Firebase Admin initialized with service account file.");
       return;
     } catch (error) {
-      console.error("❌ Failed to initialize Firebase Admin with service account:", error.message);
+      console.error("❌ Failed to initialize Firebase Admin with service account file:", error.message);
     }
   }
 
-  // Fallback: initialize with just the project ID (allows token verification via REST)
+  // Fallback: initialize with just the project ID (limited token verification)
   if (projectId) {
     try {
       admin.initializeApp({
         projectId
       });
-      console.log(`⚠️  Firebase Admin initialized with projectId only (${projectId}). Add FIREBASE_SERVICE_ACCOUNT_PATH to .env for full functionality.`);
+      console.log(`⚠️  Firebase Admin initialized with projectId only (${projectId}).`);
     } catch (error) {
       console.error("❌ Firebase Admin fallback init failed:", error.message);
     }
   } else {
-    console.warn(
-      "⚠️  Neither FIREBASE_SERVICE_ACCOUNT_PATH nor FIREBASE_PROJECT_ID found in .env.\n" +
-      "   Phone OTP verification will be disabled.\n" +
-      "   See backend/.env for setup instructions."
-    );
+    console.warn("⚠️  No Firebase credentials found. OTP verification will be disabled.");
   }
 }
 
