@@ -5,6 +5,12 @@ const User = require("../models/User");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 
+const Razorpay = require("razorpay");
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
+
 const BusinessLead = require("../models/BusinessLead");
 const NewsletterSubscription = require("../models/NewsletterSubscription");
 const Discount = require("../models/Discount");
@@ -17,6 +23,7 @@ const validate = require("../middleware/validate");
 const { productQuery } = require("../utils/products");
 const { sendMail } = require("../utils/email");
 const upload = require("../utils/upload");
+const shiprocket = require("../services/shiprocket.service");
 
 router.use(requireAuth, requireAdmin);
 
@@ -199,7 +206,7 @@ router.put("/orders/:id/status", orderStatusValidators, async (req, res, next) =
     if (req.body.status) updates.status = req.body.status;
     if (req.body.fulfillmentStatus) {
       updates.fulfillmentStatus = req.body.fulfillmentStatus;
-      
+
       // Sync with user-facing orderStatus
       const fStatus = req.body.fulfillmentStatus.toLowerCase();
       if (fStatus === 'new') updates.orderStatus = 'Pending';
@@ -212,7 +219,7 @@ router.put("/orders/:id/status", orderStatusValidators, async (req, res, next) =
     }
     if (req.body.trackingNumber !== undefined) updates.trackingNumber = req.body.trackingNumber;
     if (req.body.trackingLink !== undefined) updates.trackingLink = req.body.trackingLink;
-    
+
     if (!Object.keys(updates).length) {
       return res.status(400).json({ message: "No order update provided." });
     }
@@ -243,6 +250,112 @@ router.put("/orders/:id/status", orderStatusValidators, async (req, res, next) =
   }
 });
 
+// ── SETTLEMENT ROUTE ──
+router.put("/orders/:id/settle", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+    const { settlementId } = req.body;
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        settlementStatus: "settled",
+        settlementId: settlementId || `SET-${Date.now().toString().slice(-6)}`,
+        settlementDate: new Date()
+      },
+      { new: true }
+    );
+    if (!order) return res.status(404).json({ message: "Order not found." });
+    return res.json(order);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// ── REFUND ROUTE ──
+router.post("/orders/:id/refund", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found." });
+    if (order.status === 'refunded') return res.status(400).json({ message: "Order already refunded." });
+
+    const { paymentId, amount } = req.body;
+    if (!paymentId || paymentId.startsWith('cod')) {
+      return res.status(400).json({ message: "COD orders cannot be refunded via Razorpay." });
+    }
+
+    // Initiate refund via Razorpay API
+    const refund = await razorpay.payments.refund(paymentId, {
+      amount: amount || order.total * 100, // paise
+      speed: "normal",
+      notes: { orderId: order._id.toString(), reason: "Admin initiated refund" }
+    });
+
+    // Update order status to refunded
+    await Order.findByIdAndUpdate(req.params.id, { status: 'refunded', fulfillmentStatus: 'cancelled' });
+
+    // Send refund email to customer
+    const customerEmail = order.customerEmail;
+    if (customerEmail) {
+      await sendMail({
+        to: customerEmail,
+        subject: `Refund Initiated - Indo Heals (Order ${order._id.toString().slice(-6).toUpperCase()})`,
+        html: `<p>Dear ${order.customerName || 'Customer'},</p><p>Your refund of <strong>₹${order.total}</strong> has been initiated successfully.</p><p>Refund ID: <strong>${refund.id}</strong></p><p>It will reflect in your account within 5-7 business days.</p><p>Thank you for shopping with Indo Heals!</p>`
+      }).catch(err => console.error("Refund email error:", err.message));
+    }
+
+    return res.json({ success: true, refundId: refund.id, message: "Refund initiated successfully." });
+  } catch (error) {
+    console.error("Refund error:", error);
+    return next(error);
+  }
+});
+
+// ── PAYMENT ANALYTICS & LOGS ──
+router.get("/payments/transactions", async (req, res, next) => {
+  try {
+    const Transaction = require("../models/Transaction");
+    const transactions = await Transaction.find().populate("orderId", "_id customerName").sort({ createdAt: -1 }).limit(100);
+    res.json(transactions);
+  } catch (error) { next(error); }
+});
+
+router.get("/payments/payouts", async (req, res, next) => {
+  try {
+    const Payout = require("../models/Payout");
+    const payouts = await Payout.find().sort({ createdAt: -1 }).limit(50);
+    res.json(payouts);
+  } catch (error) { next(error); }
+});
+
+router.get("/payments/webhooks", async (req, res, next) => {
+  try {
+    const WebhookLog = require("../models/WebhookLog");
+    const logs = await WebhookLog.find().sort({ createdAt: -1 }).limit(100);
+    res.json(logs);
+  } catch (error) { next(error); }
+});
+
+router.get("/payments/refunds", async (req, res, next) => {
+  try {
+    // Aggregated from Transactions where status is refunded or specific Refund model if created
+    const Transaction = require("../models/Transaction");
+    const refunds = await Transaction.find({ status: "refunded" }).populate("orderId").sort({ createdAt: -1 });
+    res.json(refunds);
+  } catch (error) { next(error); }
+});
+
+router.get("/orders/:id/invoice", async (req, res, next) => {
+  try {
+    const invoiceService = require("../services/invoice.service");
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).send("Order not found");
+    
+    const html = invoiceService.generateHTML(order);
+    res.send(html);
+  } catch (error) { next(error); }
+});
+
 router.get("/products", async (req, res, next) => {
   try {
     if (requireDatabase(req, res)) return;
@@ -251,6 +364,7 @@ router.get("/products", async (req, res, next) => {
     return res.json(products);
   } catch (error) {
     return next(error);
+
   }
 });
 
@@ -563,6 +677,26 @@ router.put("/products/:id", productValidators, async (req, res, next) => {
   }
 });
 
+router.patch("/products/:id", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+
+    // Allowed fields for partial update
+    const updateData = {};
+    if (req.body.stock !== undefined) updateData.stock = req.body.stock;
+    if (req.body.isActive !== undefined) updateData.isActive = req.body.isActive;
+
+    const product = await Product.findOneAndUpdate(productQuery(req.params.id), updateData, {
+      new: true
+    });
+    if (!product) return res.status(404).json({ message: "Product not found." });
+
+    return res.json(product);
+  } catch (error) {
+    return next(error);
+  }
+});
+
 
 router.put("/products/:id/digital-file", digitalFileValidators, async (req, res, next) => {
   try {
@@ -623,6 +757,59 @@ router.put("/abandoned-carts/:userId/status", async (req, res, next) => {
   }
 });
 
+// ── SHIPROCKET INTEGRATION ──
+router.post("/shipments/create/:id", async (req, res, next) => {
+  try {
+    if (requireDatabase(req, res)) return;
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found." });
+
+    const settings = await getStoreSettings();
+    if (!settings.shipping.shiprocketEnabled) {
+      return res.status(400).json({ message: "Shiprocket integration is disabled in settings." });
+    }
+
+    const result = await shiprocket.createShiprocketOrder(order, settings.shipping.shiprocketPickupLocation);
+
+    // Update order with Shiprocket details
+    order.trackingNumber = result.shipment_id.toString(); // Shiprocket shipment_id
+    order.fulfillmentStatus = "processing";
+    order.orderStatus = "Confirmed";
+    await order.save();
+
+    return res.json({ message: "Shipment created in Shiprocket.", result });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to create shipment." });
+  }
+});
+
+router.get("/shipments/track/:shipmentId", async (req, res, next) => {
+  try {
+    const tracking = await shiprocket.getShiprocketTracking(req.params.shipmentId);
+    return res.json(tracking);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to fetch tracking info." });
+  }
+});
+
+router.get("/shipments/label/:shipmentId", async (req, res, next) => {
+  try {
+    const result = await shiprocket.generateShiprocketLabel(req.params.shipmentId);
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to generate label." });
+  }
+});
+
+router.get("/shipments/invoice/:orderId", async (req, res, next) => {
+  try {
+    const result = await shiprocket.generateShiprocketInvoice(req.params.orderId);
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to generate invoice." });
+  }
+});
+
 router.get("/stats", async (req, res, next) => {
   try {
     if (requireDatabase(req, res)) return;
@@ -638,7 +825,8 @@ router.get("/stats", async (req, res, next) => {
       totalUsers,
       todayUsers,
       recentOrders,
-      productStats
+      productStats,
+      abandonedCarts
     ] = await Promise.all([
       Order.aggregate([
         { $match: { status: "paid" } },
@@ -655,7 +843,9 @@ router.get("/stats", async (req, res, next) => {
       Order.find().populate("user", "name email").sort({ createdAt: -1 }).limit(10),
       Product.aggregate([
         { $group: { _id: "$category", count: { $sum: 1 }, stock: { $sum: "$stock" } } }
-      ])
+      ]),
+      // Count users with items in their cart (abandoned carts)
+      User.countDocuments({ cart: { $exists: true, $not: { $size: 0 } } })
     ]);
 
     const salesTrend = await Order.aggregate([
@@ -663,7 +853,8 @@ router.get("/stats", async (req, res, next) => {
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          sales: { $sum: "$total" }
+          totalRevenue: { $sum: "$total" },
+          count: { $sum: 1 }
         }
       },
       { $sort: { _id: 1 } }
@@ -679,11 +870,30 @@ router.get("/stats", async (req, res, next) => {
       recentOrders,
       productStats,
       salesTrend,
+      abandonedCarts,
       liveVisitors: req.app.locals.activeVisitors ? req.app.locals.activeVisitors.size : 0
     });
   } catch (error) {
     return next(error);
   }
+});
+
+module.exports = router;
+todayUsers,
+  recentOrders,
+  productStats,
+  salesTrend,
+  abandonedCarts,
+  lowStockProducts,
+  inTransitOrders,
+  deliveredOrders,
+  rtoOrders,
+  weeklyShipmentStats,
+  liveVisitors: req.app.locals.activeVisitors ? req.app.locals.activeVisitors.size : 0
+    });
+  } catch (error) {
+  return next(error);
+}
 });
 
 module.exports = router;

@@ -24,6 +24,8 @@ const {
   verifyRazorpayPayment,
   verifyWebhookSignature
 } = require("../utils/payments");
+const shiprocket = require("../services/shiprocket.service");
+const StoreSetting = require("../models/StoreSetting");
 
 const memoryOrders = [];
 
@@ -162,6 +164,25 @@ async function markOrderPaid(req, order, payment) {
   await sendAdminOrderNotification(order).catch(error => {
     console.warn("Admin order notification failed:", error.message);
   });
+
+  // Shiprocket Auto-Sync
+  if (order.status === "paid") {
+    try {
+      const settings = await StoreSetting.findOne({ key: "default" });
+      if (settings?.shipping?.shiprocketEnabled && settings?.shipping?.shiprocketAutoSync) {
+        const result = await shiprocket.createShiprocketOrder(order, settings.shipping.shiprocketPickupLocation);
+        if (result && result.shipment_id) {
+          order.trackingNumber = result.shipment_id.toString();
+          order.fulfillmentStatus = "processing";
+          order.orderStatus = "Confirmed";
+          if (order.save) await order.save();
+        }
+      }
+    } catch (srErr) {
+      console.warn("Shiprocket auto-sync failed:", srErr.message);
+    }
+  }
+
   return order;
 }
 

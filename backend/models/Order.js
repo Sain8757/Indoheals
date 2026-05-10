@@ -96,7 +96,32 @@ const orderSchema = new mongoose.Schema(
         }
       }
     ],
-    paidAt: Date
+    paidAt: Date,
+    settlementStatus: {
+      type: String,
+      enum: ["unsettled", "settled"],
+      default: "unsettled"
+    },
+    settlementId: String,
+    settlementDate: Date,
+    subtotal: {
+      type: Number,
+      default: 0
+    },
+    gstAmount: {
+      type: Number,
+      default: 0
+    },
+    discountAmount: {
+      type: Number,
+      default: 0
+    },
+    invoiceNumber: String,
+    taxDetails: {
+      cgst: Number,
+      sgst: Number,
+      igst: Number
+    }
   },
   { timestamps: true }
 );

@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0d0f0e;
+  --color-foreground: #e8ede9;
+  --color-card: #131614;
+  --color-card-foreground: #e8ede9;
+  --color-popover: #131614;
+  --color-popover-foreground: #e8ede9;
+  --color-primary: #1D9E75;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #1a1d1b;
+  --color-secondary-foreground: #e8ede9;
+  --color-muted: #1a1d1b;
+  --color-muted-foreground: #8a9489;
+  --color-accent: #1D9E75;
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #E24B4A;
+  --color-destructive-foreground: #ffffff;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-input: rgba(255, 255, 255, 0.07);
+  --color-ring: #1D9E75;
+}
+
+:root {
+  --background: #0d0f0e;
+  --foreground: #e8ede9;
+  --card: #131614;
+  --card-foreground: #e8ede9;
+  --border: rgba(255, 255, 255, 0.07);
+  --radius: 0.75rem;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.glass {
+  background: rgba(19, 22, 20, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+
+.card-gradient {
+  background: linear-gradient(135deg, #131614 0%, #1a1d1b 100%);
+}

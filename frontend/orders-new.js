@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const API = "http://localhost:5001/api";
+  const API = "http://localhost:12345/api";
   let allOrders = [];
   let auth = null;
 
@@ -526,7 +526,12 @@
 
           <!-- Order Info -->
           <div class="oh-detail-card">
-            <div class="oh-detail-card-head"><h2>📋 Order Info</h2></div>
+            <div class="oh-detail-card-head">
+              <h2>📋 Order Info</h2>
+              <div style="display:flex;gap:8px;">
+                <button onclick="event.stopPropagation(); downloadInvoice('${esc(id)}')" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer;">📄 Invoice</button>
+              </div>
+            </div>
             <div class="oh-detail-card-body">
               <div class="oh-meta-grid">
                 <div class="oh-meta-item"><label>Order ID</label><span>#${esc(id.slice(-8).toUpperCase())}</span></div>
@@ -607,6 +612,24 @@
       result.innerHTML = `<div class="oh-msg-error">❌ ${esc(err.message)}</div>`;
     }
   }
+
+  /* ── INVOICE DOWNLOAD ── */
+  window.downloadInvoice = async function(orderId) {
+    try {
+      alert("Generating invoice...");
+      // In a real flow, you might hit an API to generate/fetch the invoice PDF URL.
+      // Shiprocket invoice API requires the Shiprocket Order ID, which we might not have exposed here.
+      // Assuming backend handles it or we print a simple order summary.
+      const data = await apiGet(`/orders/${orderId}/invoice`).catch(() => null);
+      if (data && data.invoiceUrl) {
+        window.open(data.invoiceUrl, "_blank");
+      } else {
+        alert("Invoice generation is not ready for this order yet.");
+      }
+    } catch (err) {
+      alert("Could not download invoice: " + err.message);
+    }
+  };
 
   /* ── INIT ── */
   async function init() {

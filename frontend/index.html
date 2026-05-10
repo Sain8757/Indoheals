@@ -16,31 +16,35 @@
 
   <nav class="nav-main">
     <div class="nav-container">
-      <!-- Mobile Hamburger -->
-      <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle menu">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
 
+      <!-- LEFT: Hamburger + Logo -->
       <div class="nav-left-group">
-        <ul class="nav-links nav-desktop-only">
+        <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+
+        <a onclick="goToPage('home')" class="nav-logo" aria-label="Indo Heals home">
+          <span class="logo-badge">
+            <img src="assets/indo-heals-logo.png" alt="Indo Heals Logo">
+          </span>
+          <span class="nav-logo-text">Indo Heals</span>
+        </a>
+      </div>
+
+      <!-- CENTER: Desktop nav links -->
+      <div class="nav-center-group nav-desktop-only" style="flex: 1; display: flex; justify-content: center;">
+        <ul class="nav-links" style="display: flex; gap: 32px; list-style: none; margin: 0; padding: 0;">
           <li><a onclick="goToPage('home')">Home</a></li>
           <li><a onclick="goToPage('products')">Our Product</a></li>
           <li><a onclick="goToPage('shop')">Shop</a></li>
-          <li><a onclick="goToPage('news')">News & Events</a></li>
+          <li><a onclick="goToPage('news')">News &amp; Events</a></li>
           <li><a onclick="goToPage('contact')">Contact</a></li>
         </ul>
       </div>
 
-      <a onclick="goToPage('home')" class="nav-logo" aria-label="Indo Heals home">
-        <span class="logo-badge">
-          <img src="assets/indo-heals-logo.png" alt="Indo Heals Logo">
-        </span>
-        <span class="nav-logo-text">Indo Heals</span>
-      </a>
-
+      <!-- RIGHT: Search + Account + Cart -->
       <div class="nav-right-group">
+
         <div class="nav-location-selector nav-desktop-only" onclick="openLocationModal()">
           <span class="loc-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -51,7 +55,7 @@
           </span>
           <div class="loc-text">
             <span class="loc-label">Deliver to</span>
-            <span id="globalPincodeDisplay" class="loc-value">Select Pincode</span>
+            <span id="globalPincodeDisplay" class="loc-value">Pincode</span>
           </div>
         </div>
 
@@ -130,11 +134,25 @@
         <button class="close-sidebar" onclick="toggleMobileMenu()">&times;</button>
       </div>
       <div class="mobile-sidebar-body">
+        <div class="nav-location-selector mobile-sidebar-location" onclick="openLocationModal(); toggleMobileMenu();"
+          style="margin-bottom: 20px; width: 100%; justify-content: flex-start; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+          <span class="loc-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" style="width: 20px; height: 20px;">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+          </span>
+          <div class="loc-text">
+            <span class="loc-label" style="display: block; font-size: 12px; color: var(--gold-light);">Deliver to</span>
+            <span id="globalPincodeDisplayMobile" class="loc-value" style="font-size: 16px;">Select Pincode</span>
+          </div>
+        </div>
         <ul class="mobile-nav-links">
           <li><a onclick="goToPage('home'); toggleMobileMenu()">Home</a></li>
           <li><a onclick="goToPage('products'); toggleMobileMenu()">Our Product</a></li>
           <li><a onclick="goToPage('shop'); toggleMobileMenu()">Shop</a></li>
-          <li><a onclick="goToPage('news'); toggleMobileMenu()">News & Events</a></li>
+          <li><a onclick="goToPage('news'); toggleMobileMenu()">News &amp; Events</a></li>
           <li><a onclick="goToPage('contact'); toggleMobileMenu()">Contact</a></li>
         </ul>
         <hr>
@@ -150,82 +168,89 @@
   <div id="home-page" class="page">
     <section class="hero premium-hero" aria-label="Indo Heals featured sections">
       <div class="hero-slider" id="heroSlider">
-        <article class="hero-slide active" data-slide="innovation"
-          style="--hero-image: url('https://images.unsplash.com/photo-1768729341217-0e11cb959252?auto=format&fit=crop&w=2400&q=80'); --hero-position: center;">
-          <div class="hero-content reveal">
+
+        <!-- Innovation Slide — Herbal science / lab imagery -->
+        <article class="hero-slide active" data-slide="innovation" style="
+          --hero-image: url('https://images.unsplash.com/photo-1532187863486-abf9db0c2095?auto=format&fit=crop&w=1800&q=80');
+          --hero-position: center;">
+          <div class="hero-content reveal" style="position: relative; z-index: 2;">
             <span class="hero-kicker">Innovation</span>
             <h1>Herbal science shaped for everyday wellness</h1>
-            <p class="hero-sub">Indo Heals brings traditional Unani and Ayurvedic thinking into refined, modern wellness
-              formats.</p>
+            <p class="hero-sub">Indo Heals brings traditional Unani and Ayurvedic thinking into refined, modern wellness formats.</p>
             <a onclick="goToPage('about')" class="btn-primary">Know More</a>
           </div>
         </article>
-        <article class="hero-slide" data-slide="wellness"
-          style="--hero-image: url('https://images.unsplash.com/photo-1758691461932-d0aa0ebf6b31?auto=format&fit=crop&w=1600&q=80'); --hero-position: center;">
-          <div class="hero-content">
+
+        <!-- Wellness Slide — Ayurvedic / botanical ritual imagery -->
+        <article class="hero-slide" data-slide="wellness" style="
+          --hero-image: url('https://images.unsplash.com/photo-1545205597-3d9d02c29597?auto=format&fit=crop&w=1800&q=80');
+          --hero-position: center top;">
+          <div class="hero-content" style="position: relative; z-index: 2;">
             <span class="hero-kicker">Wellness Ritual</span>
             <h1>Herbal traditions, polished for you</h1>
-            <p class="hero-sub">Deeply rooted in Ayurvedic and Unani heritage, Indo Heals brings you the best of nature
-              in a modern, reliable experience.</p>
+            <p class="hero-sub">Deeply rooted in Ayurvedic and Unani heritage, Indo Heals brings you the best of nature in a modern, reliable experience.</p>
             <a onclick="goToPage('products')" class="btn-primary">Know More</a>
           </div>
         </article>
-        <article class="hero-slide" data-slide="modernity"
-          style="--hero-image: url('https://images.unsplash.com/photo-1573546333520-92cb9d534461?auto=format&fit=crop&w=1600&q=80'); --hero-position: center;">
-          <div class="hero-content">
+
+        <!-- Modernity Slide — Clean modern wellness imagery -->
+        <article class="hero-slide" data-slide="modernity" style="
+          --hero-image: url('https://images.unsplash.com/photo-1512428559087-560fa5ceab42?auto=format&fit=crop&w=1800&q=80');
+          --hero-position: center;">
+          <div class="hero-content" style="position: relative; z-index: 2;">
             <span class="hero-kicker">Modernity</span>
             <h1>Clean formats for modern households</h1>
-            <p class="hero-sub">A polished experience for people who want wellness to feel simple, credible, and
-              beautifully made.</p>
+            <p class="hero-sub">A polished experience for people who want wellness to feel simple, credible, and beautifully made.</p>
             <a onclick="goToPage('products')" class="btn-primary">Know More</a>
           </div>
         </article>
-        <article class="hero-slide" data-slide="legacy"
-          style="--hero-image: url('https://images.unsplash.com/photo-1758221052535-8119e3a816b7?auto=format&fit=crop&w=1600&q=80'); --hero-position: center;">
-          <div class="hero-content">
+
+        <!-- Legacy Slide — Indian herbs / ancient medicine imagery -->
+        <article class="hero-slide" data-slide="legacy" style="
+          --hero-image: url('https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=1800&q=80');
+          --hero-position: center;">
+          <div class="hero-content" style="position: relative; z-index: 2;">
             <span class="hero-kicker">Legacy</span>
             <h1>Ancient wisdom, renewed with care</h1>
             <p class="hero-sub">Rooted in Indian herbal heritage and crafted for the pace of contemporary wellness.</p>
             <a onclick="goToPage('about')" class="btn-primary">Know More</a>
           </div>
         </article>
+
       </div>
-      <section class="hero-consult-section" id="heroConsultSection"
-        style="--consult-image: url('https://images.unsplash.com/photo-1758691461932-d0aa0ebf6b31?auto=format&fit=crop&w=1600&q=80');"
-        aria-label="Consult with Unani doctors">
-        <div class="consult-media">
-          <img src="https://images.unsplash.com/photo-1758691461932-d0aa0ebf6b31?auto=format&fit=crop&w=800&q=80"
-            alt="Doctor consulting a patient over video call" loading="lazy">
+
+      <!-- Consult Section — Video RAKHA GAYA (original) -->
+      <section class="hero-consult-section" id="heroConsultSection" aria-label="Consult with Unani doctors">
+        <div class="consult-yt-bg">
+          <video autoplay loop muted playsinline preload="auto">
+            <source src="assets/videos/mp_ (1).mp4" type="video/mp4">
+          </video>
+        </div>
+        <div class="consult-content-wrapper">
           <div class="consult-media-copy">
-            <span>#CureWithUnaniCare</span>
-            <h2>Consult with <em>Unani</em> Doctors for any health related concerns over video call.</h2>
-            <p>From the comfort of your home</p>
+            <span class="pulse-tag">LIVE</span>
+            <h2>Consult with <em>Doctors</em><br>over video call.</h2>
+            <p>From the comfort of your home. Expert Ayurvedic and Unani care.</p>
+          </div>
+          <div class="consult-actions-new">
+            <button type="button" class="glass-btn" onclick="goToPage('contact')">
+              <span class="glass-btn-icon">📍</span>
+              <div class="glass-btn-text">
+                <strong>Locate Clinic</strong>
+                <span>Find us near you</span>
+              </div>
+            </button>
+            <button type="button" class="glass-btn" onclick="goToPage('products')">
+              <span class="glass-btn-icon">🛍️</span>
+              <div class="glass-btn-text">
+                <strong>Buy Products</strong>
+                <span>Explore wellness</span>
+              </div>
+            </button>
           </div>
         </div>
-        <div class="consult-actions">
-
-          <button type="button" class="consult-action yellow" onclick="goToPage('contact')">
-            <span aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M12 2a7 7 0 0 0-7 7c0 5.3 7 13 7 13s7-7.7 7-13a7 7 0 0 0-7-7Zm1 11h-2v-3H8V8h3V5h2v3h3v2h-3v3Z">
-                </path>
-              </svg>
-            </span>
-            Locate Clinic
-          </button>
-          <button type="button" class="consult-action pink" onclick="goToPage('products')">
-            <span aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path
-                  d="M7 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm10 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM6.2 6l.5 2H21l-2 7H8.3L5.7 4H2V2h5.3L7.8 4H22v2H6.2Zm3.6 7h7.7l.9-3H9.1l.7 3Z">
-                </path>
-              </svg>
-            </span>
-            Buy Products
-          </button>
-        </div>
       </section>
+
       <nav class="hero-tabs" aria-label="Hero section navigation">
         <button type="button" data-hero-tab="consult">Consult</button>
         <button class="active" type="button" data-hero-tab="innovation">Innovation</button>
@@ -477,7 +502,7 @@
         <button class="news-btn-primary">Read the Story</button>
       </div>
       <div class="news-hero-image">
-        <img src="featured_wellness_news_1778021466625.png" alt="Wellness Research">
+        <img src="https://images.unsplash.com/photo-1615486171448-6fc1bd2b12eb?auto=format&fit=crop&w=1200&q=80" alt="Wellness Research">
       </div>
     </section>
 
@@ -493,7 +518,7 @@
         <!-- CARD 1 -->
         <article class="news-card">
           <div class="news-card-img">
-            <img src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80"
+            <img src="https://images.unsplash.com/photo-1545205597-3d9d02c29597?auto=format&fit=crop&w=800&q=80"
               alt="Yoga and Wellness">
             <span class="news-tag">Wellness</span>
           </div>
@@ -512,7 +537,7 @@
         <!-- CARD 2 -->
         <article class="news-card">
           <div class="news-card-img">
-            <img src="https://images.unsplash.com/photo-1559181567-c3190ca9959b?auto=format&fit=crop&w=800&q=80"
+            <img src="https://images.unsplash.com/photo-1611078586029-7977bc698eb6?auto=format&fit=crop&w=800&q=80"
               alt="New Launch">
             <span class="news-tag">New Launch</span>
           </div>
@@ -531,7 +556,7 @@
         <!-- CARD 3 -->
         <article class="news-card">
           <div class="news-card-img">
-            <img src="https://images.unsplash.com/photo-1505330622279-bf7d7fc918f4?auto=format&fit=crop&w=800&q=80"
+            <img src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=800&q=80"
               alt="Community">
             <span class="news-tag">Community</span>
           </div>
@@ -571,7 +596,7 @@
           </div>
 
           <div class="about-image-panel about-animate about-delay-2">
-            <img src="https://images.unsplash.com/photo-1769698678497-c41f0ab47c3e?auto=format&fit=crop&w=1400&q=80"
+            <img src="https://images.unsplash.com/photo-1532187863486-abf9db0c2095?auto=format&fit=crop&w=1400&q=80"
               alt="Modern wellness and research facility">
 
           </div>
@@ -948,7 +973,13 @@
                   </div>
                   <div class="form-group">
                     <label>Phone Number</label>
-                    <input type="tel" id="checkout-phone" required placeholder="Enter phone number">
+                    <div class="phone-input-wrapper">
+                      <div class="phone-country-code">
+                        <img src="https://flagcdn.com/w20/in.png" alt="India">
+                        <span>+91</span>
+                      </div>
+                      <input type="tel" id="checkout-phone" required placeholder="Enter phone number" maxlength="10">
+                    </div>
                   </div>
                 </div>
                 <div class="form-group">
@@ -1154,7 +1185,13 @@
           </div>
           <div class="form-group">
             <label>Phone Number*</label>
-            <input type="tel" id="signup-phone" required placeholder="e.g. +91 9876543210">
+            <div class="phone-input-wrapper">
+              <div class="phone-country-code">
+                <img src="https://flagcdn.com/w20/in.png" alt="India">
+                <span>+91</span>
+              </div>
+              <input type="tel" id="signup-phone" required placeholder="e.g. 9876543210" maxlength="10">
+            </div>
           </div>
           <div class="form-group">
             <label>Password*</label>
@@ -1448,7 +1485,15 @@
                   <input type="hidden" id="addr-edit-index">
                   <div class="form-row">
                     <div class="form-group"><input type="text" id="addr-name" placeholder="Name" required></div>
-                    <div class="form-group"><input type="tel" id="addr-phone" placeholder="Phone" required></div>
+                    <div class="form-group">
+                      <div class="phone-input-wrapper">
+                        <div class="phone-country-code">
+                          <img src="https://flagcdn.com/w20/in.png" alt="India">
+                          <span>+91</span>
+                        </div>
+                        <input type="tel" id="addr-phone" placeholder="Phone" required maxlength="10">
+                      </div>
+                    </div>
                   </div>
                   <div class="form-group"><input type="text" id="addr-line1" placeholder="Address line 1" required>
                   </div>
@@ -1587,6 +1632,48 @@
     </section>
   </div>
 
+  <div id="careers-page" class="page" style="display:none;">
+    <section class="careers-hero"
+      style="background: var(--navy-deep); padding: 80px 24px; text-align: center; border-bottom: 1px solid var(--line);">
+      <h1
+        style="color: var(--gold); font-family: 'Cinzel', serif; font-size: clamp(32px, 5vw, 48px); margin-bottom: 16px;">
+        Join Our Mission</h1>
+      <p style="color: var(--muted); max-width: 600px; margin: 0 auto; line-height: 1.6;">At Indo Heals, we are
+        constantly looking for passionate individuals who believe in the power of traditional wellness combined with
+        modern science.</p>
+    </section>
+
+    <section style="padding: 60px 24px; max-width: 1000px; margin: 0 auto;">
+      <div class="careers-grid"
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px;">
+        <div class="career-card"
+          style="padding: 32px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 16px;">
+          <h3 style="color: var(--gold-light); margin-bottom: 8px;">Marketing Specialist</h3>
+          <p style="color: var(--muted); font-size: 14px; margin-bottom: 16px;">Remote / Full-time</p>
+          <p style="color: var(--white); margin-bottom: 24px;">Help us spread the message of holistic wellness to a
+            global audience.</p>
+          <button class="btn-primary" onclick="goToPage('contact')">Apply Now</button>
+        </div>
+        <div class="career-card"
+          style="padding: 32px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 16px;">
+          <h3 style="color: var(--gold-light); margin-bottom: 8px;">Product Developer</h3>
+          <p style="color: var(--muted); font-size: 14px; margin-bottom: 16px;">New Delhi / Full-time</p>
+          <p style="color: var(--white); margin-bottom: 24px;">Innovate with Ayurvedic and Unani ingredients to create
+            modern wellness products.</p>
+          <button class="btn-primary" onclick="goToPage('contact')">Apply Now</button>
+        </div>
+      </div>
+
+      <div
+        style="margin-top: 60px; text-align: center; padding: 40px; background: var(--navy-light); border-radius: 24px; border: 1px solid var(--gold-deep);">
+        <h2 style="color: var(--gold); margin-bottom: 16px;">Don't see a fitting role?</h2>
+        <p style="color: var(--muted); margin-bottom: 24px;">Send your resume to careers@indoheals.com and we'll keep
+          you in mind for future openings.</p>
+        <a href="mailto:careers@indoheals.com" class="btn-primary">Email Your Resume</a>
+      </div>
+    </section>
+  </div>
+
   <footer class="footer">
     <div class="footer-grid">
       <div class="footer-brand">
@@ -1610,6 +1697,7 @@
           <li><a onclick="openAccountTab('orders')">Order Tracking</a></li>
           <li><a onclick="goToPage('contact')">Shipping & Return</a></li>
           <li><a onclick="goToPage('contact')">FAQs</a></li>
+          <li><a onclick="goToPage('careers')">Careers</a></li>
         </ul>
       </div>
       <div class="footer-col">

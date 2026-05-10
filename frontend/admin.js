@@ -11,7 +11,7 @@ const API_BASES = window.INDO_HEALS_API
   : isBackendServedFrontend
     ? [`${window.location.origin}/api`]
     : isLocalHost
-      ? ["http://localhost:5001/api", "http://127.0.0.1:5001/api", "http://localhost:5002/api"]
+      ? ["http://localhost:12345/api"]
       : [PRODUCTION_API_BASE];
 
 const ORDER_PAYMENT_OPTIONS = ["pending", "paid", "failed"];
@@ -402,6 +402,11 @@ function renderCurrentView() {
   if (currentView.startsWith("settings")) return renderSettings(currentView);
   if (currentView === "integrations") return renderIntegrations();
   if (currentView === "print") return renderPrintOnDemand();
+  
+  if (currentView === "shipping") {
+    loadShiprocketConfig();
+  }
+
   return renderOverview();
 }
 
@@ -1012,13 +1017,23 @@ function settingsPayments() {
 }
 
 function settingsShipping() {
-  return settingsPage("Store details", "Shipping", "Configure shipping fee, free shipping and processing time.", `
+  return settingsPage("Store details", "Shipping", "Configure shipping fee, free shipping and Shiprocket integration.", `
     <form class="settings-body stack" onsubmit="saveStoreSettings(event, 'shipping')">
       <div class="settings-grid">
         <label>Standard shipping fee<input id="shippingFee" type="number" min="0" step="1" value="${Number(settings.shipping.standardFee || 0)}"></label>
         <label>Free shipping above<input id="shippingThreshold" type="number" min="0" step="1" value="${Number(settings.shipping.freeShippingThreshold || 0)}"></label>
         <label>Processing days<input id="shippingDays" type="number" min="0" step="1" value="${Number(settings.shipping.processingDays || 0)}"></label>
         <label>Shipping zones<input id="shippingZones" value="${escapeAttribute(settings.shipping.shippingZones || "India")}"></label>
+      </div>
+      <div class="settings-head" style="margin-top:20px;">
+        <div>
+          <h2>Shiprocket Integration</h2>
+          <p class="subtle">Automate your shipping process with Shiprocket.</p>
+        </div>
+      </div>
+      <div class="settings-grid">
+        <label class="check-row"><input id="shiprocketEnabled" type="checkbox" ${settings.shipping.shiprocketEnabled ? "checked" : ""}> Enable Shiprocket</label>
+        <label>Pickup Location Name<input id="shiprocketPickup" value="${escapeAttribute(settings.shipping.shiprocketPickupLocation || "Primary")}" placeholder="e.g. Primary"></label>
       </div>
       <button class="primary-button" type="submit">Save shipping settings</button>
       <p id="settingsMessage" class="form-message"></p>
@@ -1143,7 +1158,16 @@ function productEditorPanel(product = null) {
         </label>
         <label>Badge<input id="productBadge" value="${escapeAttribute(product?.badge || "")}"></label>
       </div>
-      <label>Image path<input id="productImage" placeholder="assets/breathe-classic-ai.png" value="${escapeAttribute(product?.image || "")}"></label>
+      <div class="form-group" style="margin-top:10px;">
+        <label>Product Media (4 Images + 1 Video)</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <label style="font-size:10px;">1. Front Image<input id="productImage" placeholder="assets/image-1.png" value="${escapeAttribute(product?.image || "")}"></label>
+          <label style="font-size:10px;">2. Second Image<input id="productImg2" placeholder="assets/image-2.png" value="${escapeAttribute(product?.galleryImages?.[0] || "")}"></label>
+          <label style="font-size:10px;">3. Third Image<input id="productImg3" placeholder="assets/image-3.png" value="${escapeAttribute(product?.galleryImages?.[1] || "")}"></label>
+          <label style="font-size:10px;">4. Fourth Image<input id="productImg4" placeholder="assets/image-4.png" value="${escapeAttribute(product?.galleryImages?.[2] || "")}"></label>
+          <label style="font-size:10px; grid-column: span 2;">5. Video URL<input id="productVideo" placeholder="YouTube / MP4 URL" value="${escapeAttribute(product?.videoUrl || "")}"></label>
+        </div>
+      </div>
       <div class="form-grid">
         <label>Weight<input id="productWeight" placeholder="40 g" value="${escapeAttribute(product?.weight || "")}"></label>
         <label>Cocoa<input id="productCocoa" placeholder="55% dark cocoa" value="${escapeAttribute(product?.cocoa || "")}"></label>
@@ -1549,18 +1573,30 @@ function orderDetailPanel(order) {
           <h3>Logistics</h3>
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
             <label>Tracking ID
-              <input type="text" class="form-input" style="width:100%; margin-top:5px;" 
+              <input type="text" id="sr-tracking-id" class="form-input" style="width:100%; margin-top:5px;" 
                 value="${escapeAttribute(order.trackingNumber || "")}" 
                 onblur="updateOrderStatus('${escapeAttribute(order._id)}', 'trackingNumber', this.value)" 
                 placeholder="e.g. IH789012">
             </label>
             <label>Tracking Link
-              <input type="url" class="form-input" style="width:100%; margin-top:5px;" 
+              <input type="url" id="sr-tracking-link" class="form-input" style="width:100%; margin-top:5px;" 
                 value="${escapeAttribute(order.trackingLink || "")}" 
                 onblur="updateOrderStatus('${escapeAttribute(order._id)}', 'trackingLink', this.value)" 
                 placeholder="https://courier.com/track">
             </label>
           </div>
+          ${settings.shipping.shiprocketEnabled && order.status === 'paid' && !order.trackingNumber ? `
+            <div style="margin-top:15px;">
+              <button class="primary-button" onclick="createShiprocketShipment('${escapeAttribute(order._id)}')" style="width:100%;">🚀 Push to Shiprocket</button>
+            </div>
+          ` : ''}
+          ${order.trackingNumber ? `
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px;">
+              <button class="outline-button" onclick="trackShiprocketShipment('${escapeAttribute(order.trackingNumber)}')" style="font-size:11px;">📍 Track</button>
+              <button class="outline-button" onclick="downloadShiprocketLabel('${escapeAttribute(order.trackingNumber)}')" style="font-size:11px;">🏷️ Label</button>
+              <button class="outline-button" onclick="downloadShiprocketInvoice('${escapeAttribute(order._id)}')" style="font-size:11px; grid-column: span 2;">📄 Download Invoice</button>
+            </div>
+          ` : ''}
         </section>
         <section class="detail-section">
           <h3>Customer</h3>
@@ -1659,58 +1695,87 @@ function usersTable(items) {
 }
 
 function customerRows() {
+  const byId = new Map();
+  const byPhone = new Map();
   const byEmail = new Map();
+  const rows = [];
+
   users.forEach(user => {
-    if (!user.email) return;
-    byEmail.set(user.email, {
-      email: user.email,
-      name: user.name || "",
+    const row = {
+      id: user._id,
+      email: user.email || "",
+      phone: user.phone || "",
+      name: user.name || "Customer",
       orders: 0,
       spent: 0,
       marketing: "none",
       subscriberSince: "",
       joined: user.createdAt,
       role: user.role || "user"
-    });
+    };
+    byId.set(user._id, row);
+    if (user.phone) byPhone.set(user.phone, row);
+    if (user.email) byEmail.set(user.email, row);
+    rows.push(row);
   });
 
   orders.forEach(order => {
-    const email = order.customerEmail || order.user?.email;
-    if (!email) return;
-    const row = byEmail.get(email) || {
-      email,
-      name: order.customerName || order.user?.name || "",
-      orders: 0,
-      spent: 0,
-      marketing: "none",
-      subscriberSince: "",
-      joined: order.createdAt,
-      role: "customer"
-    };
+    let row;
+    if (order.user) {
+      const userId = order.user._id || order.user;
+      row = byId.get(userId);
+    }
+    
+    if (!row && order.customerPhone) row = byPhone.get(order.customerPhone);
+    if (!row && order.customerEmail) row = byEmail.get(order.customerEmail);
+
+    if (!row) {
+      row = {
+        id: "guest_" + order._id,
+        email: order.customerEmail || "",
+        phone: order.customerPhone || "",
+        name: order.customerName || "Guest",
+        orders: 0,
+        spent: 0,
+        marketing: "none",
+        subscriberSince: "",
+        joined: order.createdAt,
+        role: "guest"
+      };
+      if (order.customerPhone) byPhone.set(order.customerPhone, row);
+      if (order.customerEmail) byEmail.set(order.customerEmail, row);
+      rows.push(row);
+    }
+
     row.orders += 1;
     row.spent += Number(order.total || 0);
     if (!row.joined || new Date(order.createdAt || 0) < new Date(row.joined || 0)) row.joined = order.createdAt;
-    byEmail.set(email, row);
   });
 
   newsletterSubscriptions.forEach(item => {
     if (!item.email) return;
-    const row = byEmail.get(item.email) || {
-      email: item.email,
-      name: "",
-      orders: 0,
-      spent: 0,
-      marketing: "none",
-      subscriberSince: "",
-      joined: item.createdAt,
-      role: "subscriber"
-    };
+    let row = byEmail.get(item.email);
+    if (!row) {
+      row = {
+        id: "news_" + item._id,
+        email: item.email,
+        phone: "",
+        name: "Subscriber",
+        orders: 0,
+        spent: 0,
+        marketing: "none",
+        subscriberSince: "",
+        joined: item.createdAt,
+        role: "subscriber"
+      };
+      byEmail.set(item.email, row);
+      rows.push(row);
+    }
     row.marketing = item.status || "subscribed";
     row.subscriberSince = item.createdAt;
-    byEmail.set(item.email, row);
   });
 
-  return [...byEmail.values()].sort((a, b) => Number(b.spent || 0) - Number(a.spent || 0));
+  return rows.sort((a, b) => b.spent - a.spent);
 }
 
 function customersTable(rows) {
@@ -1846,6 +1911,8 @@ async function saveProduct(event) {
     category: valueOf("productCategory"),
     badge: valueOf("productBadge"),
     image: valueOf("productImage"),
+    galleryImages: [valueOf("productImg2"), valueOf("productImg3"), valueOf("productImg4")].filter(Boolean),
+    videoUrl: valueOf("productVideo"),
     weight: valueOf("productWeight"),
     cocoa: valueOf("productCocoa"),
     wellnessNote: valueOf("productWellness"),
@@ -2239,7 +2306,9 @@ async function saveStoreSettings(event, section) {
         standardFee: numberOf("shippingFee"),
         freeShippingThreshold: numberOf("shippingThreshold"),
         processingDays: numberOf("shippingDays"),
-        shippingZones: valueOf("shippingZones")
+        shippingZones: valueOf("shippingZones"),
+        shiprocketEnabled: checkedOf("shiprocketEnabled"),
+        shiprocketPickupLocation: valueOf("shiprocketPickup")
       }
     };
   }
@@ -2761,4 +2830,74 @@ function showToast(message) {
   toast.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+}
+async function saveShiprocketConfig(event) {
+  event.preventDefault();
+  const msg = document.getElementById("shipping-save-msg");
+  msg.textContent = "Saving...";
+  msg.style.color = "var(--text2)";
+
+  try {
+    const payload = {
+      shipping: {
+        ...settings.shipping,
+        shiprocketEnabled: document.getElementById("sr-enabled").checked,
+        shiprocketAutoSync: document.getElementById("sr-autosync").checked,
+        shiprocketPickupLocation: document.getElementById("sr-pickup").value
+      }
+    };
+
+    await apiFetch("/admin/settings", {
+      method: "PUT",
+      body: payload
+    });
+
+    settings = deepMerge(settings, payload);
+    msg.textContent = "Saved successfully!";
+    msg.style.color = "var(--green-light)";
+    showToast("Shiprocket settings updated.");
+  } catch (error) {
+    msg.textContent = "Failed to save.";
+    msg.style.color = "var(--red)";
+    showToast(error.message, "error");
+  }
+}
+
+function loadShiprocketConfig() {
+  const sr = settings.shipping || {};
+  const enabled = document.getElementById("sr-enabled");
+  const auto = document.getElementById("sr-autosync");
+  const pickup = document.getElementById("sr-pickup");
+
+  if (enabled) enabled.checked = !!sr.shiprocketEnabled;
+  if (auto) auto.checked = !!sr.shiprocketAutoSync;
+  if (pickup) pickup.value = sr.shiprocketPickupLocation || "Primary";
+}
+
+async function downloadShiprocketLabel(shipmentId) {
+  try {
+    showToast("Generating label...");
+    const data = await apiFetch(`/admin/shipments/label/${shipmentId}`);
+    if (data.label_created === 1 && data.label_url) {
+      window.open(data.label_url, "_blank");
+    } else {
+      throw new Error(data.message || "Label not available yet.");
+    }
+  } catch (error) {
+    showToast(error.message, "error");
+  }
+}
+
+async function downloadShiprocketInvoice(orderId) {
+  try {
+    showToast("Generating invoice...");
+    const data = await apiFetch(`/admin/shipments/invoice/${orderId}`);
+    if (data.is_invoice_created && data.invoice_url) {
+      window.open(data.invoice_url, "_blank");
+    } else {
+      throw new Error(data.message || "Invoice not available yet.");
+    }
+  } catch (error) {
+    showToast(error.message, "error");
+  }
 }

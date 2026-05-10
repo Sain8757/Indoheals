@@ -145,14 +145,10 @@ router.delete("/:id", requireAuth, requireAdmin, async (req, res, next) => {
       return res.status(503).json({ message: "Database is not connected." });
     }
 
-    const product = await Product.findOneAndUpdate(
-      productQuery(req.params.id),
-      { isActive: false },
-      { new: true }
-    );
+    const product = await Product.findOneAndDelete(productQuery(req.params.id));
     if (!product) return res.status(404).json({ message: "Product not found." });
 
-    return res.json({ message: "Product deleted.", product });
+    return res.json({ message: "Product permanently deleted.", product });
   } catch (error) {
     return next(error);
   }
@@ -189,9 +185,9 @@ router.get("/:id/reviews", async (req, res, next) => {
     const product = await Product.findOne(productQuery(req.params.id));
     if (!product) return res.status(404).json({ message: "Product not found" });
 
-    const reviews = await ProductReview.find({ 
-      product: product._id, 
-      status: "published" 
+    const reviews = await ProductReview.find({
+      product: product._id,
+      status: "published"
     }).sort({ createdAt: -1 });
 
     return res.json(reviews);
@@ -206,7 +202,7 @@ router.post("/:id/reviews", requireAuth, async (req, res, next) => {
     if (!product) return res.status(404).json({ message: "Product not found" });
 
     const { rating, comment, images, video } = req.body;
-    
+
     const review = await ProductReview.create({
       product: product._id,
       productName: product.name,

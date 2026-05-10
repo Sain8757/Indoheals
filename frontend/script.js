@@ -31,7 +31,31 @@ firebase.initializeApp(firebaseConfig);
 const firebaseAuth = firebase.auth();
 let confirmationResult = null;
 
-const PRODUCT_IMAGE = "/assets/breathe-classic-ai.png";
+const PRODUCT_IMAGE = "assets/breathe-classic-ai.png";
+
+// Backend URL — used to prefix upload paths when frontend runs on a different port
+const BACKEND_URL = (() => {
+  const port = window.location.port;
+  // If we're running on a different port than backend (3000, 5500, etc), prefix uploads with backend URL
+  if (["3000","5500","5501","5173"].includes(port) || !port) {
+    return "http://localhost:12345";
+  }
+  // If serving from backend port itself, use same origin
+  return window.location.origin;
+})();
+
+function fixImagePath(path) {
+  if (!path) return PRODUCT_IMAGE;
+  // Already a full URL — return as-is
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  // Uploaded file — prefix with backend URL
+  if (path.startsWith("assets/uploads/") || path.startsWith("/assets/uploads/")) {
+    return BACKEND_URL + "/" + path.replace(/^\//, "");
+  }
+  // Local asset
+  if (path.startsWith("/")) return path.replace(/^\//, "");
+  return path;
+}
 const FALLBACK_PRODUCTS = [
   {
     name: "Breathe Classic",
@@ -153,19 +177,19 @@ function bindPincodeAutofill() {
       try {
         const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
         const data = await response.json();
-        
+
         if (data && data[0] && data[0].Status === "Success") {
           const postOffice = data[0].PostOffice[0];
           const cityInput = document.getElementById("checkout-city");
           const stateInput = document.getElementById("checkout-state");
-          
+
           if (cityInput && postOffice.District) {
             cityInput.value = postOffice.District;
           }
           if (stateInput && postOffice.State) {
             stateInput.value = postOffice.State;
           }
-          
+
           showToast(`Address fetched for ${pin}`);
         } else {
           showToast("Invalid PIN code. Please enter manually.");
@@ -181,7 +205,8 @@ function initRouter() {
   const path = window.location.pathname.replace(/^\/|\/$/g, "") || "home";
   const validPages = [
     "home", "products", "shop", "news", "contact", "cart", "account", "about", "product-detail",
-    "products/foods", "products/allopathy", "products/unani", "products/ayurveda"
+    "products/foods", "products/allopathy", "products/unani", "products/ayurveda",
+    "careers", "resources"
   ];
   const page = validPages.includes(path) ? path : "home";
 
@@ -450,7 +475,7 @@ async function loadProducts(category = "", containerId = "products", force = fal
 function updateFooterProducts() {
   const footerProductsList = document.getElementById("footer-products-list");
   if (!footerProductsList) return;
-  
+
   const productsToRender = (allProducts.length ? allProducts : FALLBACK_PRODUCTS).slice(0, 4);
   footerProductsList.innerHTML = productsToRender.map(p => `
     <li><a onclick="goToPage('product-detail', false, { productSlug: '${p.slug}' })">${escapeHtml(p.name)}</a></li>
@@ -467,7 +492,7 @@ function renderSignatureProducts() {
 
   const productsToRender = (allProducts.length ? allProducts : FALLBACK_PRODUCTS).slice(0, 4);
   console.log("Products to render:", productsToRender);
-  
+
   const colorClasses = ["green", "blue", "red", "orange"];
 
   if (productsToRender.length === 0) {
@@ -477,7 +502,7 @@ function renderSignatureProducts() {
 
   container.innerHTML = productsToRender.map((product, index) => {
     const productId = escapeAttribute(product._id || product.id || product.slug);
-    const image = escapeAttribute(product.image || PRODUCT_IMAGE);
+    const image = escapeAttribute(fixImagePath(product.image || PRODUCT_IMAGE));
     const colorClass = colorClasses[index % colorClasses.length];
 
     return `
@@ -521,7 +546,7 @@ function displayProducts(products, containerId = "products") {
 
 function productCardTemplate(product) {
   const productId = escapeAttribute(product._id || product.id || product.slug);
-  const image = escapeAttribute(product.image || PRODUCT_IMAGE);
+  const image = escapeAttribute(fixImagePath(product.image || PRODUCT_IMAGE));
   const ingredients = Array.isArray(product.ingredients) ? product.ingredients : [];
   const mrp = productMrp(product);
   const discount = productDiscountPercent(product);
@@ -557,7 +582,10 @@ function productCardTemplate(product) {
 }
 
 function productMediaImages(product) {
-  const images = [product.image, ...(Array.isArray(product.galleryImages) ? product.galleryImages : [])]
+  const images = [
+    fixImagePath(product.image),
+    ...(Array.isArray(product.galleryImages) ? product.galleryImages.map(fixImagePath) : [])
+  ]
     .filter(Boolean)
     .map(String);
   return [...new Set(images)].length ? [...new Set(images)] : [PRODUCT_IMAGE];
@@ -894,7 +922,7 @@ async function addToCart(productId) {
       id: cartId,
       name: product.name,
       price: product.price,
-      image: product.image || PRODUCT_IMAGE,
+      image: fixImagePath(product.image || PRODUCT_IMAGE),
       quantity: 1
     });
   }
@@ -1024,15 +1052,15 @@ async function checkout() {
   goToPage("checkout");
 }
 
-window.toggleAddressForm = function(show, isAddNew = false) {
+window.toggleAddressForm = function (show, isAddNew = false) {
   const container = document.getElementById("checkout-form-container");
   const cardsContainer = document.getElementById("saved-addresses-container");
   const backBtn = document.getElementById("back-to-addresses");
-  
+
   if (container) {
     container.style.display = show ? "block" : "none";
   }
-  
+
   if (show) {
     if (isAddNew) {
       // Hide cards and show back button (only if they have addresses to go back to)
@@ -1042,7 +1070,7 @@ window.toggleAddressForm = function(show, isAddNew = false) {
         const hasVisibleCards = cardsContainer && cardsContainer.children.length > 1; // >1 because the "add new" card is a child
         backBtn.style.display = hasVisibleCards ? "block" : "none";
       }
-      
+
       // Clear fields and selection
       document.querySelectorAll('.checkout-address-card').forEach(card => card.classList.remove('selected'));
       const a1 = document.getElementById("checkout-address1");
@@ -1062,12 +1090,12 @@ window.toggleAddressForm = function(show, isAddNew = false) {
   }
 };
 
-window.cancelAddressForm = function() {
+window.cancelAddressForm = function () {
   const cardsContainer = document.getElementById("saved-addresses-container");
   if (cardsContainer && cardsContainer.children.length > 0) {
     // We have saved addresses, so re-show them and auto-select the first visible one
     cardsContainer.style.display = "flex";
-    
+
     // Find the first card's onclick to trigger it
     const firstCard = cardsContainer.querySelector('.checkout-address-card:not(.add-new-card)');
     if (firstCard) {
@@ -1078,20 +1106,20 @@ window.cancelAddressForm = function() {
   }
 };
 
-window.editAddress = function(index) {
+window.editAddress = function (index) {
   window.selectSavedAddress(index, true);
 };
 
-window.selectSavedAddress = function(index, forceShowForm = false) {
+window.selectSavedAddress = function (index, forceShowForm = false) {
   if (!auth.user?.addresses || !auth.user.addresses[index]) return;
   const addr = auth.user.addresses[index];
-  
+
   const a1 = document.getElementById("checkout-address1");
   const a2 = document.getElementById("checkout-address2");
   const city = document.getElementById("checkout-city");
   const state = document.getElementById("checkout-state");
   const pin = document.getElementById("checkout-postal");
-  
+
   if (a1) a1.value = addr.addressLine1 || "";
   if (a2) a2.value = addr.addressLine2 || "";
   if (city) city.value = addr.city || "";
@@ -1128,18 +1156,22 @@ function renderCheckout() {
   const phoneInput = document.getElementById("checkout-phone");
   const emailInput = document.getElementById("checkout-email");
   if (nameInput && !nameInput.value) nameInput.value = auth.user?.name || "";
-  if (phoneInput && !phoneInput.value) phoneInput.value = auth.user?.phone || "";
+  if (phoneInput && !phoneInput.value) {
+    let p = auth.user?.phone || "";
+    if (p.startsWith("+91")) p = p.slice(3);
+    phoneInput.value = p;
+  }
   if (emailInput) emailInput.value = auth.user?.email || "";
 
   // Render Saved Addresses Cards
   const addressesContainer = document.getElementById("saved-addresses-container");
   const targetPincode = globalLocation?.pincode || "";
-  
+
   let displayAddresses = [];
   if (auth.user?.addresses && auth.user.addresses.length > 0) {
     // Map to keep track of the original index in auth.user.addresses
     const allAddresses = auth.user.addresses.map((addr, idx) => ({ ...addr, originalIndex: idx }));
-    
+
     if (targetPincode) {
       // Only show addresses that match the target pincode
       displayAddresses = allAddresses.filter(a => a.postalCode === targetPincode);
@@ -1151,7 +1183,7 @@ function renderCheckout() {
 
   if (addressesContainer && displayAddresses.length > 0) {
     addressesContainer.style.display = "flex";
-    
+
     let html = displayAddresses.map((addr, index) => `
       <div class="checkout-address-card ${index === 0 ? 'selected' : ''}" onclick="selectSavedAddress(${addr.originalIndex})">
         <button type="button" class="checkout-address-card-edit" onclick="event.stopPropagation(); editAddress(${addr.originalIndex})">
@@ -1176,22 +1208,22 @@ function renderCheckout() {
     `;
 
     addressesContainer.innerHTML = html;
-    
+
     // Auto-select the first visible address (which hides the form)
     window.selectSavedAddress(displayAddresses[0].originalIndex);
-    
+
   } else {
     // No matching addresses to show (new pincode)
     if (addressesContainer) {
       addressesContainer.style.display = "none";
     }
-    
+
     // Clear the form fields so the user can enter the new address
     const a1 = document.getElementById("checkout-address1");
     const a2 = document.getElementById("checkout-address2");
     if (a1) a1.value = "";
     if (a2) a2.value = "";
-    
+
     // Ensure form is visible
     window.toggleAddressForm(true);
 
@@ -1351,9 +1383,14 @@ async function applyCoupon() {
 }
 
 function checkoutShippingAddress() {
+  let phone = document.getElementById("checkout-phone").value.trim();
+  if (phone.length === 10 && !phone.startsWith("+")) {
+    phone = "+91" + phone;
+  }
+
   return {
     fullName: document.getElementById("checkout-name").value.trim(),
-    phone: document.getElementById("checkout-phone").value.trim(),
+    phone: phone,
     addressLine1: document.getElementById("checkout-address1").value.trim(),
     addressLine2: document.getElementById("checkout-address2").value.trim(),
     city: document.getElementById("checkout-city").value.trim(),
@@ -1543,9 +1580,9 @@ async function handleGoogleAuth() {
     // Send Google token to our backend for verification and user session creation
     const data = await apiFetch("/auth/firebase-auth", {
       method: "POST",
-      body: { 
+      body: {
         idToken: idToken,
-        name: result.user.displayName 
+        name: result.user.displayName
       }
     });
 
@@ -1555,7 +1592,7 @@ async function handleGoogleAuth() {
   } catch (error) {
     console.error("Google Auth error:", error);
     let errorMsg = "Google login failed. Please try again.";
-    
+
     // Handle specific Firebase errors
     if (error.code === 'auth/popup-closed-by-user') {
       errorMsg = "Login was cancelled.";
@@ -1657,7 +1694,7 @@ function resetRecaptcha() {
       window.recaptchaVerifier.clear();
       window.recaptchaVerifier = null;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // Clear the container DOM
   const container = document.getElementById("recaptcha-container");
@@ -1679,15 +1716,15 @@ function getRecaptchaVerifier() {
 function firebaseErrorMessage(error) {
   const code = error?.code || "";
   const messages = {
-    "auth/invalid-phone-number":    "Invalid phone number. Please use format: +91 9876543210",
-    "auth/too-many-requests":       "Too many attempts. Please wait a few minutes before trying again.",
+    "auth/invalid-phone-number": "Invalid phone number. Please use format: +91 9876543210",
+    "auth/too-many-requests": "Too many attempts. Please wait a few minutes before trying again.",
     "auth/invalid-verification-code": "Incorrect OTP. Please check and try again.",
-    "auth/code-expired":            "OTP has expired. Please click Resend OTP.",
-    "auth/session-expired":         "Session expired. Please click Resend OTP.",
-    "auth/quota-exceeded":          "SMS quota exceeded. Please try again later or contact support.",
-    "auth/network-request-failed":  "Network error. Please check your internet connection.",
-    "auth/captcha-check-failed":    "reCAPTCHA check failed. Please refresh the page and try again.",
-    "auth/missing-phone-number":    "Please enter a phone number."
+    "auth/code-expired": "OTP has expired. Please click Resend OTP.",
+    "auth/session-expired": "Session expired. Please click Resend OTP.",
+    "auth/quota-exceeded": "SMS quota exceeded. Please try again later or contact support.",
+    "auth/network-request-failed": "Network error. Please check your internet connection.",
+    "auth/captcha-check-failed": "reCAPTCHA check failed. Please refresh the page and try again.",
+    "auth/missing-phone-number": "Please enter a phone number."
   };
   return messages[code] || error?.message || "An unexpected error occurred. Please try again.";
 }
@@ -1699,10 +1736,14 @@ async function handleSignup(event) {
   setFormMessage("signupMessage", "");
   setFormMessage("signupOtpMessage", "");
 
-  const name     = document.getElementById("name").value.trim();
-  const email    = document.getElementById("signup-email").value.trim();
-  const phone    = document.getElementById("signup-phone").value.trim();
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("signup-email").value.trim();
+  let phone = document.getElementById("signup-phone").value.trim();
   const password = document.getElementById("signup-password").value;
+
+  if (phone.length === 10 && !phone.startsWith("+")) {
+    phone = "+91" + phone;
+  }
 
   // Basic phone format validation
   if (!phone.startsWith("+")) {
@@ -1748,7 +1789,7 @@ async function handleSignupOtp(event) {
   if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Verifying..."; }
 
   try {
-    const result  = await confirmationResult.confirm(code);
+    const result = await confirmationResult.confirm(code);
     const idToken = await result.user.getIdToken();
 
     // Stop timers
@@ -1762,7 +1803,7 @@ async function handleSignupOtp(event) {
     });
 
     saveAuth(data);
-    pendingSignup    = null;
+    pendingSignup = null;
     confirmationResult = null;
     resetRecaptcha();
 
@@ -1813,13 +1854,13 @@ async function resendSignupOtp() {
 }
 
 function showSignupOtpStep(phone, message) {
-  const signupForm    = document.getElementById("signupForm");
-  const otpForm       = document.getElementById("signupOtpForm");
+  const signupForm = document.getElementById("signupForm");
+  const otpForm = document.getElementById("signupOtpForm");
   const otpPhoneDisplay = document.getElementById("signupOtpPhone");
-  const otpInput      = document.getElementById("signup-otp");
+  const otpInput = document.getElementById("signup-otp");
 
   if (signupForm) signupForm.hidden = true;
-  if (otpForm)    otpForm.hidden    = false;
+  if (otpForm) otpForm.hidden = false;
   if (otpPhoneDisplay) otpPhoneDisplay.textContent = phone;
 
   if (otpInput) {
@@ -1836,23 +1877,23 @@ function showSignupOtpStep(phone, message) {
 
 function editSignupDetails(options = {}) {
   const signupForm = document.getElementById("signupForm");
-  const otpForm    = document.getElementById("signupOtpForm");
+  const otpForm = document.getElementById("signupOtpForm");
 
   if (signupForm) signupForm.hidden = false;
-  if (otpForm)    otpForm.hidden    = true;
+  if (otpForm) otpForm.hidden = true;
 
   // Stop timers when going back
   clearInterval(otpCountdownInterval);
   clearInterval(resendCooldownInterval);
 
   // Reset resend button state
-  const resendBtn    = document.getElementById("resendOtpBtn");
-  const cooldownMsg  = document.getElementById("resendCooldownMsg");
-  if (resendBtn)   resendBtn.style.display   = "";
+  const resendBtn = document.getElementById("resendOtpBtn");
+  const cooldownMsg = document.getElementById("resendCooldownMsg");
+  if (resendBtn) resendBtn.style.display = "";
   if (cooldownMsg) cooldownMsg.style.display = "none";
 
   if (!options.keepMessage) {
-    setFormMessage("signupMessage",    "");
+    setFormMessage("signupMessage", "");
     setFormMessage("signupOtpMessage", "");
   }
 }
@@ -1977,7 +2018,7 @@ async function syncCartAfterLogin() {
         id: String(item.productId || item.product || item.id),
         name: item.name,
         price: item.price,
-        image: item.image || PRODUCT_IMAGE,
+        image: fixImagePath(item.image || PRODUCT_IMAGE),
         quantity: item.quantity
       }));
       saveCart();
@@ -2471,7 +2512,7 @@ async function saveAddresses(arr) {
         label: addr.label || "Home"
       }));
 
-      await apiFetch("/auth/profile", {
+      await apiFetch("/auth/me", {
         method: "PUT",
         body: { addresses: dbAddresses }
       });
@@ -2524,7 +2565,9 @@ function showAddressForm(editIndex = "") {
     const addr = getSavedAddresses()[Number(editIndex)];
     if (addr) {
       document.getElementById("addr-name").value = addr.name || "";
-      document.getElementById("addr-phone").value = addr.phone || "";
+      let pValue = addr.phone || "";
+      if (pValue.startsWith("+91")) pValue = pValue.slice(3);
+      document.getElementById("addr-phone").value = pValue;
       document.getElementById("addr-line1").value = addr.line1 || "";
       document.getElementById("addr-line2").value = addr.line2 || "";
       document.getElementById("addr-city").value = addr.city || "";
@@ -2564,9 +2607,15 @@ function deleteAddress(index) {
 function saveAddress(event) {
   event.preventDefault();
   const idx = document.getElementById("addr-edit-index").value;
+
+  let phone = document.getElementById("addr-phone").value.trim();
+  if (phone.length === 10 && !phone.startsWith("+")) {
+    phone = "+91" + phone;
+  }
+
   const newAddr = {
     name: document.getElementById("addr-name").value.trim(),
-    phone: document.getElementById("addr-phone").value.trim(),
+    phone: phone,
     line1: document.getElementById("addr-line1").value.trim(),
     line2: document.getElementById("addr-line2").value.trim(),
     city: document.getElementById("addr-city").value.trim(),
@@ -2616,6 +2665,17 @@ function toggleBusinessForm() {
     }
   }
 }
+
+window.deleteSavedCard = function (last4) {
+  if (!confirm("Remove this card from your saved cards?")) return;
+  const hiddenCards = JSON.parse(localStorage.getItem("hiddenCards") || "[]");
+  if (!hiddenCards.includes(last4)) {
+    hiddenCards.push(last4);
+    localStorage.setItem("hiddenCards", JSON.stringify(hiddenCards));
+  }
+  loadAccountOrders();
+  showToast("Card removed.");
+};
 
 async function loadAccountOrders() {
   const list = document.getElementById("accountOrdersList");
@@ -2668,10 +2728,14 @@ async function loadAccountOrders() {
     // Extract Payment Methods for Cards and UPI tabs
     const cards = [];
     const upis = [];
+    const hiddenCards = JSON.parse(localStorage.getItem("hiddenCards") || "[]");
+
     orders.forEach(o => {
       if (o.paymentMethod === "Card" || (o.paymentMethod === "Razorpay" && !o.paymentId?.includes("upi"))) {
         const last4 = o.paymentId ? o.paymentId.slice(-4) : "4242";
-        if (!cards.find(c => c.last4 === last4)) cards.push({ last4, brand: "Visa" });
+        if (!hiddenCards.includes(last4) && !cards.find(c => c.last4 === last4)) {
+          cards.push({ last4, brand: "Visa" });
+        }
       }
       if (o.paymentMethod === "UPI" || (o.paymentMethod === "Razorpay" && o.paymentId?.includes("upi"))) {
         const upi = o.paymentId ? `${o.paymentId.slice(0, 8)}@okaxis` : "user@upi";
@@ -2681,12 +2745,15 @@ async function loadAccountOrders() {
 
     if (cardList) {
       cardList.innerHTML = cards.length ? cards.map(c => `
-        <div class="payment-card-item" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:20px; display:flex; align-items:center; gap:20px; margin-bottom:12px;">
-          <div style="font-size:24px;">💳</div>
-          <div>
-            <strong style="color:white; display:block;">${c.brand} Card</strong>
-            <span style="color:var(--muted); font-size:14px;">**** **** **** ${c.last4}</span>
+        <div class="payment-card-item" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:20px; display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:20px;">
+            <div style="font-size:24px;">💳</div>
+            <div>
+              <strong style="color:white; display:block;">${c.brand} Card</strong>
+              <span style="color:var(--muted); font-size:14px;">**** **** **** ${c.last4}</span>
+            </div>
           </div>
+          <button onclick="deleteSavedCard('${c.last4}')" style="background:rgba(226,75,74,0.15); color:var(--red); border:1px solid rgba(226,75,74,0.3); padding:6px 16px; border-radius:999px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s;">Delete</button>
         </div>
       `).join("") : `<p style="padding:20px; color:var(--muted); text-align:center;">No saved cards found.</p>`;
     }
@@ -2787,6 +2854,54 @@ async function viewOrderDetail(id) {
         break;
     }
 
+    // Dynamic Recommendations Logic
+    const orderedProductIds = items.map(i => String(i.productId || i.product)).filter(Boolean);
+    const orderedProductNames = items.map(i => i.name);
+
+    const orderedCategories = new Set();
+    allProducts.forEach(p => {
+      if (orderedProductIds.includes(String(p._id)) || orderedProductNames.includes(p.name)) {
+        if (p.category) orderedCategories.add(p.category);
+        if (p.tags && Array.isArray(p.tags)) {
+          p.tags.forEach(t => orderedCategories.add(t));
+        }
+      }
+    });
+
+    let recommendations = allProducts.filter(p => {
+      if (orderedProductIds.includes(String(p._id)) || orderedProductNames.includes(p.name)) return false;
+      const pTags = Array.isArray(p.tags) ? p.tags : [];
+      return orderedCategories.has(p.category) || pTags.some(t => orderedCategories.has(t));
+    });
+
+    if (recommendations.length < 4) {
+      const others = allProducts.filter(p => !orderedProductIds.includes(String(p._id)) && !orderedProductNames.includes(p.name));
+      recommendations = [...recommendations, ...others];
+    }
+
+    recommendations = [...new Set(recommendations)].slice(0, 4);
+
+    let recommendationsHTML = "";
+    if (recommendations.length > 0) {
+      recommendationsHTML = `
+        <div class="od-main-card" style="padding:20px;">
+          <h4 style="color:white; font-size:14px; margin-bottom:16px;">Items that go well with this</h4>
+          <div style="display:flex; gap:16px; overflow-x:auto; padding-bottom:10px;" class="hide-scrollbar">
+            ${recommendations.map(p => {
+        const imgUrl = (p.images && p.images[0]) ? fixImagePath(p.images[0]) : (p.image ? fixImagePath(p.image) : PRODUCT_IMAGE);
+        return `
+              <div style="min-width:120px; max-width:140px; text-align:center; cursor:pointer;" onclick="goToPage('product-detail', false, { productSlug: '${p.slug}' })">
+                <img src="${imgUrl}" style="width:100%; height:120px; object-fit:cover; border-radius:8px; margin-bottom:8px;">
+                <p style="color:white; font-size:12px; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(p.name)}</p>
+                <strong style="color:var(--gold); font-size:12px;">${formatRupee(p.price)}</strong>
+              </div>
+              `;
+      }).join("")}
+          </div>
+        </div>
+      `;
+    }
+
     container.innerHTML = `
       <div class="od-myntra-container">
         <!-- PRODUCT HERO CARD -->
@@ -2882,19 +2997,7 @@ async function viewOrderDetail(id) {
           </div>
         </div>
 
-        <!-- RECOMMENDATIONS (MOCK) -->
-        <div class="od-main-card" style="padding:20px;">
-          <h4 style="color:white; font-size:14px; margin-bottom:16px;">Items that go well with this</h4>
-          <div style="display:flex; gap:16px; overflow-x:auto; padding-bottom:10px;">
-            ${Array(3).fill(0).map((_, i) => `
-              <div style="min-width:120px; text-align:center;">
-                <img src="${PRODUCT_IMAGE}" style="width:100%; height:120px; object-fit:cover; border-radius:8px; margin-bottom:8px;">
-                <p style="color:white; font-size:12px; margin-bottom:4px;">Herbal Tea</p>
-                <strong style="color:var(--gold); font-size:12px;">₹499</strong>
-              </div>
-            `).join("")}
-          </div>
-        </div>
+        ${recommendationsHTML}
 
         <!-- DELIVERY DETAILS -->
         <div class="od-main-card">
@@ -3266,17 +3369,36 @@ async function checkDelivery() {
     return;
   }
 
-  msgEl.textContent = "Checking...";
+  msgEl.textContent = "Checking Serviceability...";
   msgEl.className = "hm-pincode-msg loading";
 
   try {
-    const data = await apiFetch(`/delivery?pincode=${pincode}`);
-    if (data && data.deliverable) {
-      msgEl.innerHTML = `✅ Delivery in <strong>${data.range}</strong> to <strong>${data.locationName}</strong>`;
+    const data = await apiFetch(`/shiprocket/serviceability?pincode=${pincode}&weight=0.5&total=500&cod=1`);
+    if (data && data.status === 200 && data.data && data.data.available_courier_companies && data.data.available_courier_companies.length > 0) {
+      const couriers = data.data.available_courier_companies;
+
+      // Find courier with fastest delivery
+      const bestCourier = couriers.reduce((prev, curr) => {
+        if (!prev.etd) return curr;
+        if (!curr.etd) return prev;
+        return (new Date(curr.etd) < new Date(prev.etd)) ? curr : prev;
+      });
+
+      const codAvailable = couriers.some(c => c.cod === 1);
+
+      const etdDate = new Date(bestCourier.etd);
+      const options = { weekday: 'short', month: 'short', day: 'numeric' };
+      const formattedDate = etdDate.toLocaleDateString('en-IN', options);
+
+      msgEl.innerHTML = `✅ Delivery by <strong>${formattedDate}</strong> <br/> <small>${codAvailable ? "Cash on Delivery Available" : "Prepaid Only"}</small>`;
       msgEl.className = "hm-pincode-msg success";
       localStorage.setItem("lastPincode", pincode);
+
+      // Update global pincode
+      globalLocation = { pincode, locationName: data.data.city || "City" };
+      updateGlobalLocationUI();
     } else {
-      msgEl.textContent = "❌ Currently not deliverable to this location.";
+      msgEl.textContent = "❌ Currently not deliverable to this pincode.";
       msgEl.className = "hm-pincode-msg error";
     }
   } catch (error) {

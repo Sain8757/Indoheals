@@ -6,7 +6,7 @@
 (function () {
   "use strict";
 
-  const API_BASE = window.API_BASE || "http://localhost:5001";
+  const API_BASE = window.API_BASE || "http://localhost:12345";
   const CHAT_ENDPOINT = `${API_BASE}/api/chat/ask`;
 
   let chatOpen = false;

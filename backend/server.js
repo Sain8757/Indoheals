@@ -6,6 +6,7 @@ const rateLimit = require("express-rate-limit");
 const path = require("path");
 require("dotenv").config();
 const { initFirebase } = require("./utils/firebase");
+const { Server } = require("socket.io");
 
 initFirebase();
 
@@ -34,7 +35,7 @@ app.use(
 app.use(
   express.json({
     verify: (req, res, buf) => {
-      if (req.originalUrl === "/api/orders/webhook/razorpay") {
+      if (req.originalUrl.startsWith("/api/webhooks/")) {
         req.rawBody = buf;
       }
     }
@@ -71,6 +72,8 @@ const adminRoutes = require("./routes/adminRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const deliveryRoutes = require("./routes/deliveryRoutes");
+const shiprocketRoutes = require("./routes/shiprocketRoutes");
+const webhookRoutes = require("./routes/webhookRoutes");
 
 app.get("/api/health", (req, res) => {
   res.json({
@@ -93,6 +96,8 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/delivery", deliveryRoutes);
+app.use("/api/shiprocket", shiprocketRoutes);
+app.use("/api/webhooks", webhookRoutes);
 
 const frontendPath = path.join(__dirname, "../frontend");
 app.use(express.static(frontendPath));
@@ -146,10 +151,27 @@ const PORT = process.env.PORT || 5001;
 console.log(`Checking PORT: ${PORT}`);
 const server = app.listen(PORT, () => {
   const addr = server.address();
-  const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
+  const bind = !addr ? 'unknown' : (typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port);
   console.log(`✅ SERVER ONLINE: Listening on ${bind}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
+
+// Initialize Socket.io
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+io.on("connection", (socket) => {
+  console.log("🔌 Socket connected:", socket.id);
+  socket.on("disconnect", () => {
+    console.log("🔌 Socket disconnected:", socket.id);
+  });
+});
+
+app.locals.io = io;
 
 module.exports = { app, server };
 

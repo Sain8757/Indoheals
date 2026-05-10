@@ -28,3 +28,8 @@ backend/secure-files/*
 # User uploads
 frontend/assets/uploads/*
 !frontend/assets/uploads/.gitkeep
+
+# Temporary/Test files
+scratch/
+test_script*.js
+scratch*.js

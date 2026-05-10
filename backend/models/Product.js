@@ -46,7 +46,14 @@ const productSchema = new mongoose.Schema(
       size: Number
     },
     ingredients: [String],
-    benefits: [String]
+    benefits: [String],
+    avgRating: { type: Number, default: 0 },
+    reviewCount: { type: Number, default: 0 },
+    soldCount: { type: Number, default: 0 },
+    attributes: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
+    }
   },
   { timestamps: true }
 );

@@ -69,6 +69,18 @@ const storeSettingSchema = new mongoose.Schema(
       shippingZones: {
         type: String,
         default: "India"
+      },
+      shiprocketEnabled: {
+        type: Boolean,
+        default: false
+      },
+      shiprocketAutoSync: {
+        type: Boolean,
+        default: false
+      },
+      shiprocketPickupLocation: {
+        type: String,
+        default: "Primary"
       }
     },
     checkout: {
